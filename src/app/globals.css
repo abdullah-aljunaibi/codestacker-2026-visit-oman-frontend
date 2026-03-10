@@ -1,11 +1,13 @@
 :root {
-  --bg: #f6f2e8;
-  --ink: #15211d;
-  --muted: #4d5a54;
-  --card: #fffdf8;
-  --line: #d8cfbf;
-  --brand: #0d6e57;
-  --brand-2: #c27b2e;
+  --bg: #f5efdf;
+  --ink: #19251f;
+  --muted: #55635b;
+  --card: rgba(255, 251, 242, 0.9);
+  --line: rgba(129, 112, 77, 0.22);
+  --brand: #0b6f5b;
+  --brand-2: #bd7a2d;
+  --accent-soft: #f2dcc0;
+  --shadow-soft: 0 24px 70px rgba(41, 53, 43, 0.08);
   --shell-width: 1120px;
 }
 
@@ -92,10 +94,13 @@ a {
 .hero {
   display: grid;
   gap: 1rem;
-  padding: 1.5rem;
+  padding: 1.75rem;
   border: 1px solid var(--line);
-  border-radius: 20px;
-  background: linear-gradient(135deg, #fffef9 0%, #f3eee1 100%);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(242, 220, 192, 0.8), transparent 32%),
+    linear-gradient(135deg, rgba(255, 253, 248, 0.98) 0%, rgba(245, 237, 220, 0.92) 100%);
+  box-shadow: var(--shadow-soft);
 }
 
 .kicker {
@@ -130,7 +135,8 @@ a {
   border-radius: 999px;
   padding: 0.65rem 1rem;
   border: 1px solid var(--line);
-  background: #fff;
+  background: rgba(255, 255, 255, 0.84);
+  backdrop-filter: blur(8px);
   cursor: pointer;
   font: inherit;
 }
@@ -156,8 +162,9 @@ a {
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 20px;
   padding: 1rem;
+  box-shadow: var(--shadow-soft);
 }
 
 .cardSubtle {
@@ -276,7 +283,7 @@ a {
 }
 
 .meta {
-  background: #f4efe2;
+  background: #f4ecdd;
   border-radius: 999px;
   padding: 0.2rem 0.6rem;
   font-size: 0.8rem;
@@ -367,4 +374,322 @@ pre {
 .itineraryStop span {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.heroDiscovery,
+.catalogueHero,
+.detailHero {
+  grid-template-columns: minmax(0, 1.25fr) minmax(18rem, 0.95fr);
+  align-items: stretch;
+}
+
+.heroPanel {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.heroPanel h1,
+.sectionHeading h2 {
+  margin: 0;
+  line-height: 1.05;
+  font-size: clamp(2.2rem, 4vw, 4.4rem);
+  letter-spacing: -0.03em;
+}
+
+.sectionHeading h2 {
+  font-size: clamp(1.8rem, 2.4vw, 2.6rem);
+}
+
+.heroShowcase {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  background:
+    linear-gradient(180deg, rgba(255, 249, 240, 0.96), rgba(255, 253, 247, 0.8)),
+    rgba(255, 255, 255, 0.7);
+}
+
+.heroStatsGrid,
+.heroMiniGrid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.heroStat,
+.heroMiniGrid article {
+  display: grid;
+  gap: 0.2rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(129, 112, 77, 0.14);
+}
+
+.heroStat strong,
+.heroMiniGrid strong {
+  font-size: 1.6rem;
+}
+
+.heroFeatureList,
+.featureDeck,
+.destinationGrid,
+.relatedGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.heroFeatureItem {
+  padding: 1rem 0;
+  border-top: 1px solid rgba(129, 112, 77, 0.14);
+}
+
+.heroFeatureItem:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.heroFeatureItem h3,
+.destinationCard h2,
+.destinationCardWide h3,
+.regionCard h3,
+.spotlightCard h3 {
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  color: var(--brand);
+  font-weight: 800;
+}
+
+.sectionBlock {
+  margin-top: 1.5rem;
+}
+
+.sectionHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.sectionHeading p {
+  max-width: 40rem;
+  color: var(--muted);
+}
+
+.spotlightGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+}
+
+.spotlightCard,
+.destinationCard,
+.destinationCardWide,
+.regionCard {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+}
+
+.spotlightHeader,
+.destinationCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.spotlightLinks {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.spotlightLink,
+.relatedLink,
+.textLink {
+  text-decoration: none;
+}
+
+.spotlightLink,
+.relatedLink {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  background: rgba(250, 245, 236, 0.9);
+  border: 1px solid rgba(129, 112, 77, 0.12);
+}
+
+.spotlightLink span,
+.relatedLink span,
+.textLink {
+  color: var(--muted);
+}
+
+.featureDeck {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+}
+
+.destinationGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
+  margin-top: 1rem;
+}
+
+.destinationCardWide {
+  min-height: 100%;
+}
+
+.destinationActions {
+  margin-top: auto;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tagLink {
+  text-decoration: none;
+}
+
+.catalogueHero {
+  margin-bottom: 1rem;
+}
+
+.discoveryToolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.discoveryToolbar h2 {
+  margin: 0 0 0.5rem;
+}
+
+.filterPanel {
+  align-items: end;
+}
+
+.filterActionWide {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.catalogueSummary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.emptyStateCard {
+  margin-top: 1rem;
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.crowdMeter,
+.crowdScale {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.crowdDot {
+  width: 0.68rem;
+  height: 0.68rem;
+  border-radius: 999px;
+  background: rgba(11, 111, 91, 0.16);
+  border: 1px solid rgba(11, 111, 91, 0.12);
+}
+
+.crowdDotActive {
+  background: linear-gradient(120deg, var(--brand), #1ca285);
+  border-color: transparent;
+}
+
+.detailAside,
+.detailBodyGrid article {
+  align-content: start;
+}
+
+.detailAside h2,
+.detailBodyGrid h2 {
+  margin-top: 0;
+}
+
+.detailStat {
+  display: grid;
+  gap: 0.25rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid rgba(129, 112, 77, 0.14);
+}
+
+.detailStat:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.detailBodyGrid {
+  margin-top: 1rem;
+}
+
+.crowdLabels {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.45rem;
+}
+
+.relatedGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.plannerBanner {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-top: 1.5rem;
+  background:
+    radial-gradient(circle at top right, rgba(11, 111, 91, 0.16), transparent 28%),
+    linear-gradient(135deg, rgba(255, 251, 244, 0.98), rgba(243, 233, 213, 0.92));
+}
+
+@media (max-width: 920px) {
+  .heroDiscovery,
+  .catalogueHero,
+  .detailHero,
+  .heroStatsGrid,
+  .heroMiniGrid,
+  .plannerBanner,
+  .sectionHeading,
+  .discoveryToolbar {
+    grid-template-columns: 1fr;
+    display: grid;
+    align-items: start;
+  }
+}
+
+@media (max-width: 720px) {
+  .heroPanel h1,
+  .sectionHeading h2 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .heroStatsGrid,
+  .heroMiniGrid {
+    grid-template-columns: 1fr;
+  }
 }

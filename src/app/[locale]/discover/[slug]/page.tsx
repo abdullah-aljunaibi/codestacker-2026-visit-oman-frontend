@@ -5,13 +5,25 @@ import { SaveInterestButton } from "@/components/save-interest-button";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
+import { getFeaturedDestinations } from "@/lib/data/selectors";
 import { resolveLocale } from "@/lib/i18n/config";
 import {
+  formatDecimal,
   formatTicketCost,
   getCategoryLabel,
   getMessages,
   getMonthLabel
 } from "@/lib/i18n/messages";
+
+export function generateStaticParams() {
+  return loadDestinations().map((destination) => ({
+    slug: destination.slug
+  }));
+}
+
+function crowdDots(level: number) {
+  return Array.from({ length: 5 }, (_, index) => index < level);
+}
 
 export default async function DestinationPage({
   params
@@ -32,6 +44,10 @@ export default async function DestinationPage({
   const related = destinations.filter(
     (item) => item.regionKey === destination.regionKey && item.slug !== destination.slug
   );
+  const featuredElsewhere = getFeaturedDestinations(loadDestinations(), 3)
+    .map((item) => destinations.find((destinationItem) => destinationItem.slug === item.slug))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item))
+    .filter((item) => item.slug !== destination.slug);
 
   return (
     <main className="page">
@@ -41,50 +57,111 @@ export default async function DestinationPage({
           <Link href={`/${locale}/discover`}>{messages.common.backToDiscovery}</Link>
         </p>
 
-        <section className="detailGrid">
-          <article className="card">
+        <section className="hero detailHero">
+          <div className="heroPanel">
+            <span className="kicker">{destination.regionLabel}</span>
             <h1>{destination.name[locale]}</h1>
             <p>{destination.description[locale]}</p>
             <div className="metaList">
-              <span className="meta">{destination.regionLabel}</span>
               <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
               <span className="meta">
-                {destination.categories.map((category) => getCategoryLabel(category, locale)).join(" • ")}
+                {messages.common.duration}: {destination.recommendedDurationHours}h
               </span>
+              <span className="meta">{messages.detail.crowdLabel.replace("{value}", String(destination.crowd_level))}</span>
             </div>
-            <div className="ctaRow" style={{ marginTop: "1rem" }}>
+            <div className="ctaRow">
               <SaveInterestButton slug={destination.slug} locale={locale} />
               <Link className="pill pillPrimary" href={`/${locale}/planner?focus=${destination.slug}`}>
                 {messages.detail.sendToPlanner}
               </Link>
-              <Link className="pill" href={`/${locale}/saved`}>
-                {messages.common.viewSaved}
-              </Link>
             </div>
-          </article>
+          </div>
 
-          <aside className="card">
-            <h3>{messages.common.recommendedMonths}</h3>
-            <p>{destination.idealVisitMonths.map((month) => getMonthLabel(month, locale)).join(" / ")}</p>
-            <h3>{messages.common.duration}</h3>
-            <p>{destination.recommendedDurationHours}h</p>
+          <aside className="card detailAside">
+            <h2>{messages.detail.practicalTitle}</h2>
+
+            <div className="detailStat">
+              <span>{messages.common.recommendedMonths}</span>
+              <strong>{destination.idealVisitMonths.map((month) => getMonthLabel(month, locale)).join(" / ")}</strong>
+            </div>
+
+            <div className="detailStat">
+              <span>{messages.common.location}</span>
+              <strong>{destination.regionLabel}</strong>
+            </div>
+
+            <div className="detailStat">
+              <span>{messages.common.coordinates}</span>
+              <strong>
+                {messages.detail.coordinatesLabel
+                  .replace("{lat}", formatDecimal(destination.coordinates.lat, locale, 4))
+                  .replace("{lng}", formatDecimal(destination.coordinates.lng, locale, 4))}
+              </strong>
+            </div>
           </aside>
         </section>
 
+        <section className="detailGrid detailBodyGrid">
+          <article className="card">
+            <h2>{messages.detail.overviewTitle}</h2>
+            <p>{destination.description[locale]}</p>
+
+            <div className="tagRow">
+              {destination.categories.map((category) => (
+                <span key={`${destination.slug}-${category}`} className="meta">
+                  {getCategoryLabel(category, locale)}
+                </span>
+              ))}
+            </div>
+          </article>
+
+          <article className="card">
+            <h2>{messages.common.crowdLevel}</h2>
+            <div className="crowdScale" aria-hidden="true">
+              {crowdDots(destination.crowd_level).map((active, index) => (
+                <span key={`${destination.slug}-scale-${index + 1}`} className={active ? "crowdDot crowdDotActive" : "crowdDot"} />
+              ))}
+            </div>
+            <div className="crowdLabels">
+              <span>{messages.detail.lowCrowd}</span>
+              <span>{messages.detail.highCrowd}</span>
+            </div>
+            <p>{messages.detail.crowdLabel.replace("{value}", String(destination.crowd_level))}</p>
+
+            <h3>{messages.common.duration}</h3>
+            <p>{messages.detail.visitDurationLabel.replace("{value}", String(destination.recommendedDurationHours))}</p>
+          </article>
+        </section>
+
         <section className="card sectionCard">
-          <h3>{messages.common.relatedDestinations}</h3>
+          <h2>{messages.common.relatedDestinations}</h2>
           {related.length === 0 ? (
             <p>{messages.detail.noRelated}</p>
           ) : (
-            <ul>
+            <div className="relatedGrid">
               {related.map((item) => (
-                <li key={item.id}>
-                  <Link href={`/${locale}/discover/${item.slug}`}>{item.name[locale]}</Link>
-                </li>
+                <Link key={item.id} href={`/${locale}/discover/${item.slug}`} className="relatedLink">
+                  <strong>{item.name[locale]}</strong>
+                  <span>{item.description[locale]}</span>
+                </Link>
               ))}
-            </ul>
+            </div>
           )}
         </section>
+
+        {featuredElsewhere.length > 0 ? (
+          <section className="card sectionCard">
+            <h2>{messages.home.featuredTitle}</h2>
+            <div className="relatedGrid">
+              {featuredElsewhere.map((item) => (
+                <Link key={item.slug} href={`/${locale}/discover/${item.slug}`} className="relatedLink">
+                  <strong>{item.name[locale]}</strong>
+                  <span>{item.regionLabel}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </div>
     </main>
   );

@@ -25,6 +25,7 @@ export function SaveInterestButton({
     <button
       type="button"
       className={saved ? "pill pillSaved" : "pill"}
+      aria-pressed={saved}
       onClick={() => {
         const next = toggleSavedInterest(slug);
         setSaved(next.includes(slug));

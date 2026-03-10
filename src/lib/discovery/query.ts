@@ -3,6 +3,7 @@ import type { DatasetDestination } from "@/types/dataset";
 import {
   getByCategory,
   getByRegion,
+  getBySeason,
   getRegionKey,
   sortByCost,
   sortByCrowd
@@ -13,6 +14,7 @@ export type DiscoverySort = "crowd_asc" | "cost_asc" | "duration_asc";
 export interface DiscoveryFilters {
   region?: string;
   category?: string;
+  season?: number;
   sort?: DiscoverySort;
 }
 
@@ -28,7 +30,10 @@ export function applyDiscoveryQuery(
   destinations: DatasetDestination[],
   filters: DiscoveryFilters
 ): DatasetDestination[] {
-  const filtered = getByCategory(getByRegion(destinations, filters.region), filters.category);
+  const filtered = getBySeason(
+    getByCategory(getByRegion(destinations, filters.region), filters.category),
+    filters.season
+  );
 
   const sort = filters.sort ?? "crowd_asc";
 
@@ -50,7 +55,11 @@ export function parseDiscoveryFilters(
 ): DiscoveryFilters {
   const region = pickOne(searchParams?.region);
   const category = pickOne(searchParams?.category) ?? pickOne(searchParams?.tag);
+  const seasonRaw = pickOne(searchParams?.season);
   const sortRaw = pickOne(searchParams?.sort);
+  const seasonValue = seasonRaw ? Number(seasonRaw) : NaN;
+  const season =
+    Number.isInteger(seasonValue) && seasonValue >= 1 && seasonValue <= 12 ? seasonValue : undefined;
 
   const sort =
     sortRaw === "duration_asc" ||
@@ -59,7 +68,7 @@ export function parseDiscoveryFilters(
       ? sortRaw
       : undefined;
 
-  return { region, category, sort };
+  return { region, category, season, sort };
 }
 
 function pickOne(value?: string | string[]): string | undefined {
