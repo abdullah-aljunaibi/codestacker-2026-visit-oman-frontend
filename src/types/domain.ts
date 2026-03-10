@@ -1,13 +1,15 @@
 import type { DatasetDestination, Locale } from "@/types/dataset";
 
-export type BudgetLevel = "budget" | "moderate" | "luxury";
+export type BudgetLevel = "low" | "medium" | "luxury";
+export type TripDayCount = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type TravelIntensity = "relaxed" | "balanced" | "packed";
 
 export interface InterestProfile {
-  themes: string[];
-  tripDays: number;
-  pace: "relaxed" | "balanced" | "packed";
+  preferredCategories: string[];
+  tripDurationDays: TripDayCount;
+  travelIntensity: TravelIntensity;
   budget: BudgetLevel;
-  travelMonth?: number;
+  travelMonth: number;
 }
 
 export interface ItineraryDay {

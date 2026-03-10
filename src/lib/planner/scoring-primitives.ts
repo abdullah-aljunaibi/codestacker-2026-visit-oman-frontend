@@ -10,19 +10,24 @@ import {
   toUniqueNormalized
 } from "@/lib/planner/scoring-utils";
 
-export function scoreCategoryInterestMatch(destinationCategories: string[], preferredThemes: string[]): number {
+export function scoreCategoryInterestMatch(
+  destinationCategories: string[],
+  preferredThemes: string[]
+): number {
   const destinationSet = new Set(toUniqueNormalized(destinationCategories));
-  const themeSet = new Set(toUniqueNormalized(preferredThemes));
+  const preferredThemeSet = new Set(toUniqueNormalized(preferredThemes));
 
-  if (themeSet.size === 0) {
+  if (preferredThemeSet.size === 0) {
     return 0.5;
   }
   if (destinationSet.size === 0) {
     return 0;
   }
 
-  const overlapCount = Array.from(themeSet).filter((theme) => destinationSet.has(theme)).length;
-  return clamp01(overlapCount / themeSet.size);
+  const overlapCount = Array.from(preferredThemeSet).filter((theme) =>
+    destinationSet.has(theme)
+  ).length;
+  return clamp01(overlapCount / preferredThemeSet.size);
 }
 
 export function scoreSeasonFit(recommendedMonths: number[], travelMonth?: number): number {

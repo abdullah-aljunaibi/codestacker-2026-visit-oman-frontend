@@ -2,8 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
+import { resolveLocale } from "@/lib/i18n/config";
+import {
+  getBudgetLabel,
+  getMonthLabel,
+  getTravelIntensityLabel
+} from "@/lib/i18n/messages";
 import { readSavedInterestSlugs } from "@/lib/persistence/interests";
 import {
   defaultPlannerDraft,
@@ -11,85 +17,134 @@ import {
   readPlannerDraft,
   writePlannerDraft
 } from "@/lib/persistence/planner-draft";
-import { resolveLocale } from "@/lib/i18n/config";
-import {
-  getBudgetLabel,
-  getCategoryLabel,
-  getMessages,
-  getMonthLabel,
-  getPaceLabel
-} from "@/lib/i18n/messages";
+
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values));
+}
+
+function deriveDefaultCategories(
+  destinationOptions: Array<{ slug: string; categories: string[] }>,
+  savedSlugs: string[],
+  focusSlug?: string
+): string[] {
+  const sourceSlugs = unique([...savedSlugs, ...(focusSlug ? [focusSlug] : [])]);
+  return unique(
+    sourceSlugs.flatMap((slug) => {
+      const destination = destinationOptions.find((option) => option.slug === slug);
+      return destination?.categories ?? [];
+    })
+  );
+}
 
 export function PlannerForm({
   locale,
-  allTags,
+  categoryOptions,
   destinationOptions,
   focusSlug
 }: {
   locale: string;
-  allTags: string[];
-  destinationOptions: Array<{ slug: string; name: string }>;
+  categoryOptions: Array<{ value: string; label: string }>;
+  destinationOptions: Array<{ slug: string; name: string; categories: string[] }>;
   focusSlug?: string;
 }) {
   const normalizedLocale = resolveLocale(locale);
-  const messages = getMessages(normalizedLocale);
   const router = useRouter();
+  const copy =
+    normalizedLocale === "ar"
+      ? {
+          title: "إدخال المخطط",
+          body:
+            "اختر مدخلات الرحلة الدقيقة التي يستخدمها المخطط. مدة الرحلة والميزانية وشهر السفر وكثافة الرحلة والفئات المفضلة تؤثر مباشرة في البرنامج.",
+          savedHint:
+            "تؤثر الوجهات المحفوظة في اختيار الفئات الافتراضي، ويمكنك تعديل الفئات يدوياً في أي وقت.",
+          days: "مدة الرحلة",
+          budget: "فئة الميزانية",
+          travelIntensity: "كثافة الرحلة",
+          month: "شهر السفر",
+          categories: "الفئات المفضلة",
+          validationCategories: "اختر فئة مفضلة واحدة على الأقل.",
+          submit: "حفظ المدخلات والمتابعة",
+          savedNotice: "تم حفظ المدخلات محلياً.",
+          manageSaved: "إدارة الاهتمامات",
+          backToDiscovery: "العودة إلى الاكتشاف"
+        }
+      : {
+          title: "Planner input",
+          body:
+            "Choose the exact trip inputs used by the planner. Duration, budget, travel month, intensity, and preferred categories directly affect the itinerary.",
+          savedHint:
+            "Saved destinations shape the default category selection. You can still edit the categories manually.",
+          days: "Trip duration",
+          budget: "Budget tier",
+          travelIntensity: "Travel intensity",
+          month: "Travel month",
+          categories: "Preferred categories",
+          validationCategories: "Select at least one preferred category.",
+          submit: "Save inputs and continue",
+          savedNotice: "Inputs saved locally.",
+          manageSaved: "Manage saved interests",
+          backToDiscovery: "Back to discovery"
+        };
 
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
   const [savedNotice, setSavedNotice] = useState("");
+  const [validationMessage, setValidationMessage] = useState("");
 
   useEffect(() => {
     const persisted = readPlannerDraft();
     const savedSlugs = readSavedInterestSlugs();
-
-    const nextSelected = Array.from(
-      new Set([
-        ...persisted.selectedDestinationSlugs,
-        ...savedSlugs,
-        ...(focusSlug ? [focusSlug] : [])
-      ])
-    );
+    const derivedCategories = deriveDefaultCategories(destinationOptions, savedSlugs, focusSlug);
 
     setDraft({
       ...persisted,
-      selectedDestinationSlugs: nextSelected
+      preferredCategories:
+        persisted.preferredCategories.length > 0 ? persisted.preferredCategories : derivedCategories
     });
-  }, [focusSlug]);
-
-  const savedCount = useMemo(() => draft.selectedDestinationSlugs.length, [draft]);
+  }, [destinationOptions, focusSlug]);
 
   return (
     <section className="card">
-      <h1>{messages.plannerForm.title}</h1>
-      <p>{messages.plannerForm.body}</p>
+      <h1>{copy.title}</h1>
+      <p>{copy.body}</p>
+      <p>{copy.savedHint}</p>
 
       <form
         className="plannerForm"
         onSubmit={(event) => {
           event.preventDefault();
+
+          if (draft.preferredCategories.length === 0) {
+            setValidationMessage(copy.validationCategories);
+            return;
+          }
+
           writePlannerDraft(draft);
-          setSavedNotice(messages.plannerForm.savedNotice);
+          setValidationMessage("");
+          setSavedNotice(copy.savedNotice);
           router.push(`/${normalizedLocale}/planner/result`);
         }}
       >
         <label>
-          {messages.plannerForm.days}
-          <input
-            type="number"
-            min={1}
-            max={21}
-            value={draft.tripDays}
+          {copy.days}
+          <select
+            value={draft.tripDurationDays}
             onChange={(event) =>
               setDraft((current) => ({
                 ...current,
-                tripDays: Math.max(1, Math.min(21, Number(event.target.value || 1)))
+                tripDurationDays: Math.max(1, Math.min(7, Number(event.target.value || 1))) as PlannerDraft["tripDurationDays"]
               }))
             }
-          />
+          >
+            {Array.from({ length: 7 }, (_, index) => index + 1).map((dayCount) => (
+              <option key={dayCount} value={dayCount}>
+                {dayCount}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>
-          {messages.plannerForm.budget}
+          {copy.budget}
           <select
             value={draft.budget}
             onChange={(event) =>
@@ -99,41 +154,40 @@ export function PlannerForm({
               }))
             }
           >
-            <option value="budget">{getBudgetLabel("budget", normalizedLocale)}</option>
-            <option value="moderate">{getBudgetLabel("moderate", normalizedLocale)}</option>
+            <option value="low">{getBudgetLabel("low", normalizedLocale)}</option>
+            <option value="medium">{getBudgetLabel("medium", normalizedLocale)}</option>
             <option value="luxury">{getBudgetLabel("luxury", normalizedLocale)}</option>
           </select>
         </label>
 
         <label>
-          {messages.plannerForm.pace}
+          {copy.travelIntensity}
           <select
-            value={draft.pace}
+            value={draft.travelIntensity}
             onChange={(event) =>
               setDraft((current) => ({
                 ...current,
-                pace: event.target.value as PlannerDraft["pace"]
+                travelIntensity: event.target.value as PlannerDraft["travelIntensity"]
               }))
             }
           >
-            <option value="relaxed">{getPaceLabel("relaxed", normalizedLocale)}</option>
-            <option value="balanced">{getPaceLabel("balanced", normalizedLocale)}</option>
-            <option value="packed">{getPaceLabel("packed", normalizedLocale)}</option>
+            <option value="relaxed">{getTravelIntensityLabel("relaxed", normalizedLocale)}</option>
+            <option value="balanced">{getTravelIntensityLabel("balanced", normalizedLocale)}</option>
+            <option value="packed">{getTravelIntensityLabel("packed", normalizedLocale)}</option>
           </select>
         </label>
 
         <label>
-          {messages.plannerForm.month}
+          {copy.month}
           <select
-            value={draft.travelMonth ?? ""}
+            value={draft.travelMonth}
             onChange={(event) =>
               setDraft((current) => ({
                 ...current,
-                travelMonth: event.target.value ? Number(event.target.value) : undefined
+                travelMonth: Math.max(1, Math.min(12, Number(event.target.value || 1)))
               }))
             }
           >
-            <option value="">{messages.common.notSpecified}</option>
             {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
               <option key={month} value={month}>
                 {getMonthLabel(month, normalizedLocale)}
@@ -143,48 +197,23 @@ export function PlannerForm({
         </label>
 
         <fieldset>
-          <legend>{messages.plannerForm.themes}</legend>
+          <legend>{copy.categories}</legend>
           <div className="checkGrid">
-            {allTags.map((tag) => (
-              <label key={tag} className="checkItem">
+            {categoryOptions.map((category) => (
+              <label key={category.value} className="checkItem">
                 <input
                   type="checkbox"
-                  checked={draft.themes.includes(tag)}
+                  checked={draft.preferredCategories.includes(category.value)}
                   onChange={() =>
                     setDraft((current) => ({
                       ...current,
-                      themes: current.themes.includes(tag)
-                        ? current.themes.filter((theme) => theme !== tag)
-                        : [...current.themes, tag]
+                      preferredCategories: current.preferredCategories.includes(category.value)
+                        ? current.preferredCategories.filter((item) => item !== category.value)
+                        : [...current.preferredCategories, category.value]
                     }))
                   }
                 />
-                <span>{getCategoryLabel(tag, normalizedLocale)}</span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>
-            {messages.plannerForm.picks} ({savedCount})
-          </legend>
-          <div className="checkGrid">
-            {destinationOptions.map((destination) => (
-              <label key={destination.slug} className="checkItem">
-                <input
-                  type="checkbox"
-                  checked={draft.selectedDestinationSlugs.includes(destination.slug)}
-                  onChange={() =>
-                    setDraft((current) => ({
-                      ...current,
-                      selectedDestinationSlugs: current.selectedDestinationSlugs.includes(destination.slug)
-                        ? current.selectedDestinationSlugs.filter((slug) => slug !== destination.slug)
-                        : [...current.selectedDestinationSlugs, destination.slug]
-                    }))
-                  }
-                />
-                <span>{destination.name}</span>
+                <span>{category.label}</span>
               </label>
             ))}
           </div>
@@ -192,17 +221,18 @@ export function PlannerForm({
 
         <div className="ctaRow">
           <button className="pill pillPrimary" type="submit">
-            {messages.plannerForm.submit}
+            {copy.submit}
           </button>
           <Link className="pill" href={`/${normalizedLocale}/saved`}>
-            {messages.plannerForm.manageSaved}
+            {copy.manageSaved}
           </Link>
           <Link className="pill" href={`/${normalizedLocale}/discover`}>
-            {messages.common.backToDiscovery}
+            {copy.backToDiscovery}
           </Link>
         </div>
       </form>
 
+      {validationMessage ? <p className="listHeader">{validationMessage}</p> : null}
       {savedNotice ? <p className="listHeader">{savedNotice}</p> : null}
     </section>
   );

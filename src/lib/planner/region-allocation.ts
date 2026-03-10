@@ -164,7 +164,7 @@ export function allocateTripDaysAcrossRegions(
   handoff: PlannerPhase4CHandoff
 ): PlannerPhase5ARegionAllocation {
   const config = defaultRegionAllocationConfig;
-  const tripDays = clampInteger(handoff.profile.tripDays, 1, 30);
+  const tripDays = clampInteger(handoff.profile.tripDurationDays, 1, 7);
   const selected = handoff.routeGenerationInput.selectedCandidates;
   const regionStats = buildRegionStats(selected, config.hoursPerDay);
 

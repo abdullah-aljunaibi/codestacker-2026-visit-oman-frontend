@@ -15,12 +15,13 @@ export default async function PlannerPage({
   const locale = resolveLocale(localeParam);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const destinations = loadDestinations();
-  const allTags = getCategoryOptions(destinations, locale).map((option) => option.value);
+  const categoryOptions = getCategoryOptions(destinations, locale);
   const focusSlug = pickOne(resolvedSearchParams?.focus);
 
   const destinationOptions = destinations.map((destination) => ({
     slug: destination.slug,
-    name: destination.name[locale]
+    name: destination.name[locale],
+    categories: destination.categories
   }));
 
   return (
@@ -29,7 +30,7 @@ export default async function PlannerPage({
         <SiteHeader locale={locale} />
         <PlannerForm
           locale={locale}
-          allTags={allTags}
+          categoryOptions={categoryOptions}
           destinationOptions={destinationOptions}
           focusSlug={focusSlug}
         />

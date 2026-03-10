@@ -173,7 +173,7 @@ export function scoreDestinationWeighted(input: WeightedScoringInput): WeightedS
 
   const primitives: WeightedScorePrimitives = {
     interestMatch: clamp01(
-      scoreCategoryInterestMatch(input.destination.categories, input.profile.themes)
+      scoreCategoryInterestMatch(input.destination.categories, input.profile.preferredCategories)
     ),
     seasonFit: clamp01(scoreSeasonFit(input.destination.idealVisitMonths, input.profile.travelMonth)),
     crowdPressure: clamp01(normalizeCrowdPressure(input.destination.crowd_level)),

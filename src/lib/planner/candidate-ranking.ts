@@ -78,7 +78,7 @@ interface CandidateSelectionConfig {
   minCandidateCount: number;
   maxCandidateCount: number;
   minViableScore: number;
-  paceMultipliers: Record<InterestProfile["pace"], number>;
+  intensityMultipliers: Record<InterestProfile["pace"], number>;
 }
 
 const defaultSelectionConfig: CandidateSelectionConfig = {
@@ -86,7 +86,7 @@ const defaultSelectionConfig: CandidateSelectionConfig = {
   minCandidateCount: 3,
   maxCandidateCount: 10,
   minViableScore: 0.4,
-  paceMultipliers: {
+  intensityMultipliers: {
     relaxed: 1,
     balanced: 1.25,
     packed: 1.5
@@ -152,11 +152,11 @@ function buildPlanningContextId(input: {
     JSON.stringify({
       datasetVersion: input.datasetVersion,
       profile: {
-        themes: [...input.profile.themes].sort(),
-        tripDays: input.profile.tripDays,
-        pace: input.profile.pace,
+        preferredCategories: [...input.profile.preferredCategories].sort(),
+        tripDurationDays: input.profile.tripDurationDays,
+        travelIntensity: input.profile.travelIntensity,
         budget: input.profile.budget,
-        travelMonth: input.profile.travelMonth ?? null
+        travelMonth: input.profile.travelMonth
       },
       seedDestinationSlugs: [...input.seedDestinationSlugs].sort()
     })
@@ -197,9 +197,9 @@ export function rankCandidatesForPlanner(input: CandidateRankingInput): Candidat
       return a.destination.slug.localeCompare(b.destination.slug);
     });
 
-  const paceMultiplier = defaultSelectionConfig.paceMultipliers[input.profile.pace];
+  const paceMultiplier = defaultSelectionConfig.intensityMultipliers[input.profile.travelIntensity];
   const targetCandidateCount = clampInteger(
-    input.profile.tripDays * paceMultiplier,
+    input.profile.tripDurationDays * paceMultiplier,
     defaultSelectionConfig.minCandidateCount,
     Math.min(defaultSelectionConfig.maxCandidateCount, scored.length)
   );

@@ -1,7 +1,7 @@
 import ar from "@/lib/i18n/messages/ar.json";
 import en from "@/lib/i18n/messages/en.json";
 import type { Locale } from "@/types/dataset";
-import type { BudgetLevel, InterestProfile } from "@/types/domain";
+import type { BudgetLevel, TravelIntensity } from "@/types/domain";
 
 const dictionaries = {
   en,
@@ -33,11 +33,27 @@ export function getMonthLabel(month: number, locale: Locale): string {
 }
 
 export function getBudgetLabel(budget: BudgetLevel, locale: Locale): string {
-  return getMessages(locale).budget[budget];
+  if (locale === "ar") {
+    if (budget === "low") return "منخفضة";
+    if (budget === "medium") return "متوسطة";
+    return "فاخرة";
+  }
+
+  if (budget === "low") return "Low";
+  if (budget === "medium") return "Medium";
+  return "Luxury";
 }
 
-export function getPaceLabel(pace: InterestProfile["pace"], locale: Locale): string {
-  return getMessages(locale).pace[pace];
+export function getTravelIntensityLabel(intensity: TravelIntensity, locale: Locale): string {
+  if (locale === "ar") {
+    if (intensity === "relaxed") return "هادئة";
+    if (intensity === "balanced") return "متوازنة";
+    return "مكثفة";
+  }
+
+  if (intensity === "relaxed") return "Relaxed";
+  if (intensity === "balanced") return "Balanced";
+  return "Packed";
 }
 
 export function getSortLabel(sort: DiscoverySort, locale: Locale): string {

@@ -14,12 +14,13 @@ import {
   getBudgetLabel,
   getMessages,
   getMonthLabel,
-  getPaceLabel
+  getTravelIntensityLabel
 } from "@/lib/i18n/messages";
 import { rankCandidatesForPlanner } from "@/lib/planner/candidate-ranking";
 import { assembleFinalItinerary } from "@/lib/planner/final-itinerary";
 import { generateIntraRegionDayPlans } from "@/lib/planner/intra-region-routing";
 import { allocateTripDaysAcrossRegions } from "@/lib/planner/region-allocation";
+import { readSavedInterestSlugs } from "@/lib/persistence/interests";
 import type { PlannerDraft } from "@/lib/persistence/planner-draft";
 import { defaultPlannerDraft, readPlannerDraft } from "@/lib/persistence/planner-draft";
 
@@ -28,31 +29,49 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
   const locale = resolveLocale(localeParam);
   const messages = getMessages(locale);
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
+  const [savedInterestSlugs, setSavedInterestSlugs] = useState<string[]>([]);
   const { datasetVersion, destinations } = useMemo(() => loadDestinationsWithVersion(), []);
   const normalizedDestinations = useMemo(
     () => normalizeDestinations(destinations, locale),
     [destinations, locale]
   );
+  const summaryLabels =
+    locale === "ar"
+      ? {
+          days: "الأيام",
+          budget: "الميزانية",
+          travelIntensity: "كثافة الرحلة",
+          travelMonth: "شهر السفر",
+          categoriesSelected: "الفئات المختارة"
+        }
+      : {
+          days: "Days",
+          budget: "Budget",
+          travelIntensity: "Travel intensity",
+          travelMonth: "Travel month",
+          categoriesSelected: "Categories selected"
+        };
 
   useEffect(() => {
     setDraft(readPlannerDraft());
+    setSavedInterestSlugs(readSavedInterestSlugs());
   }, []);
 
   const ranking = useMemo(
     () =>
       rankCandidatesForPlanner({
         profile: {
-          themes: draft.themes,
-          tripDays: draft.tripDays,
-          pace: draft.pace,
+          preferredCategories: draft.preferredCategories,
+          tripDurationDays: draft.tripDurationDays,
+          travelIntensity: draft.travelIntensity,
           budget: draft.budget,
           travelMonth: draft.travelMonth
         },
         destinations: normalizedDestinations,
-        seedDestinationSlugs: draft.selectedDestinationSlugs,
+        seedDestinationSlugs: savedInterestSlugs,
         datasetVersion
       }),
-    [datasetVersion, draft, normalizedDestinations]
+    [datasetVersion, draft, normalizedDestinations, savedInterestSlugs]
   );
 
   const regionAllocation = useMemo(() => allocateTripDaysAcrossRegions(ranking.handoff), [ranking]);
@@ -86,32 +105,11 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
 
           <h2>{messages.plannerResult.inputSummary}</h2>
           <ul>
-            <li>{formatMessage(messages.plannerResult.days, { value: formatNumber(draft.tripDays, locale) })}</li>
-            <li>
-              {formatMessage(messages.plannerResult.budget, {
-                value: getBudgetLabel(draft.budget, locale)
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.pace, {
-                value: getPaceLabel(draft.pace, locale)
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.travelMonth, {
-                value: draft.travelMonth ? getMonthLabel(draft.travelMonth, locale) : messages.common.notSpecified
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.themesSelected, {
-                value: formatNumber(draft.themes.length, locale)
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.savedSeeds, {
-                value: formatNumber(draft.selectedDestinationSlugs.length, locale)
-              })}
-            </li>
+            <li>{summaryLabels.days}: {formatNumber(draft.tripDurationDays, locale)}</li>
+            <li>{summaryLabels.budget}: {getBudgetLabel(draft.budget, locale)}</li>
+            <li>{summaryLabels.travelIntensity}: {getTravelIntensityLabel(draft.travelIntensity, locale)}</li>
+            <li>{summaryLabels.travelMonth}: {getMonthLabel(draft.travelMonth, locale)}</li>
+            <li>{summaryLabels.categoriesSelected}: {formatNumber(draft.preferredCategories.length, locale)}</li>
           </ul>
 
           <h2>{messages.plannerResult.outputTitle}</h2>
