@@ -26,10 +26,10 @@ export function monthDistance(a: number, b: number): number {
 }
 
 export function budgetLevelToTargetCost(level: BudgetLevel): number {
-  if (level === "low") {
+  if (level === "budget") {
     return 5;
   }
-  if (level === "medium") {
+  if (level === "moderate") {
     return 15;
   }
   return 30;

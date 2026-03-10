@@ -4,12 +4,18 @@ function degreesToRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
 }
 
+/**
+ * Computes the great-circle distance between two latitude/longitude pairs.
+ *
+ * The Haversine formula converts the latitude and longitude deltas into the
+ * central angle between two points on a sphere:
+ * `a = sin^2(dLat / 2) + cos(lat1) * cos(lat2) * sin^2(dLng / 2)`
+ * `c = 2 * atan2(sqrt(a), sqrt(1 - a))`
+ * `distance = R * c`
+ *
+ * With `R = 6371`, the result is returned in kilometers.
+ */
 export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  // Haversine formula:
-  // a = sin²(Δφ / 2) + cos(φ1) * cos(φ2) * sin²(Δλ / 2)
-  // c = 2 * atan2(√a, √(1 - a))
-  // d = R * c
-  // where φ is latitude in radians, λ is longitude in radians, and R is the Earth's radius.
   const latitude1 = degreesToRadians(lat1);
   const latitude2 = degreesToRadians(lat2);
   const deltaLatitude = degreesToRadians(lat2 - lat1);

@@ -1,5 +1,6 @@
 import type { PlannerPhase4CHandoff, PlannerHandoffRouteCandidate } from "@/lib/planner/candidate-ranking";
-import { haversineDistance } from "@/lib/geo/haversine";
+import { buildDistanceMatrix } from "@/lib/geo/distance-matrix";
+import { nearestNeighborOrder } from "@/lib/geo/nearest-neighbor";
 import { totalRouteDistance } from "@/lib/geo/route-distance";
 import type { PlannerPhase5ARegionAllocation } from "@/lib/planner/region-allocation";
 
@@ -92,23 +93,6 @@ function compareCandidatesByPriority(a: PlannerDayCandidate, b: PlannerDayCandid
   return a.slug.localeCompare(b.slug);
 }
 
-function compareByDistanceFromCurrent(
-  current: PlannerDayCandidate,
-  a: PlannerDayCandidate,
-  b: PlannerDayCandidate
-): number {
-  const distanceA = deterministicRound(
-    haversineDistance(current.coordinates.lat, current.coordinates.lng, a.coordinates.lat, a.coordinates.lng)
-  );
-  const distanceB = deterministicRound(
-    haversineDistance(current.coordinates.lat, current.coordinates.lng, b.coordinates.lat, b.coordinates.lng)
-  );
-  if (distanceA !== distanceB) {
-    return distanceA - distanceB;
-  }
-  return compareCandidatesByPriority(a, b);
-}
-
 function computeRouteTravelKm(candidates: PlannerDayCandidate[], precision: number): number {
   return roundKm(totalRouteDistance(candidates.map((candidate) => candidate.coordinates)), precision);
 }
@@ -118,25 +102,10 @@ function orderCandidatesWithinRegion(candidates: PlannerDayCandidate[]): Planner
     return candidates.slice().sort(compareCandidatesByPriority);
   }
 
-  const remaining = candidates.slice().sort(compareCandidatesByPriority);
-  const ordered: PlannerDayCandidate[] = [];
-
-  const first = remaining.shift();
-  if (!first) {
-    return ordered;
-  }
-  ordered.push(first);
-
-  while (remaining.length > 0) {
-    const current = ordered[ordered.length - 1];
-    const next = remaining.slice().sort((a, b) => compareByDistanceFromCurrent(current, a, b))[0];
-    ordered.push(next);
-
-    const removeIndex = remaining.findIndex((item) => item.slug === next.slug && item.originalIndex === next.originalIndex);
-    remaining.splice(removeIndex, 1);
-  }
-
-  return ordered;
+  const prioritizedCandidates = candidates.slice().sort(compareCandidatesByPriority);
+  const distanceMatrix = buildDistanceMatrix(prioritizedCandidates);
+  const visitOrder = nearestNeighborOrder(distanceMatrix, 0);
+  return visitOrder.map((index) => prioritizedCandidates[index]);
 }
 
 function allocateStopsToDays(

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { resolveLocale } from "@/lib/i18n/config";
 import {
+  getMessages,
   getBudgetLabel,
   getMonthLabel,
   getTravelIntensityLabel
@@ -48,43 +49,9 @@ export function PlannerForm({
   focusSlug?: string;
 }) {
   const normalizedLocale = resolveLocale(locale);
+  const messages = getMessages(normalizedLocale);
   const router = useRouter();
-  const copy =
-    normalizedLocale === "ar"
-      ? {
-          title: "إدخال المخطط",
-          body:
-            "اختر مدخلات الرحلة الدقيقة التي يستخدمها المخطط. مدة الرحلة والميزانية وشهر السفر وكثافة الرحلة والفئات المفضلة تؤثر مباشرة في البرنامج.",
-          savedHint:
-            "تؤثر الوجهات المحفوظة في اختيار الفئات الافتراضي، ويمكنك تعديل الفئات يدوياً في أي وقت.",
-          days: "مدة الرحلة",
-          budget: "فئة الميزانية",
-          travelIntensity: "كثافة الرحلة",
-          month: "شهر السفر",
-          categories: "الفئات المفضلة",
-          validationCategories: "اختر فئة مفضلة واحدة على الأقل.",
-          submit: "حفظ المدخلات والمتابعة",
-          savedNotice: "تم حفظ المدخلات محلياً.",
-          manageSaved: "إدارة الاهتمامات",
-          backToDiscovery: "العودة إلى الاكتشاف"
-        }
-      : {
-          title: "Planner input",
-          body:
-            "Choose the exact trip inputs used by the planner. Duration, budget, travel month, intensity, and preferred categories directly affect the itinerary.",
-          savedHint:
-            "Saved destinations shape the default category selection. You can still edit the categories manually.",
-          days: "Trip duration",
-          budget: "Budget tier",
-          travelIntensity: "Travel intensity",
-          month: "Travel month",
-          categories: "Preferred categories",
-          validationCategories: "Select at least one preferred category.",
-          submit: "Save inputs and continue",
-          savedNotice: "Inputs saved locally.",
-          manageSaved: "Manage saved interests",
-          backToDiscovery: "Back to discovery"
-        };
+  const copy = messages.plannerForm;
 
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
   const [savedNotice, setSavedNotice] = useState("");
@@ -102,6 +69,17 @@ export function PlannerForm({
     });
   }, [destinationOptions, focusSlug]);
 
+  const isDraftComplete =
+    draft.tripDurationDays >= 1 &&
+    draft.tripDurationDays <= 7 &&
+    draft.travelMonth >= 1 &&
+    draft.travelMonth <= 12 &&
+    (draft.budget === "budget" || draft.budget === "moderate" || draft.budget === "luxury") &&
+    (draft.travelIntensity === "relaxed" ||
+      draft.travelIntensity === "balanced" ||
+      draft.travelIntensity === "packed") &&
+    draft.preferredCategories.length > 0;
+
   return (
     <section className="card">
       <h1>{copy.title}</h1>
@@ -113,8 +91,13 @@ export function PlannerForm({
         onSubmit={(event) => {
           event.preventDefault();
 
-          if (draft.preferredCategories.length === 0) {
-            setValidationMessage(copy.validationCategories);
+          if (!isDraftComplete) {
+            setSavedNotice("");
+            setValidationMessage(
+              draft.preferredCategories.length === 0
+                ? copy.validationCategories
+                : copy.validationRequired
+            );
             return;
           }
 
@@ -127,6 +110,7 @@ export function PlannerForm({
         <label>
           {copy.days}
           <select
+            required
             value={draft.tripDurationDays}
             onChange={(event) =>
               setDraft((current) => ({
@@ -146,6 +130,7 @@ export function PlannerForm({
         <label>
           {copy.budget}
           <select
+            required
             value={draft.budget}
             onChange={(event) =>
               setDraft((current) => ({
@@ -154,15 +139,16 @@ export function PlannerForm({
               }))
             }
           >
-            <option value="low">{getBudgetLabel("low", normalizedLocale)}</option>
-            <option value="medium">{getBudgetLabel("medium", normalizedLocale)}</option>
+            <option value="budget">{getBudgetLabel("budget", normalizedLocale)}</option>
+            <option value="moderate">{getBudgetLabel("moderate", normalizedLocale)}</option>
             <option value="luxury">{getBudgetLabel("luxury", normalizedLocale)}</option>
           </select>
         </label>
 
         <label>
-          {copy.travelIntensity}
+          {copy.pace}
           <select
+            required
             value={draft.travelIntensity}
             onChange={(event) =>
               setDraft((current) => ({
@@ -180,6 +166,7 @@ export function PlannerForm({
         <label>
           {copy.month}
           <select
+            required
             value={draft.travelMonth}
             onChange={(event) =>
               setDraft((current) => ({
@@ -197,7 +184,7 @@ export function PlannerForm({
         </label>
 
         <fieldset>
-          <legend>{copy.categories}</legend>
+          <legend>{copy.themes}</legend>
           <div className="checkGrid">
             {categoryOptions.map((category) => (
               <label key={category.value} className="checkItem">

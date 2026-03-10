@@ -130,11 +130,13 @@
     "pace": "Pace",
     "month": "Travel month",
     "themes": "Preferred categories",
+    "validationRequired": "Complete all required fields before continuing.",
     "validationCategories": "Select at least one preferred category.",
     "picks": "Saved destinations to include",
     "submit": "Save inputs and continue",
     "savedNotice": "Inputs saved locally.",
-    "manageSaved": "Manage saved interests"
+    "manageSaved": "Manage saved interests",
+    "backToDiscovery": "Back to discovery"
   },
   "plannerResult": {
     "title": "Final itinerary",

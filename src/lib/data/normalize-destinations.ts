@@ -18,10 +18,10 @@ export function minutesToHours(minutes: number): number {
 
 export function deriveBudgetLevel(ticketCostOmr: number): BudgetLevel {
   if (ticketCostOmr <= 5) {
-    return "low";
+    return "budget";
   }
   if (ticketCostOmr < 15) {
-    return "medium";
+    return "moderate";
   }
   return "luxury";
 }

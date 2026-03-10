@@ -33,15 +33,7 @@ export function getMonthLabel(month: number, locale: Locale): string {
 }
 
 export function getBudgetLabel(budget: BudgetLevel, locale: Locale): string {
-  if (locale === "ar") {
-    if (budget === "low") return "منخفضة";
-    if (budget === "medium") return "متوسطة";
-    return "فاخرة";
-  }
-
-  if (budget === "low") return "Low";
-  if (budget === "medium") return "Medium";
-  return "Luxury";
+  return getMessages(locale).budget[budget];
 }
 
 export function getTravelIntensityLabel(intensity: TravelIntensity, locale: Locale): string {
