@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 
 import { SiteHeader } from "../../../../components/site-header";
 import { loadDestinationsWithVersion } from "../../../../lib/data/load-destinations";
@@ -45,6 +45,41 @@ const ItineraryMapClient = dynamic(
   () => import("../../../../components/maps/itinerary-map.client"),
   { ssr: false }
 );
+
+const regionAccentMap: Record<DatasetRegionKey, { solid: string; soft: string }> = {
+  muscat: { solid: "#0f766e", soft: "rgba(15, 118, 110, 0.12)" },
+  dakhiliya: { solid: "#b45309", soft: "rgba(180, 83, 9, 0.14)" },
+  sharqiya: { solid: "#2563eb", soft: "rgba(37, 99, 235, 0.12)" },
+  dhofar: { solid: "#3f8f4d", soft: "rgba(63, 143, 77, 0.12)" },
+  batinah: { solid: "#7c3aed", soft: "rgba(124, 58, 237, 0.12)" },
+  dhahira: { solid: "#be185d", soft: "rgba(190, 24, 93, 0.12)" }
+};
+
+function getRegionAccent(regionKey: string) {
+  return regionAccentMap[regionKey as DatasetRegionKey] ?? { solid: "#0a4d5c", soft: "rgba(10, 77, 92, 0.12)" };
+}
+
+function getCrowdDots(crowdLevel: number) {
+  return Array.from({ length: 5 }, (_, index) => index < crowdLevel);
+}
+
+function getBudgetStatusTone(withinBudget: boolean, totalCostOmr: number, budgetThresholdOmr: number) {
+  if (!withinBudget) {
+    return "critical";
+  }
+
+  if (budgetThresholdOmr <= 0) {
+    return "healthy";
+  }
+
+  return totalCostOmr / budgetThresholdOmr >= 0.9 ? "watch" : "healthy";
+}
+
+function getBudgetStatusClass(tone: "healthy" | "watch" | "critical") {
+  if (tone === "healthy") return "plannerBadge plannerBadgeSuccess";
+  if (tone === "watch") return "plannerBadge plannerBadgeAlert";
+  return "plannerBadge plannerBadgeCritical";
+}
 
 function getCrowdLabel(crowdLevel: number, locale: Locale): string {
   const messages = getMessages(locale);
@@ -359,6 +394,18 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     })
   ];
 
+  const budgetStatusTone = getBudgetStatusTone(
+    persistedCostBreakdown.withinBudget,
+    persistedCostBreakdown.totalCostOmr,
+    persistedCostBreakdown.budgetThresholdOmr
+  );
+  const budgetStatusLabel =
+    budgetStatusTone === "healthy"
+      ? messages.plannerResult.budgetStatusHealthy
+      : budgetStatusTone === "watch"
+        ? messages.plannerResult.budgetStatusWatch
+        : messages.plannerResult.budgetStatusCritical;
+
   const overviewCards = [
     {
       label: messages.plannerResult.days,
@@ -380,11 +427,6 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
       meta: formatList(uniqueRegions, locale)
     },
     {
-      label: messages.plannerResult.totalVisitHours,
-      value: formatDecimal(finalItinerary.totals.estimatedVisitHours, locale, 1),
-      meta: messages.plannerResult.overviewVisitMeta
-    },
-    {
       label: messages.plannerResult.totalTravelKm,
       value: formatDecimal(finalItinerary.totals.estimatedTravelKm, locale, 1),
       meta: formatMessage(messages.plannerResult.overviewTravelMeta, {
@@ -403,9 +445,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     },
     {
       label: messages.plannerResult.overviewBudgetStatus,
-      value: persistedCostBreakdown.withinBudget
-        ? messages.plannerResult.withinBudgetYes
-        : messages.plannerResult.withinBudgetNo,
+      value: budgetStatusLabel,
       meta:
         finalItinerary.repairSummary.actions.length > 0
           ? formatMessage(messages.plannerResult.overviewRepairMeta, {
@@ -433,7 +473,10 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
       return {
         ...stop,
         order: index + 1,
-        categories: (destination?.categories ?? []).map((category) => getCategoryLabel(category, locale)),
+        categories: (destination?.categories ?? []).map((category) => ({
+          id: category,
+          label: getCategoryLabel(category, locale)
+        })),
         travelKmFromPrevious: stop.travelKmFromPrevious,
         reasonLabels: Array.from(
           new Set(stop.topContributors.slice(0, 2).map((item) => getReasonLabel(item.reasonCode, locale)))
@@ -498,7 +541,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     setActiveStopSlug(day?.stops[0]?.slug ?? null);
   };
 
-  const handleDayTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+  const handleDayTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
     if (finalItinerary.days.length === 0) {
       return;
     }
@@ -551,11 +594,11 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     : persistedCostBreakdown.withinBudget
       ? repairCopy.statusRecovered
       : repairCopy.statusUnresolved;
-  const repairStatusTone = !finalItinerary.repairSummary.repairTriggered
+  const repairStatusToneClass = !finalItinerary.repairSummary.repairTriggered
     ? "plannerBadge plannerBadgeNeutral"
     : persistedCostBreakdown.withinBudget
       ? "plannerBadge plannerBadgeSuccess"
-      : "plannerBadge plannerBadgeAlert";
+      : "plannerBadge plannerBadgeCritical";
   const repairNoteLabels = finalItinerary.repairSummary.repairNotes.map((note) =>
     getRepairNoteLabel(note, locale)
   );
@@ -578,6 +621,54 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             ? messages.plannerResult.withinBudgetYes
             : messages.plannerResult.withinBudgetNo
         });
+  const costBarMax = Math.max(
+    persistedCostBreakdown.totalCostOmr,
+    persistedCostBreakdown.budgetThresholdOmr,
+    1
+  );
+  const costSegments = [
+    {
+      key: "fuel",
+      label: messages.plannerResult.costFuel,
+      value: persistedCostBreakdown.fuelCostOmr,
+      colorClass: "plannerCostSegmentFuel"
+    },
+    {
+      key: "tickets",
+      label: messages.plannerResult.costTickets,
+      value: persistedCostBreakdown.ticketsCostOmr,
+      colorClass: "plannerCostSegmentTickets"
+    },
+    {
+      key: "food",
+      label: messages.plannerResult.costFood,
+      value: persistedCostBreakdown.foodCostOmr,
+      colorClass: "plannerCostSegmentFood"
+    },
+    {
+      key: "hotel",
+      label: messages.plannerResult.costHotel,
+      value: persistedCostBreakdown.hotelCostOmr,
+      colorClass: "plannerCostSegmentHotel"
+    }
+  ].map((segment) => ({
+    ...segment,
+    width: `${(segment.value / costBarMax) * 100}%`,
+    share: `${formatNumber(Math.round((segment.value / Math.max(persistedCostBreakdown.totalCostOmr, 1)) * 100), locale)}%`
+  }));
+  const costThresholdLeft = `${Math.min((persistedCostBreakdown.budgetThresholdOmr / costBarMax) * 100, 100)}%`;
+  const whyBullets = [
+    formatMessage(messages.plannerResult.whyRegionBody, {
+      region: getRegionLabel(selectedDay?.region ?? finalItinerary.days[0]?.region ?? "oman"),
+      count: formatNumber(selectedRegionCandidateCount, locale),
+      dayNumber: formatNumber(selectedDay?.dayNumber ?? 1, locale),
+      factors: selectedDayReasonLabels.length > 0
+        ? formatList(selectedDayReasonLabels, locale)
+        : messages.plannerResult.reasonFallbackLabel
+    }),
+    repairStatusMessage,
+    ...selectionFactors.slice(0, 3)
+  ];
 
   return (
     <main className="page">
@@ -607,6 +698,9 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
               <span>{card.label}</span>
               <strong>{card.value}</strong>
               <p>{card.meta}</p>
+              {card.label === messages.plannerResult.overviewBudgetStatus ? (
+                <span className={getBudgetStatusClass(budgetStatusTone)}>{budgetStatusLabel}</span>
+              ) : null}
             </article>
           ))}
         </section>
@@ -637,10 +731,19 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                     className={day.dayNumber === selectedDayNumber ? "plannerDayTab plannerDayTabActive" : "plannerDayTab"}
                     onClick={() => handleDayChange(day.dayNumber)}
                     onKeyDown={(event) => handleDayTabKeyDown(event, index)}
+                    style={
+                      {
+                        "--planner-region-solid": getRegionAccent(day.region).solid,
+                        "--planner-region-soft": getRegionAccent(day.region).soft
+                      } as CSSProperties
+                    }
                   >
-                    <span>{formatMessage(messages.plannerResult.dayTabLabel, {
-                      dayNumber: formatNumber(day.dayNumber, locale)
-                    })}</span>
+                    <span className="plannerDayTabTopline">
+                      <span className="plannerRegionDot" aria-hidden="true" />
+                      <span>{formatMessage(messages.plannerResult.dayTabLabel, {
+                        dayNumber: formatNumber(day.dayNumber, locale)
+                      })}</span>
+                    </span>
                     <small>{getRegionLabel(day.region)}</small>
                   </button>
                 ))}
@@ -774,13 +877,26 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                                     end: stop.endTime
                                   })}</p>
                                 </div>
-                                <span className="plannerBadge">{getCrowdLabel(stop.crowdLevel, locale)}</span>
+                                <span className="plannerCrowdSummary" aria-label={messages.plannerResult.stopCrowd}>
+                                  <span>{getCrowdLabel(stop.crowdLevel, locale)}</span>
+                                  <span className="plannerCrowdDots" aria-hidden="true">
+                                    {getCrowdDots(stop.crowdLevel).map((active, index) => (
+                                      <span
+                                        key={`${stop.slug}-crowd-${index + 1}`}
+                                        className={active ? "plannerCrowdDot plannerCrowdDotActive" : "plannerCrowdDot"}
+                                      />
+                                    ))}
+                                  </span>
+                                </span>
                               </div>
 
                               <div className="plannerChipRow">
                                 {stop.categories.map((category) => (
-                                  <span key={`${stop.slug}-${category}`} className="plannerChip">
-                                    {category}
+                                  <span
+                                    key={`${stop.slug}-${category.id}`}
+                                    className={`plannerChip plannerCategoryChip plannerCategoryChip${category.id[0]?.toUpperCase() ?? ""}${category.id.slice(1)}`}
+                                  >
+                                    {category.label}
                                   </span>
                                 ))}
                               </div>
@@ -834,41 +950,19 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                       <p>{messages.plannerResult.whyBody}</p>
                     </div>
 
-                    <div className="plannerWhyBlock">
-                      <h3>{messages.plannerResult.whyRegionTitle}</h3>
-                      <p>{formatMessage(messages.plannerResult.whyRegionBody, {
-                        region: getRegionLabel(selectedDay.region),
-                        count: formatNumber(selectedRegionCandidateCount, locale),
-                        dayNumber: formatNumber(selectedDay.dayNumber, locale),
-                        factors: selectedDayReasonLabels.length > 0
-                          ? formatList(selectedDayReasonLabels, locale)
-                          : messages.plannerResult.reasonFallbackLabel
-                      })}</p>
+                    <div className="plannerChipRow">
+                      <span className={repairStatusToneClass}>{repairStatusLabel}</span>
+                      <span className={getBudgetStatusClass(budgetStatusTone)}>{budgetStatusLabel}</span>
                     </div>
 
-                    <div className="plannerWhyBlock">
-                      <h3>{messages.plannerResult.whyBudgetTitle}</h3>
-                      <div className="plannerChipRow">
-                        <span className={repairStatusTone}>{repairStatusLabel}</span>
-                      </div>
-                      <p>{repairStatusMessage}</p>
-                      {repairNoteLabels.length > 0 ? (
-                        <ul className="plannerSelectionFactors" aria-label={repairCopy.statusTitle}>
-                          {repairNoteLabels.map((note) => (
-                            <li key={note}>{note}</li>
-                          ))}
-                        </ul>
-                      ) : null}
-                    </div>
-
-                    <div className="plannerWhyBlock">
-                      <h3>{messages.plannerResult.whyFactorsTitle}</h3>
-                      <ul className="plannerSelectionFactors">
-                        {selectionFactors.map((factor) => (
-                          <li key={factor}>{factor}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    <ul className="plannerWhyList">
+                      {whyBullets.map((bullet) => (
+                        <li key={bullet}>{bullet}</li>
+                      ))}
+                      {repairNoteLabels.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
                   </article>
 
                   <article className="card plannerMapCard">
@@ -902,36 +996,50 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                   <article className="card plannerCostPanel">
                     <div className="plannerPanelHeader">
                       <h2>{messages.plannerResult.costBreakdownTitle}</h2>
-                      <span
-                        className={
-                          persistedCostBreakdown.withinBudget
-                            ? "plannerBadge plannerBadgeSuccess"
-                            : "plannerBadge plannerBadgeAlert"
-                        }
-                      >
-                        {persistedCostBreakdown.withinBudget
-                          ? messages.plannerResult.withinBudgetYes
-                          : messages.plannerResult.withinBudgetNo}
+                      <span className={getBudgetStatusClass(budgetStatusTone)}>{budgetStatusLabel}</span>
+                    </div>
+                    <div className="plannerCostHero">
+                      <strong>{formatTicketCost(persistedCostBreakdown.totalCostOmr, locale)}</strong>
+                      <span>
+                        {formatMessage(messages.plannerResult.overviewBudgetMeta, {
+                          threshold: formatTicketCost(persistedCostBreakdown.budgetThresholdOmr, locale)
+                        })}
                       </span>
                     </div>
+                    <div className="plannerCostBarShell" aria-hidden="true">
+                      <div className="plannerCostBar">
+                        {costSegments.map((segment) => (
+                          <span
+                            key={segment.key}
+                            className={`plannerCostSegment ${segment.colorClass}`}
+                            style={{ width: segment.width }}
+                          />
+                        ))}
+                        <span
+                          className="plannerCostThreshold"
+                          style={{ insetInlineStart: costThresholdLeft }}
+                        />
+                      </div>
+                      <div
+                        className="plannerCostThresholdLabel"
+                        style={{ insetInlineStart: costThresholdLeft }}
+                      >
+                        {messages.plannerResult.costThreshold}
+                      </div>
+                    </div>
                     <div className="plannerInfoStack">
-                      <div className="plannerInfoRow">
-                        <span>{messages.plannerResult.costFuel}</span>
-                        <strong>{formatTicketCost(persistedCostBreakdown.fuelCostOmr, locale)}</strong>
-                      </div>
-                      <div className="plannerInfoRow">
-                        <span>{messages.plannerResult.costTickets}</span>
-                        <strong>{formatTicketCost(persistedCostBreakdown.ticketsCostOmr, locale)}</strong>
-                      </div>
-                      <div className="plannerInfoRow">
-                        <span>{messages.plannerResult.costFood}</span>
-                        <strong>{formatTicketCost(persistedCostBreakdown.foodCostOmr, locale)}</strong>
-                      </div>
-                      <div className="plannerInfoRow">
-                        <span>{messages.plannerResult.costHotel}</span>
-                        <strong>{formatTicketCost(persistedCostBreakdown.hotelCostOmr, locale)}</strong>
-                      </div>
-                      <div className="plannerInfoRow">
+                      {costSegments.map((segment) => (
+                        <div key={segment.key} className="plannerInfoRow plannerCostLine">
+                          <span className="plannerCostLineLabel">
+                            <span className={`plannerCostSwatch ${segment.colorClass}`} aria-hidden="true" />
+                            {segment.label}
+                          </span>
+                          <strong>
+                            {formatTicketCost(segment.value, locale)} <small>{segment.share}</small>
+                          </strong>
+                        </div>
+                      ))}
+                      <div className="plannerInfoRow plannerCostTotalsRow">
                         <span>{messages.plannerResult.costTotal}</span>
                         <strong>{formatTicketCost(persistedCostBreakdown.totalCostOmr, locale)}</strong>
                       </div>
@@ -984,6 +1092,10 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             {messages.common.backToDiscovery}
           </Link>
         </div>
+
+        <footer className="plannerFooter">
+          <p>{messages.plannerResult.footerNote}</p>
+        </footer>
       </div>
     </main>
   );

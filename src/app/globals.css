@@ -470,7 +470,7 @@ a {
 }
 
 .plannerOverviewGrid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   margin-bottom: 1rem;
 }
 
@@ -494,6 +494,14 @@ a {
   gap: 1rem;
 }
 
+.plannerOverviewCard {
+  align-content: start;
+  min-height: 11.5rem;
+  padding: 1.1rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 242, 233, 0.9));
+}
+
 .plannerOverviewCard span,
 .plannerOverviewCard p,
 .plannerSectionIntro p,
@@ -508,6 +516,13 @@ a {
 .plannerOverviewCard strong {
   font-size: clamp(1.4rem, 2vw, 2rem);
   line-height: 1;
+}
+
+.plannerOverviewCard > span:first-child {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .plannerOverviewCard p {
@@ -611,6 +626,11 @@ a {
   color: var(--brand);
 }
 
+.plannerBadgeCritical {
+  background: rgba(190, 24, 93, 0.14);
+  color: #9d174d;
+}
+
 .plannerBadgeNeutral {
   background: rgba(25, 37, 31, 0.08);
   color: var(--ink);
@@ -638,7 +658,11 @@ a {
 }
 
 .plannerDayTabs {
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  padding: 0.35rem;
+  border-radius: 24px;
+  background: rgba(247, 241, 233, 0.92);
+  border: 1px solid rgba(129, 112, 77, 0.14);
 }
 
 .plannerDayTab,
@@ -652,12 +676,39 @@ a {
 }
 
 .plannerDayTab {
-  min-height: 4rem;
-  padding: 0.85rem 0.95rem;
+  min-height: 4.5rem;
+  padding: 0.95rem 1rem 1.15rem;
   font-weight: 700;
   text-align: start;
   display: grid;
   gap: 0.3rem;
+  position: relative;
+  border: 0;
+  background: transparent;
+}
+
+.plannerDayTab::after {
+  content: "";
+  position: absolute;
+  inset-inline: 1rem;
+  inset-block-end: 0.35rem;
+  height: 3px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.plannerDayTabTopline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.plannerRegionDot {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  background: var(--planner-region-solid, var(--brand));
+  box-shadow: 0 0 0 0.25rem var(--planner-region-soft, rgba(10, 77, 92, 0.12));
 }
 
 .plannerDayTab small {
@@ -667,9 +718,17 @@ a {
 }
 
 .plannerDayTabActive {
-  background: linear-gradient(120deg, rgba(10, 77, 92, 0.14), rgba(10, 77, 92, 0.04));
-  border-color: rgba(10, 77, 92, 0.32);
-  color: var(--brand);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  box-shadow: 0 10px 24px rgba(26, 26, 46, 0.06);
+}
+
+.plannerDayTabActive::after {
+  background: #1299a1;
+}
+
+.plannerDayTabActive .plannerDayTabTopline {
+  font-weight: 800;
 }
 
 .plannerStopFocusButton {
@@ -686,41 +745,56 @@ a {
   list-style: none;
   margin: 0;
   padding: 0;
+  position: relative;
+}
+
+.plannerTimeline::before {
+  content: "";
+  position: absolute;
+  inset-block: 1rem 1rem;
+  inset-inline-start: 1.18rem;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(18, 153, 161, 0.28), rgba(18, 153, 161, 0.08));
 }
 
 .plannerTimelineItem {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: 2.35rem minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
 }
 
 .plannerTimelineMarker {
-  width: 3rem;
-  height: 3rem;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 999px;
-  border: 1px solid rgba(10, 77, 92, 0.22);
-  background: linear-gradient(180deg, rgba(10, 77, 92, 0.14), rgba(10, 77, 92, 0.04));
-  color: var(--brand);
-  font: inherit;
-  font-weight: 700;
+  border: 3px solid #fff;
+  background: linear-gradient(135deg, #1299a1, #0a4d5c);
+  color: transparent;
+  font-size: 0;
   cursor: pointer;
   position: sticky;
-  top: 1rem;
+  top: 1.25rem;
+  margin-inline-start: 0.55rem;
+  box-shadow: 0 0 0 2px rgba(18, 153, 161, 0.22), 0 10px 24px rgba(10, 77, 92, 0.18);
 }
 
 .plannerTimelineCardInner {
   display: grid;
   gap: 0.85rem;
-  padding: 1rem;
+  padding: 1rem 1rem 1.1rem;
   border-radius: 20px;
   border: 1px solid rgba(129, 112, 77, 0.16);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .plannerTimelineItemActive .plannerTimelineCardInner {
   border-color: rgba(10, 77, 92, 0.32);
   box-shadow: 0 14px 34px rgba(10, 77, 92, 0.08);
+}
+
+.plannerTimelineItemActive .plannerTimelineMarker {
+  box-shadow: 0 0 0 5px rgba(18, 153, 161, 0.16), 0 14px 30px rgba(10, 77, 92, 0.2);
 }
 
 .plannerTimelineHeader,
@@ -757,25 +831,77 @@ a {
   font-size: 0.92rem;
 }
 
-.plannerWhyBlock {
-  display: grid;
-  gap: 0.4rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid rgba(129, 112, 77, 0.12);
+.plannerCrowdSummary {
+  display: inline-grid;
+  gap: 0.35rem;
+  justify-items: end;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
 }
 
-.plannerWhyBlock:first-of-type {
-  padding-top: 0;
-  border-top: 0;
+.plannerCrowdDots {
+  display: inline-flex;
+  gap: 0.25rem;
 }
 
+.plannerCrowdDot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: rgba(10, 77, 92, 0.12);
+}
+
+.plannerCrowdDotActive {
+  background: linear-gradient(135deg, #1299a1, #0a4d5c);
+}
+
+.plannerCategoryChip {
+  border: 0;
+}
+
+.plannerCategoryChipMountain {
+  background: rgba(180, 83, 9, 0.12);
+  color: #9a3412;
+}
+
+.plannerCategoryChipBeach {
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.plannerCategoryChipCulture {
+  background: rgba(124, 58, 237, 0.12);
+  color: #6d28d9;
+}
+
+.plannerCategoryChipDesert {
+  background: rgba(217, 119, 6, 0.14);
+  color: #b45309;
+}
+
+.plannerCategoryChipNature {
+  background: rgba(22, 101, 52, 0.12);
+  color: #166534;
+}
+
+.plannerCategoryChipFood {
+  background: rgba(190, 24, 93, 0.12);
+  color: #be185d;
+}
+
+.plannerWhyList,
 .plannerSelectionFactors {
   margin: 0;
-  padding-inline-start: 1rem;
+  padding-inline-start: 1.1rem;
+  display: grid;
+  gap: 0.75rem;
 }
 
+.plannerWhyList li,
 .plannerSelectionFactors li {
   line-height: 1.55;
+  color: var(--muted);
 }
 
 .plannerLegendItem,
@@ -836,6 +962,108 @@ a {
 .detailMapCard {
   display: grid;
   gap: 1rem;
+}
+
+.plannerCostHero {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.plannerCostHero strong {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1;
+}
+
+.plannerCostHero span,
+.plannerCostThresholdLabel,
+.plannerCostLineLabel,
+.plannerCostLine strong small,
+.plannerFooter p {
+  color: var(--muted);
+}
+
+.plannerCostBarShell {
+  position: relative;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.plannerCostBar {
+  position: relative;
+  display: flex;
+  height: 1rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(129, 112, 77, 0.08);
+}
+
+.plannerCostSegment {
+  height: 100%;
+}
+
+.plannerCostSegmentFuel {
+  background: #1299a1;
+}
+
+.plannerCostSegmentTickets {
+  background: #d4a574;
+}
+
+.plannerCostSegmentFood {
+  background: #7c3aed;
+}
+
+.plannerCostSegmentHotel {
+  background: #0f766e;
+}
+
+.plannerCostThreshold {
+  position: absolute;
+  top: -0.3rem;
+  bottom: -0.3rem;
+  width: 2px;
+  background: #9d174d;
+  transform: translateX(-1px);
+}
+
+.plannerCostThresholdLabel {
+  position: absolute;
+  inset-block-start: 1.35rem;
+  transform: translateX(-50%);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.plannerCostLine {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.plannerCostLineLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.plannerCostSwatch {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.plannerCostTotalsRow {
+  margin-top: 0.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(129, 112, 77, 0.12);
+}
+
+.plannerFooter {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem 0;
+  border-top: 1px solid rgba(129, 112, 77, 0.14);
 }
 
 .detailHeroBand {
@@ -1290,6 +1518,20 @@ a {
   text-align: right;
 }
 
+[dir="rtl"] .plannerTimeline::before {
+  inset-inline-start: auto;
+  inset-inline-end: 1.18rem;
+}
+
+[dir="rtl"] .plannerTimelineMarker {
+  margin-inline-start: 0;
+  margin-inline-end: 0.55rem;
+}
+
+[dir="rtl"] .plannerCrowdSummary {
+  justify-items: start;
+}
+
 @media (max-width: 920px) {
   .split,
   .detailGrid,
@@ -1301,7 +1543,8 @@ a {
   .detailFloatingHeader,
   .detailStatPairGrid,
   .plannerStepIndicators,
-  .plannerBudgetGrid {
+  .plannerBudgetGrid,
+  .plannerOverviewGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1313,11 +1556,11 @@ a {
 
 @media (max-width: 720px) {
   .plannerTimelineItem {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1.8rem minmax(0, 1fr);
   }
 
   .plannerTimelineMarker {
-    position: static;
+    position: sticky;
   }
 
   .page {
@@ -1350,6 +1593,10 @@ a {
 
   .plannerDaySegment {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .plannerDayTabs {
+    grid-template-columns: 1fr;
   }
 
   .categoryExplorationGrid,
