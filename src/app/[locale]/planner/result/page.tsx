@@ -24,7 +24,6 @@ import { rankCandidatesForPlanner } from "../../../../lib/planner/candidate-rank
 import { assembleFinalItinerary } from "../../../../lib/planner/final-itinerary";
 import { generateIntraRegionDayPlans } from "../../../../lib/planner/intra-region-routing";
 import { allocateTripDaysAcrossRegions } from "../../../../lib/planner/region-allocation";
-import { haversineDistanceKm } from "../../../../lib/planner/scoring-utils";
 import {
   clearPersistedItinerary,
   deriveCostBreakdown,
@@ -41,7 +40,6 @@ import {
   readPlannerDraft
 } from "../../../../lib/persistence/planner-draft";
 import type { Locale } from "../../../../types/dataset";
-import type { ItineraryStop } from "../../../../lib/planner/final-itinerary";
 
 const ItineraryMapClient = dynamic(
   () => import("../../../../components/maps/itinerary-map.client"),
@@ -121,24 +119,6 @@ function getIntensityCap(travelIntensity: PlannerDraft["travelIntensity"]): numb
   if (travelIntensity === "relaxed") return 3;
   if (travelIntensity === "balanced") return 4;
   return 5;
-}
-
-function getTravelKmFromPrevious(stops: ItineraryStop[], stopIndex: number, coordinatesBySlug: Map<string, {
-  lat: number;
-  lng: number;
-}>): number {
-  if (stopIndex === 0) {
-    return 0;
-  }
-
-  const previous = coordinatesBySlug.get(stops[stopIndex - 1].slug);
-  const current = coordinatesBySlug.get(stops[stopIndex].slug);
-
-  if (!previous || !current) {
-    return 0;
-  }
-
-  return haversineDistanceKm(previous, current);
 }
 
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -285,14 +265,6 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     [normalizedDestinations]
   );
 
-  const coordinatesBySlug = useMemo(
-    () =>
-      new Map(
-        normalizedDestinations.map((destination) => [destination.slug, destination.coordinates])
-      ),
-    [normalizedDestinations]
-  );
-
   const itineraryMapDays = useMemo(
     () =>
       finalItinerary.days.map((day) => ({
@@ -403,13 +375,13 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
         ...stop,
         order: index + 1,
         categories: (destination?.categories ?? []).map((category) => getCategoryLabel(category, locale)),
-        travelKmFromPrevious: getTravelKmFromPrevious(selectedDay.stops, index, coordinatesBySlug),
+        travelKmFromPrevious: stop.travelKmFromPrevious,
         reasonLabels: Array.from(
           new Set(stop.topContributors.slice(0, 2).map((item) => getReasonLabel(item.reasonCode, locale)))
         )
       };
     });
-  }, [coordinatesBySlug, destinationBySlug, locale, selectedDay]);
+  }, [destinationBySlug, locale, selectedDay]);
 
   const selectedDayReasonLabels = useMemo(
     () =>

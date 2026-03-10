@@ -86,7 +86,9 @@ function buildStop(
     region,
     startTime: "",
     endTime: "",
+    visitDurationMinutes: 0,
     travelMinutesFromPrevious: 0,
+    travelKmFromPrevious: 0,
     estimatedVisitHours: rankedCandidate?.recommendedDurationHours ?? destination.recommendedDurationHours,
     ticketCostOmr: destination.ticket_cost_omr,
     crowdLevel: destination.crowd_level,
@@ -96,25 +98,6 @@ function buildStop(
     scoreBreakdown: rankedCandidate?.scoreBreakdown ?? null,
     topContributors: rankedCandidate?.topContributors ?? []
   };
-}
-
-function computeDayTravelKm(day: PlannerPhase5CItineraryDay, destinationMap: Map<string, Destination>): number {
-  if (day.stops.length <= 1) {
-    return 0;
-  }
-
-  let total = 0;
-  for (let index = 1; index < day.stops.length; index += 1) {
-    const previous = destinationMap.get(day.stops[index - 1].slug);
-    const current = destinationMap.get(day.stops[index].slug);
-    if (!previous || !current) {
-      continue;
-    }
-
-    total += haversineDistanceKm(previous.coordinates, current.coordinates);
-  }
-
-  return deterministicRound(total, 3);
 }
 
 function computeTotalTicketCost(
@@ -137,7 +120,11 @@ function computeTotalTicketCost(
 
 function updateDayMetrics(
   day: PlannerPhase5CItineraryDay,
-  destinationMap: Map<string, Destination>
+  destinationMap: Map<string, Destination>,
+  options: {
+    travelIntensity: PlannerPhase4CHandoff["profile"]["travelIntensity"];
+    allowCategoryRepeatByPreference: boolean;
+  }
 ): PlannerPhase5CItineraryDay {
   const schedulableStops = day.stops
     .map((stop) => {
@@ -148,12 +135,14 @@ function updateDayMetrics(
 
       return {
         slug: stop.slug,
+        region: destination.regionKey,
+        categories: destination.categories,
         coordinates: destination.coordinates,
         recommendedDurationHours: stop.estimatedVisitHours
       };
     })
     .filter((stop): stop is NonNullable<typeof stop> => stop !== null);
-  const schedule = buildTimedRouteSummary(schedulableStops);
+  const schedule = buildTimedRouteSummary(schedulableStops, options);
   const scheduledStopsBySlug = new Map(schedule.scheduledStops.map((stop) => [stop.slug, stop]));
 
   return {
@@ -164,7 +153,9 @@ function updateDayMetrics(
         ...stop,
         startTime: scheduledStop?.startTime ?? stop.startTime,
         endTime: scheduledStop?.endTime ?? stop.endTime,
+        visitDurationMinutes: scheduledStop?.visitDurationMinutes ?? stop.visitDurationMinutes,
         travelMinutesFromPrevious: scheduledStop?.travelMinutesFromPrevious ?? stop.travelMinutesFromPrevious,
+        travelKmFromPrevious: scheduledStop?.travelKmFromPrevious ?? stop.travelKmFromPrevious,
         estimatedVisitHours: scheduledStop?.estimatedVisitHours ?? stop.estimatedVisitHours
       };
     }),
@@ -172,8 +163,9 @@ function updateDayMetrics(
     startTime: schedule.startTime,
     endTime: schedule.endTime,
     estimatedVisitHours: schedule.estimatedVisitHours,
-    estimatedTravelKm: computeDayTravelKm(day, destinationMap),
+    estimatedTravelKm: schedule.estimatedTravelKm,
     estimatedTravelMinutes: schedule.estimatedTravelMinutes,
+    unresolvedReason: schedule.unresolvedReason,
     estimatedTicketCostOmr: deterministicRound(
       day.stops.reduce((sum, stop) => sum + stop.ticketCostOmr, 0),
       2
@@ -207,6 +199,10 @@ function minDistanceToDayStops(
 export function repairGeneratedItinerary(input: ItineraryRepairInput): ItineraryRepairResult {
   const destinationMap = toDestinationMap(input.destinations);
   const candidateSignals = toCandidateSignalMap(input.handoff);
+  const schedulingOptions = {
+    travelIntensity: input.handoff.profile.travelIntensity,
+    allowCategoryRepeatByPreference: input.handoff.profile.preferredCategories.length <= 1
+  };
   const tripBudgetTargetOmr = deterministicRound(
     budgetLevelToTargetCost(input.handoff.profile.budget) * input.routing.tripDays,
     2
@@ -289,7 +285,14 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
       scheduledSlugs.add(replacement.slug);
       day.stops[entry.stopIndex] = buildStop(replacement, day.region, candidateSignals);
       day.notes.push("budget_repair_swap_applied");
-      days[entry.dayIndex] = updateDayMetrics(day, destinationMap);
+      const updatedDay = updateDayMetrics(day, destinationMap, schedulingOptions);
+      if (updatedDay.unresolvedReason) {
+        scheduledSlugs.delete(replacement.slug);
+        scheduledSlugs.add(entry.stop.slug);
+        day.stops[entry.stopIndex] = entry.stop;
+        return;
+      }
+      days[entry.dayIndex] = updatedDay;
 
       const deltaCostOmr = deterministicRound(
         replacement.ticket_cost_omr - currentDestination.ticket_cost_omr,
@@ -349,7 +352,13 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
       day.stops.push(addedStop);
       day.notes.push("underutilized_day_fill_added");
       scheduledSlugs.add(addition.slug);
-      days[dayIndex] = updateDayMetrics(day, destinationMap);
+      const updatedDay = updateDayMetrics(day, destinationMap, schedulingOptions);
+      if (updatedDay.unresolvedReason) {
+        day.stops.pop();
+        scheduledSlugs.delete(addition.slug);
+        break;
+      }
+      days[dayIndex] = updatedDay;
       runningTotalCostOmr = deterministicRound(runningTotalCostOmr + addition.ticket_cost_omr, 2);
       actions.push({
         type: "underutilized_fill",
@@ -369,7 +378,7 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
 
   return {
     days: days.map((day) => ({
-      ...updateDayMetrics(day, destinationMap),
+      ...updateDayMetrics(day, destinationMap, schedulingOptions),
       notes: Array.from(new Set(day.notes))
     })),
     itineraryNotes,

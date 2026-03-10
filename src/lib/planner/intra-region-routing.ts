@@ -1,7 +1,9 @@
 /**
- * Deterministic intra-region routing with bounded beam search, 2-opt refinement,
- * and timed day-by-day plans.
+ * Deterministic intra-region routing with bounded beam search, validity-checked
+ * 2-opt refinement, and hard-constrained same-region day plans.
  */
+import type { TravelIntensity } from "@/types/domain";
+
 import type { PlannerPhase4CHandoff, PlannerHandoffRouteCandidate } from "@/lib/planner/candidate-ranking";
 import { buildDistanceMatrix } from "@/lib/geo/distance-matrix";
 import type { PlannerPhase5ARegionAllocation } from "@/lib/planner/region-allocation";
@@ -13,14 +15,21 @@ interface IntraRegionRoutingConfig {
   averageTravelSpeedKmh: number;
   dayStartMinutes: number;
   dayEndMinutes: number;
+  maxDailyDrivingKm: number;
+  maxDailyVisitMinutes: number;
+  longStopThresholdMinutes: number;
+  shortStopThresholdMinutes: number;
+  maxStopsPerDay: Record<TravelIntensity, number>;
 }
 
 interface PlannerDayCandidate extends PlannerHandoffRouteCandidate {
   originalIndex: number;
 }
 
-interface SchedulableStop {
+export interface SchedulableStop {
   slug: string;
+  region: string;
+  categories: string[];
   coordinates: {
     lat: number;
     lng: number;
@@ -37,6 +46,8 @@ interface RegionDailyPlan {
   estimatedVisitHours: number;
   estimatedTravelKm: number;
   estimatedTravelMinutes: number;
+  stopCount: number;
+  unresolvedReason: string | null;
   notes: string[];
 }
 
@@ -55,7 +66,9 @@ export interface PlannerTimedStop {
   slug: string;
   startTime: string;
   endTime: string;
+  visitDurationMinutes: number;
   travelMinutesFromPrevious: number;
+  travelKmFromPrevious: number;
   estimatedVisitHours: number;
 }
 
@@ -70,6 +83,8 @@ export interface PlannerPhase5BDayPlan {
   estimatedVisitHours: number;
   estimatedTravelKm: number;
   estimatedTravelMinutes: number;
+  stopCount: number;
+  unresolvedReason: string | null;
   notes: string[];
 }
 
@@ -89,6 +104,10 @@ export interface PlannerPhase5BIntraRegionRouting {
     dayStartTime: string;
     dayEndTime: string;
     hoursPerDayTarget: number;
+    maxDailyDrivingKm: number;
+    maxDailyVisitHours: number;
+    maxStopsPerDay: Record<TravelIntensity, number>;
+    categoryRepeatCap: number;
   };
   regionRoutes: PlannedRegionRoute[];
   dayPlans: PlannerPhase5BDayPlan[];
@@ -105,25 +124,48 @@ interface BeamState {
   route: number[];
   visitedMask: number;
   distanceKm: number;
+  totalScore: number;
 }
 
-export interface TimedRouteSummary {
+interface RouteValidationContext {
+  travelIntensity: TravelIntensity;
+  allowCategoryRepeatByPreference: boolean;
+}
+
+interface RouteEvaluation {
+  isValid: boolean;
+  failureReason: string | null;
   scheduledStops: PlannerTimedStop[];
   startTime: string;
   endTime: string;
   estimatedVisitHours: number;
   estimatedTravelKm: number;
   estimatedTravelMinutes: number;
+  totalVisitMinutes: number;
+  stopCount: number;
   notes: string[];
 }
 
+export interface TimedRouteSummary extends RouteEvaluation {
+  unresolvedReason: string | null;
+}
+
 const defaultIntraRegionRoutingConfig: IntraRegionRoutingConfig = {
-  version: "phase-5b-v2",
+  version: "phase-5b-v3",
   distancePrecisionKm: 3,
   beamWidth: 4,
   averageTravelSpeedKmh: 55,
   dayStartMinutes: 8 * 60,
-  dayEndMinutes: 20 * 60
+  dayEndMinutes: 20 * 60,
+  maxDailyDrivingKm: 250,
+  maxDailyVisitMinutes: 8 * 60,
+  longStopThresholdMinutes: 90,
+  shortStopThresholdMinutes: 45,
+  maxStopsPerDay: {
+    relaxed: 3,
+    balanced: 4,
+    packed: 5
+  }
 };
 
 function deterministicRound(value: number, precision = 6): number {
@@ -158,12 +200,11 @@ function minutesToTimeLabel(totalMinutes: number): string {
   return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
-function durationMinutes(stop: Pick<SchedulableStop, "recommendedDurationHours">, config: IntraRegionRoutingConfig): number {
-  const operatingWindowMinutes = config.dayEndMinutes - config.dayStartMinutes;
-  return Math.max(
-    30,
-    Math.min(operatingWindowMinutes, Math.round(stop.recommendedDurationHours * 60))
-  );
+function durationMinutes(
+  stop: Pick<SchedulableStop, "recommendedDurationHours">,
+  config: IntraRegionRoutingConfig
+): number {
+  return Math.max(30, Math.round(stop.recommendedDurationHours * 60));
 }
 
 function travelMinutesFromKm(distanceKm: number, averageTravelSpeedKmh: number): number {
@@ -172,34 +213,6 @@ function travelMinutesFromKm(distanceKm: number, averageTravelSpeedKmh: number):
   }
 
   return Math.max(5, Math.round((distanceKm / averageTravelSpeedKmh) * 60));
-}
-
-function computeRawScheduledMinutes(
-  stops: Pick<SchedulableStop, "coordinates" | "recommendedDurationHours">[],
-  config: IntraRegionRoutingConfig
-): number {
-  if (stops.length === 0) {
-    return 0;
-  }
-
-  const distanceMatrix = buildDistanceMatrix(
-    stops.map((stop) => ({
-      coordinates: stop.coordinates
-    }))
-  );
-
-  let totalMinutes = 0;
-  for (let index = 0; index < stops.length; index += 1) {
-    totalMinutes += durationMinutes(stops[index], config);
-    if (index > 0) {
-      totalMinutes += travelMinutesFromKm(
-        distanceMatrix[index - 1][index],
-        config.averageTravelSpeedKmh
-      );
-    }
-  }
-
-  return totalMinutes;
 }
 
 function routeSignature(indices: number[], candidates: PlannerDayCandidate[]): string {
@@ -214,11 +227,194 @@ function computeRouteDistance(indices: number[], distanceMatrix: number[][]): nu
   return total;
 }
 
+function maxStopsForIntensity(
+  travelIntensity: TravelIntensity,
+  config: IntraRegionRoutingConfig
+): number {
+  return config.maxStopsPerDay[travelIntensity];
+}
+
+function evaluateRoute(
+  stops: SchedulableStop[],
+  context: RouteValidationContext,
+  config: IntraRegionRoutingConfig = defaultIntraRegionRoutingConfig
+): RouteEvaluation {
+  const baseSummary = {
+    scheduledStops: [] as PlannerTimedStop[],
+    startTime: minutesToTimeLabel(config.dayStartMinutes),
+    endTime: minutesToTimeLabel(config.dayStartMinutes),
+    estimatedVisitHours: 0,
+    estimatedTravelKm: 0,
+    estimatedTravelMinutes: 0,
+    totalVisitMinutes: 0,
+    stopCount: stops.length
+  };
+
+  if (stops.length === 0) {
+    return {
+      isValid: true,
+      failureReason: null,
+      ...baseSummary,
+      notes: ["buffer_day_no_remaining_candidates"]
+    };
+  }
+
+  if (stops.length > maxStopsForIntensity(context.travelIntensity, config)) {
+    return {
+      isValid: false,
+      failureReason: "stop_cap_exceeded",
+      ...baseSummary,
+      notes: ["daily_stop_cap_exceeded"]
+    };
+  }
+
+  const region = stops[0].region;
+  if (stops.some((stop) => stop.region !== region)) {
+    return {
+      isValid: false,
+      failureReason: "cross_region_day_not_allowed",
+      ...baseSummary,
+      notes: ["same_region_day_required"]
+    };
+  }
+
+  const categoryCounts = new Map<string, number>();
+  const operatingWindowMinutes = config.dayEndMinutes - config.dayStartMinutes;
+  const distanceMatrix = buildDistanceMatrix(stops);
+  let currentMinutes = config.dayStartMinutes;
+  let totalVisitMinutes = 0;
+  let totalTravelMinutes = 0;
+  let totalTravelKm = 0;
+  let previousWasLongStop = false;
+  const scheduledStops: PlannerTimedStop[] = [];
+
+  for (let index = 0; index < stops.length; index += 1) {
+    const stop = stops[index];
+    const visitMinutes = durationMinutes(stop, config);
+
+    if (visitMinutes > config.maxDailyVisitMinutes) {
+      return {
+        isValid: false,
+        failureReason: "single_stop_visit_limit_exceeded",
+        ...baseSummary,
+        notes: ["daily_visit_limit_exceeded"]
+      };
+    }
+
+    if (!context.allowCategoryRepeatByPreference) {
+      const wouldExceed = stop.categories.some((category) => {
+        const nextCount = (categoryCounts.get(category) ?? 0) + 1;
+        return nextCount > 2;
+      });
+      if (wouldExceed) {
+        return {
+          isValid: false,
+          failureReason: "category_repeat_cap_exceeded",
+          ...baseSummary,
+          notes: ["daily_category_repeat_cap_exceeded"]
+        };
+      }
+    }
+
+    const currentIsLongStop = visitMinutes > config.longStopThresholdMinutes;
+    if (previousWasLongStop && currentIsLongStop) {
+      return {
+        isValid: false,
+        failureReason: "rest_gap_rule_violated",
+        ...baseSummary,
+        notes: ["rest_gap_rule_violated"]
+      };
+    }
+
+    const travelKm = index === 0 ? 0 : distanceMatrix[index - 1][index];
+    const travelMinutes = index === 0 ? 0 : travelMinutesFromKm(travelKm, config.averageTravelSpeedKmh);
+
+    totalTravelKm += travelKm;
+    if (totalTravelKm - config.maxDailyDrivingKm > 1e-9) {
+      return {
+        isValid: false,
+        failureReason: "daily_driving_distance_exceeded",
+        ...baseSummary,
+        notes: ["daily_driving_distance_exceeded"]
+      };
+    }
+
+    currentMinutes += travelMinutes;
+    totalTravelMinutes += travelMinutes;
+    totalVisitMinutes += visitMinutes;
+
+    if (totalVisitMinutes > config.maxDailyVisitMinutes) {
+      return {
+        isValid: false,
+        failureReason: "daily_visit_limit_exceeded",
+        ...baseSummary,
+        notes: ["daily_visit_limit_exceeded"]
+      };
+    }
+
+    if (currentMinutes + visitMinutes > config.dayEndMinutes) {
+      return {
+        isValid: false,
+        failureReason: "operating_window_exceeded",
+        ...baseSummary,
+        notes: ["operating_window_exceeded"]
+      };
+    }
+
+    const startTime = minutesToTimeLabel(currentMinutes);
+    currentMinutes += visitMinutes;
+    scheduledStops.push({
+      slug: stop.slug,
+      startTime,
+      endTime: minutesToTimeLabel(currentMinutes),
+      visitDurationMinutes: visitMinutes,
+      travelMinutesFromPrevious: travelMinutes,
+      travelKmFromPrevious: roundKm(travelKm, config.distancePrecisionKm),
+      estimatedVisitHours: deterministicRound(visitMinutes / 60, 2)
+    });
+
+    stop.categories.forEach((category) => {
+      categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
+    });
+
+    previousWasLongStop = currentIsLongStop;
+  }
+
+  if (currentMinutes - config.dayStartMinutes > operatingWindowMinutes) {
+    return {
+      isValid: false,
+      failureReason: "operating_window_exceeded",
+      ...baseSummary,
+      notes: ["operating_window_exceeded"]
+    };
+  }
+
+  return {
+    isValid: true,
+    failureReason: null,
+    scheduledStops,
+    startTime: scheduledStops[0]?.startTime ?? minutesToTimeLabel(config.dayStartMinutes),
+    endTime: scheduledStops[scheduledStops.length - 1]?.endTime ?? minutesToTimeLabel(config.dayStartMinutes),
+    estimatedVisitHours: deterministicRound(totalVisitMinutes / 60, 2),
+    estimatedTravelKm: roundKm(totalTravelKm, config.distancePrecisionKm),
+    estimatedTravelMinutes: totalTravelMinutes,
+    totalVisitMinutes,
+    stopCount: stops.length,
+    notes: ["region_day_planned"]
+  };
+}
+
 function compareBeamStates(
   a: BeamState,
   b: BeamState,
   candidates: PlannerDayCandidate[]
 ): number {
+  if (b.route.length !== a.route.length) {
+    return b.route.length - a.route.length;
+  }
+  if (b.totalScore !== a.totalScore) {
+    return b.totalScore - a.totalScore;
+  }
   if (a.distanceKm !== b.distanceKm) {
     return a.distanceKm - b.distanceKm;
   }
@@ -226,22 +422,27 @@ function compareBeamStates(
   return routeSignature(a.route, candidates).localeCompare(routeSignature(b.route, candidates));
 }
 
-function runBeamSearch(
-  candidates: PlannerDayCandidate[],
-  distanceMatrix: number[][],
-  beamWidth: number
-): number[] {
+function runConstrainedBeamSearch(input: {
+  candidates: PlannerDayCandidate[];
+  beamWidth: number;
+  maxSelectableStops: number;
+  context: RouteValidationContext;
+  config: IntraRegionRoutingConfig;
+}): number[] {
+  const { candidates, beamWidth, maxSelectableStops, context, config } = input;
   const prioritizedIndices = candidates
     .map((_, index) => index)
     .sort((left, right) => compareCandidatesByPriority(candidates[left], candidates[right]));
-  const seedWidth = Math.min(beamWidth, candidates.length);
-  let beam: BeamState[] = prioritizedIndices.slice(0, seedWidth).map((index) => ({
-    route: [index],
-    visitedMask: 1 << index,
-    distanceKm: 0
-  }));
 
-  while (beam[0]?.route.length < candidates.length) {
+  let beam: BeamState[] = [{
+    route: [],
+    visitedMask: 0,
+    distanceKm: 0,
+    totalScore: 0
+  }];
+  let bestState = beam[0];
+
+  for (let depth = 0; depth < maxSelectableStops; depth += 1) {
     const expansions: BeamState[] = [];
 
     beam.forEach((state) => {
@@ -251,23 +452,64 @@ function runBeamSearch(
           return;
         }
 
+        const candidateRoute = [...state.route, candidateIndex];
+        const stopEvaluation = evaluateRoute(
+          candidateRoute.map((index) => candidates[index]),
+          context,
+          config
+        );
+        if (!stopEvaluation.isValid) {
+          return;
+        }
+
+        const nextDistance = state.route.length === 0
+          ? 0
+          : deterministicRound(
+            state.distanceKm
+            + buildDistanceMatrix(
+              [candidates[last], candidates[candidateIndex]]
+            )[0][1]
+          );
+
         expansions.push({
-          route: [...state.route, candidateIndex],
+          route: candidateRoute,
           visitedMask: state.visitedMask | (1 << candidateIndex),
-          distanceKm: deterministicRound(state.distanceKm + distanceMatrix[last][candidateIndex])
+          distanceKm: nextDistance,
+          totalScore: deterministicRound(state.totalScore + candidates[candidateIndex].score)
         });
       });
     });
 
-    beam = expansions
+    if (expansions.length === 0) {
+      break;
+    }
+
+    const deduped = new Map<string, BeamState>();
+    expansions
       .sort((left, right) => compareBeamStates(left, right, candidates))
-      .slice(0, beamWidth);
+      .forEach((state) => {
+        const signature = state.route.join("|");
+        if (!deduped.has(signature)) {
+          deduped.set(signature, state);
+        }
+      });
+
+    beam = [...deduped.values()].slice(0, beamWidth);
+    if (compareBeamStates(beam[0], bestState, candidates) < 0) {
+      bestState = beam[0];
+    }
   }
 
-  return beam[0]?.route ?? prioritizedIndices;
+  return bestState.route;
 }
 
-function runTwoOpt(route: number[], distanceMatrix: number[][]): number[] {
+function runTwoOpt(
+  route: number[],
+  candidates: PlannerDayCandidate[],
+  distanceMatrix: number[][],
+  context: RouteValidationContext,
+  config: IntraRegionRoutingConfig
+): number[] {
   if (route.length <= 3) {
     return route.slice();
   }
@@ -286,8 +528,16 @@ function runTwoOpt(route: number[], distanceMatrix: number[][]): number[] {
           ...bestRoute.slice(start, end + 1).reverse(),
           ...bestRoute.slice(end + 1)
         ];
-        const candidateDistance = computeRouteDistance(candidateRoute, distanceMatrix);
+        const evaluation = evaluateRoute(
+          candidateRoute.map((index) => candidates[index]),
+          context,
+          config
+        );
+        if (!evaluation.isValid) {
+          continue;
+        }
 
+        const candidateDistance = computeRouteDistance(candidateRoute, distanceMatrix);
         if (candidateDistance + 1e-9 < bestDistance) {
           bestRoute = candidateRoute;
           bestDistance = candidateDistance;
@@ -300,147 +550,118 @@ function runTwoOpt(route: number[], distanceMatrix: number[][]): number[] {
   return bestRoute;
 }
 
-function orderCandidatesWithinRegion(
-  candidates: PlannerDayCandidate[],
-  beamWidth: number
-): PlannerDayCandidate[] {
-  if (candidates.length <= 2) {
-    return candidates.slice().sort(compareCandidatesByPriority);
-  }
-
-  const prioritizedCandidates = candidates.slice().sort(compareCandidatesByPriority);
-  const distanceMatrix = buildDistanceMatrix(prioritizedCandidates);
-  const beamRoute = runBeamSearch(prioritizedCandidates, distanceMatrix, beamWidth);
-  const optimizedRoute = runTwoOpt(beamRoute, distanceMatrix);
-  return optimizedRoute.map((index) => prioritizedCandidates[index]);
-}
-
 export function buildTimedRouteSummary(
   stops: SchedulableStop[],
+  options: Partial<RouteValidationContext> = {},
   config: IntraRegionRoutingConfig = defaultIntraRegionRoutingConfig
 ): TimedRouteSummary {
-  if (stops.length === 0) {
-    return {
-      scheduledStops: [],
-      startTime: minutesToTimeLabel(config.dayStartMinutes),
-      endTime: minutesToTimeLabel(config.dayStartMinutes),
-      estimatedVisitHours: 0,
-      estimatedTravelKm: 0,
-      estimatedTravelMinutes: 0,
-      notes: ["buffer_day_no_remaining_candidates"]
-    };
-  }
-
-  const distanceMatrix = buildDistanceMatrix(stops);
-  let currentMinutes = config.dayStartMinutes;
-  let totalVisitMinutes = 0;
-  let totalTravelMinutes = 0;
-  let totalTravelKm = 0;
-  let hasTrimmedStopDuration = false;
-
-  const scheduledStops = stops.map((stop, index) => {
-    const travelKm = index === 0 ? 0 : distanceMatrix[index - 1][index];
-    const travelMinutes = index === 0 ? 0 : travelMinutesFromKm(travelKm, config.averageTravelSpeedKmh);
-    currentMinutes += travelMinutes;
-    totalTravelMinutes += travelMinutes;
-    totalTravelKm += travelKm;
-
-    const rawVisitMinutes = durationMinutes(stop, config);
-    const remainingMinutes = Math.max(0, config.dayEndMinutes - currentMinutes);
-    const visitMinutes = Math.min(rawVisitMinutes, remainingMinutes);
-    if (visitMinutes < rawVisitMinutes) {
-      hasTrimmedStopDuration = true;
-    }
-
-    const startTime = minutesToTimeLabel(currentMinutes);
-    currentMinutes += visitMinutes;
-    totalVisitMinutes += visitMinutes;
-
-    return {
-      slug: stop.slug,
-      startTime,
-      endTime: minutesToTimeLabel(currentMinutes),
-      travelMinutesFromPrevious: travelMinutes,
-      estimatedVisitHours: deterministicRound(visitMinutes / 60, 2)
-    };
-  });
-
-  const notes = ["region_day_planned"];
-  if (hasTrimmedStopDuration) {
-    notes.push("stop_duration_trimmed_to_fit_day_window");
-  }
+  const evaluation = evaluateRoute(stops, {
+    travelIntensity: options.travelIntensity ?? "packed",
+    allowCategoryRepeatByPreference: options.allowCategoryRepeatByPreference ?? false
+  }, config);
 
   return {
-    scheduledStops,
-    startTime: scheduledStops[0]?.startTime ?? minutesToTimeLabel(config.dayStartMinutes),
-    endTime: scheduledStops[scheduledStops.length - 1]?.endTime ?? minutesToTimeLabel(config.dayStartMinutes),
-    estimatedVisitHours: deterministicRound(totalVisitMinutes / 60),
-    estimatedTravelKm: roundKm(totalTravelKm, config.distancePrecisionKm),
-    estimatedTravelMinutes: totalTravelMinutes,
-    notes
+    ...evaluation,
+    unresolvedReason: evaluation.failureReason
   };
 }
 
-function planWouldExceedOperatingWindow(
-  dayStops: PlannerDayCandidate[],
-  candidate: PlannerDayCandidate,
-  config: IntraRegionRoutingConfig
-): boolean {
-  return (
-    computeRawScheduledMinutes([...dayStops, candidate], config)
-    > config.dayEndMinutes - config.dayStartMinutes
-  );
-}
-
-function shouldStopDayFill(
-  dayStops: PlannerDayCandidate[],
-  candidate: PlannerDayCandidate,
-  hoursPerDayTarget: number,
-  config: IntraRegionRoutingConfig
-): boolean {
-  return computeRawScheduledMinutes([...dayStops, candidate], config) > hoursPerDayTarget * 60;
-}
-
-function allocateStopsToDays(
-  orderedCandidates: PlannerDayCandidate[],
-  allocatedDays: number,
-  hoursPerDayTarget: number,
-  config: IntraRegionRoutingConfig
-): RegionDailyPlan[] {
+function planRegionDays(input: {
+  orderedCandidates: PlannerDayCandidate[];
+  allocatedDays: number;
+  travelIntensity: TravelIntensity;
+  allowCategoryRepeatByPreference: boolean;
+  config: IntraRegionRoutingConfig;
+}): RegionDailyPlan[] {
+  const {
+    orderedCandidates,
+    allocatedDays,
+    travelIntensity,
+    allowCategoryRepeatByPreference,
+    config
+  } = input;
   const plans: RegionDailyPlan[] = [];
-  let cursor = 0;
+  let remainingCandidates = orderedCandidates.slice();
 
   for (let dayIndex = 0; dayIndex < allocatedDays; dayIndex += 1) {
     const regionDayNumber = dayIndex + 1;
-    const daysRemainingAfterCurrent = allocatedDays - regionDayNumber;
-    const dayStops: PlannerDayCandidate[] = [];
+    const remainingDaysAfterCurrent = allocatedDays - regionDayNumber;
+    const reserveForFutureDays = Math.min(
+      Math.max(remainingCandidates.length - 1, 0),
+      remainingDaysAfterCurrent
+    );
+    const maxSelectableStops = Math.min(
+      maxStopsForIntensity(travelIntensity, config),
+      Math.max(0, remainingCandidates.length - reserveForFutureDays)
+    );
 
-    while (cursor < orderedCandidates.length) {
-      const next = orderedCandidates[cursor];
-      const stopsRemainingIncludingCandidate = orderedCandidates.length - cursor;
-      const minimumStopsNeededToday = stopsRemainingIncludingCandidate > daysRemainingAfterCurrent ? 1 : 0;
-      const mustTakeCandidate = dayStops.length < minimumStopsNeededToday;
-
-      if (!mustTakeCandidate && planWouldExceedOperatingWindow(dayStops, next, config)) {
-        break;
-      }
-
-      if (!mustTakeCandidate && shouldStopDayFill(dayStops, next, hoursPerDayTarget, config)) {
-        break;
-      }
-
-      dayStops.push(next);
-      cursor += 1;
+    if (remainingCandidates.length === 0 || maxSelectableStops === 0) {
+      plans.push({
+        regionDayNumber,
+        destinationSlugs: [],
+        scheduledStops: [],
+        startTime: minutesToTimeLabel(config.dayStartMinutes),
+        endTime: minutesToTimeLabel(config.dayStartMinutes),
+        estimatedVisitHours: 0,
+        estimatedTravelKm: 0,
+        estimatedTravelMinutes: 0,
+        stopCount: 0,
+        unresolvedReason: null,
+        notes: ["buffer_day_no_remaining_candidates"]
+      });
+      continue;
     }
 
-    const summary = buildTimedRouteSummary(dayStops, config);
-    const notes = summary.notes.slice();
-    const totalScheduledMinutes = Math.round(summary.estimatedVisitHours * 60) + summary.estimatedTravelMinutes;
-    if (dayStops.length === 0) {
-      notes.splice(0, notes.length, "buffer_day_no_remaining_candidates");
-    } else if (totalScheduledMinutes > hoursPerDayTarget * 60) {
-      notes.push("soft_hours_target_exceeded_to_preserve_feasible_distribution");
+    const distanceMatrix = buildDistanceMatrix(remainingCandidates);
+    const beamRoute = runConstrainedBeamSearch({
+      candidates: remainingCandidates,
+      beamWidth: config.beamWidth,
+      maxSelectableStops,
+      context: {
+        travelIntensity,
+        allowCategoryRepeatByPreference
+      },
+      config
+    });
+    const optimizedRoute = runTwoOpt(
+      beamRoute,
+      remainingCandidates,
+      distanceMatrix,
+      {
+        travelIntensity,
+        allowCategoryRepeatByPreference
+      },
+      config
+    );
+    const dayStops = optimizedRoute.map((index) => remainingCandidates[index]);
+    const summary = buildTimedRouteSummary(dayStops, {
+      travelIntensity,
+      allowCategoryRepeatByPreference
+    }, config);
+
+    if (!summary.isValid || dayStops.length === 0) {
+      plans.push({
+        regionDayNumber,
+        destinationSlugs: [],
+        scheduledStops: [],
+        startTime: minutesToTimeLabel(config.dayStartMinutes),
+        endTime: minutesToTimeLabel(config.dayStartMinutes),
+        estimatedVisitHours: 0,
+        estimatedTravelKm: 0,
+        estimatedTravelMinutes: 0,
+        stopCount: 0,
+        unresolvedReason: remainingCandidates.length > 0
+          ? (summary.failureReason ?? "no_valid_same_region_day_plan")
+          : null,
+        notes: remainingCandidates.length > 0
+          ? ["unresolved_region_day_slot"]
+          : ["buffer_day_no_remaining_candidates"]
+      });
+      continue;
     }
+
+    const selectedSlugs = new Set(dayStops.map((candidate) => candidate.slug));
+    remainingCandidates = remainingCandidates.filter((candidate) => !selectedSlugs.has(candidate.slug));
 
     plans.push({
       regionDayNumber,
@@ -451,7 +672,9 @@ function allocateStopsToDays(
       estimatedVisitHours: summary.estimatedVisitHours,
       estimatedTravelKm: summary.estimatedTravelKm,
       estimatedTravelMinutes: summary.estimatedTravelMinutes,
-      notes: Array.from(new Set(notes))
+      stopCount: summary.stopCount,
+      unresolvedReason: null,
+      notes: summary.notes
     });
   }
 
@@ -472,7 +695,8 @@ export function generateIntraRegionDayPlans(input: {
 }): PlannerPhase5BIntraRegionRouting {
   const config = defaultIntraRegionRoutingConfig;
   const candidateMap = toCandidateMap(input.handoff);
-  const hoursPerDayTarget = input.allocation.allocationPolicy.hoursPerDay;
+  const travelIntensity = input.handoff.profile.travelIntensity;
+  const allowCategoryRepeatByPreference = input.handoff.profile.preferredCategories.length <= 1;
 
   const regionRoutes: PlannedRegionRoute[] = input.allocation.regionBuckets.map((bucket) => {
     const usableCandidates: PlannerDayCandidate[] = bucket.candidateSlugs
@@ -502,23 +726,23 @@ export function generateIntraRegionDayPlans(input: {
       };
     }
 
-    const orderedRoute = orderCandidatesWithinRegion(usableCandidates, config.beamWidth);
-    const dailyPlans = allocateStopsToDays(
-      orderedRoute,
-      bucket.allocatedDays,
-      hoursPerDayTarget,
+    const dailyPlans = planRegionDays({
+      orderedCandidates: usableCandidates,
+      allocatedDays: bucket.allocatedDays,
+      travelIntensity,
+      allowCategoryRepeatByPreference,
       config
-    );
+    });
 
     const assignedSlugs = new Set(dailyPlans.flatMap((plan) => plan.destinationSlugs));
-    const droppedCandidateSlugs = orderedRoute
+    const droppedCandidateSlugs = usableCandidates
       .map((candidate) => candidate.slug)
       .filter((slug) => !assignedSlugs.has(slug));
 
     return {
       region: bucket.region,
       allocatedDays: bucket.allocatedDays,
-      orderedCandidateSlugs: orderedRoute.map((item) => item.slug),
+      orderedCandidateSlugs: dailyPlans.flatMap((plan) => plan.destinationSlugs),
       droppedCandidateSlugs,
       dailyPlans,
       totalPlannedVisitHours: deterministicRound(dailyPlans.reduce((sum, plan) => sum + plan.estimatedVisitHours, 0)),
@@ -552,6 +776,8 @@ export function generateIntraRegionDayPlans(input: {
         estimatedVisitHours: 0,
         estimatedTravelKm: 0,
         estimatedTravelMinutes: 0,
+        stopCount: 0,
+        unresolvedReason: "missing_region_day_plan",
         notes: ["unresolved_region_day_slot"]
       };
     }
@@ -567,16 +793,18 @@ export function generateIntraRegionDayPlans(input: {
       estimatedVisitHours: regionDayPlan.estimatedVisitHours,
       estimatedTravelKm: regionDayPlan.estimatedTravelKm,
       estimatedTravelMinutes: regionDayPlan.estimatedTravelMinutes,
+      stopCount: regionDayPlan.stopCount,
+      unresolvedReason: regionDayPlan.unresolvedReason,
       notes: regionDayPlan.notes
     };
   });
 
   const unresolvedDaySlots = dayPlans
-    .filter((plan) => plan.notes.includes("unresolved_region_day_slot"))
+    .filter((plan) => plan.unresolvedReason !== null)
     .map((plan) => ({
       dayNumber: plan.dayNumber,
       region: plan.region,
-      reason: "missing_region_day_plan"
+      reason: plan.unresolvedReason ?? "missing_region_day_plan"
     }));
 
   return {
@@ -587,14 +815,18 @@ export function generateIntraRegionDayPlans(input: {
     datasetVersion: input.allocation.datasetVersion,
     tripDays: input.allocation.tripDays,
     routingPolicy: {
-      approach: "deterministic_beam_search_then_two_opt_intra_region_routing",
-      dayFillPolicy: "preserve_one_stop_per_remaining_day_when_feasible_then_fill_to_hours_target_without_exceeding_day_window",
+      approach: "deterministic_same_region_daily_beam_search_then_validity_checked_two_opt",
+      dayFillPolicy: "reject_invalid_candidates_before_expansion_spill_unfitting_stops_to_next_same_region_day",
       distanceMetric: "haversine_km_distance_matrix",
       beamWidth: config.beamWidth,
       averageTravelSpeedKmh: config.averageTravelSpeedKmh,
       dayStartTime: minutesToTimeLabel(config.dayStartMinutes),
       dayEndTime: minutesToTimeLabel(config.dayEndMinutes),
-      hoursPerDayTarget
+      hoursPerDayTarget: input.allocation.allocationPolicy.hoursPerDay,
+      maxDailyDrivingKm: config.maxDailyDrivingKm,
+      maxDailyVisitHours: deterministicRound(config.maxDailyVisitMinutes / 60, 2),
+      maxStopsPerDay: config.maxStopsPerDay,
+      categoryRepeatCap: 2
     },
     regionRoutes,
     dayPlans,

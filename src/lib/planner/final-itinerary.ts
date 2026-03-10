@@ -18,7 +18,9 @@ export interface ItineraryStop {
   description: Destination["description"];
   startTime: string;
   endTime: string;
+  visitDurationMinutes: number;
   travelMinutesFromPrevious: number;
+  travelKmFromPrevious: number;
   estimatedVisitHours: number;
   ticketCostOmr: number;
   crowdLevel: Destination["crowd_level"];
@@ -40,6 +42,7 @@ export interface PlannerPhase5CItineraryDay {
   estimatedVisitHours: number;
   estimatedTravelKm: number;
   estimatedTravelMinutes: number;
+  unresolvedReason: string | null;
   estimatedTicketCostOmr: number;
   notes: string[];
 }
@@ -127,7 +130,9 @@ function buildStop(
     region: destination?.regionKey ?? candidate?.region ?? region,
     startTime: scheduledStop?.startTime ?? "",
     endTime: scheduledStop?.endTime ?? "",
+    visitDurationMinutes: scheduledStop?.visitDurationMinutes ?? 0,
     travelMinutesFromPrevious: scheduledStop?.travelMinutesFromPrevious ?? 0,
+    travelKmFromPrevious: scheduledStop?.travelKmFromPrevious ?? 0,
     estimatedVisitHours:
       scheduledStop?.estimatedVisitHours
       ?? candidate?.recommendedDurationHours
@@ -175,6 +180,7 @@ export function assembleFinalItinerary(input: {
         estimatedVisitHours: day.estimatedVisitHours,
         estimatedTravelKm: day.estimatedTravelKm,
         estimatedTravelMinutes: day.estimatedTravelMinutes,
+        unresolvedReason: day.unresolvedReason,
         estimatedTicketCostOmr,
         notes: day.notes.slice()
       };
