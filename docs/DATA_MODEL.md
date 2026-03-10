@@ -1,4 +1,4 @@
-# Data Model (Phase 1 Contract)
+# Data Model
 
 ## Destination
 - `id: string`

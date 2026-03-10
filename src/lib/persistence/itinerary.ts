@@ -1,3 +1,6 @@
+/**
+ * Browser persistence helpers for final itinerary and derived cost totals.
+ */
 import type { Destination } from "@/types/domain";
 import type { Locale } from "@/types/dataset";
 

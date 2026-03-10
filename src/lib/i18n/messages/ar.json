@@ -202,11 +202,11 @@
     "noStops": "لا توجد محطات لهذا اليوم.",
     "traceabilityTitle": "تتبع العقود",
     "planningContext": "معرف سياق التخطيط: {value}",
-    "sourceVersions": "إصدارات المصدر: 4C={handoff}، 5A={allocation}، 5B={routing}",
+    "sourceVersions": "إصدارات المصدر: الترتيب={handoff}، التوزيع={allocation}، التوجيه={routing}",
     "finalVersion": "إصدار البرنامج النهائي: {value}",
-    "handoffTitle": "تسليم المرحلة 4C",
-    "allocationTitle": "عقد توزيع المناطق 5A",
-    "routingTitle": "عقد التوجيه وخطة الأيام 5B",
-    "finalContractTitle": "عقد البرنامج النهائي 5C"
+    "handoffTitle": "تسليم الترتيب",
+    "allocationTitle": "عقد توزيع المناطق",
+    "routingTitle": "عقد التوجيه وخطة الأيام",
+    "finalContractTitle": "عقد البرنامج النهائي"
   }
 }

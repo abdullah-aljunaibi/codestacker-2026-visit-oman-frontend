@@ -1,3 +1,6 @@
+/**
+ * Deterministic intra-region stop ordering and day-fill routing.
+ */
 import type { PlannerPhase4CHandoff, PlannerHandoffRouteCandidate } from "@/lib/planner/candidate-ranking";
 import { buildDistanceMatrix } from "@/lib/geo/distance-matrix";
 import { nearestNeighborOrder } from "@/lib/geo/nearest-neighbor";

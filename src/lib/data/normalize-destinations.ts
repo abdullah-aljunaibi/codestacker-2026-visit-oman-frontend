@@ -1,3 +1,6 @@
+/**
+ * Dataset-to-domain normalization helpers for planner-ready destinations.
+ */
 import type { BudgetLevel, Destination } from "@/types/domain";
 import type { DatasetDestination, Locale } from "@/types/dataset";
 

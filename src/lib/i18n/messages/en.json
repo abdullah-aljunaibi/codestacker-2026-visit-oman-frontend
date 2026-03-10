@@ -202,11 +202,11 @@
     "noStops": "No stops assigned for this day.",
     "traceabilityTitle": "Contract traceability",
     "planningContext": "Planning context ID: {value}",
-    "sourceVersions": "Source versions: 4C={handoff}, 5A={allocation}, 5B={routing}",
+    "sourceVersions": "Source versions: ranking={handoff}, allocation={allocation}, routing={routing}",
     "finalVersion": "Final itinerary version: {value}",
-    "handoffTitle": "Phase 4C handoff",
-    "allocationTitle": "Phase 5A region allocation contract",
-    "routingTitle": "Phase 5B routing/day-plan contract",
-    "finalContractTitle": "Phase 5C final itinerary contract"
+    "handoffTitle": "Ranking handoff",
+    "allocationTitle": "Region allocation contract",
+    "routingTitle": "Routing and day-plan contract",
+    "finalContractTitle": "Final itinerary contract"
   }
 }

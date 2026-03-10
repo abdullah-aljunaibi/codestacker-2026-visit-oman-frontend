@@ -1,3 +1,6 @@
+/**
+ * Shared deterministic numeric utilities for planner scoring and routing.
+ */
 import type { Destination, InterestProfile } from "@/types/domain";
 import type { DatasetCoordinates } from "@/types/dataset";
 
