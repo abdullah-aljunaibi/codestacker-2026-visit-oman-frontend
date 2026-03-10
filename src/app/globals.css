@@ -1077,9 +1077,9 @@ a {
 
 .detailHeroCardShell {
   position: absolute;
-  inset-inline-start: 50%;
+  inset-inline: 0;
   inset-block-end: -60px;
-  transform: translateX(-50%);
+  margin-inline: auto;
   width: min(var(--shell-width), calc(100vw - 2rem));
 }
 
@@ -1502,7 +1502,7 @@ a {
 }
 
 [dir="rtl"] .plannerDayTab {
-  text-align: right;
+  text-align: end;
 }
 
 [dir="rtl"] .plannerTimeline::before {
