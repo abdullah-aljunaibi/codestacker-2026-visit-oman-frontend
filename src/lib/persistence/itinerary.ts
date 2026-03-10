@@ -142,7 +142,9 @@ export function readPersistedCostBreakdown(): PersistedCostBreakdownV2 | null {
     isFiniteNumber(record.freeStopCount) &&
     isFiniteNumber(record.totalStopCount)
   ) {
-    return migrateLegacyCostBreakdown(record as unknown as PersistedCostBreakdownV1);
+    const migrated = migrateLegacyCostBreakdown(record as unknown as PersistedCostBreakdownV1);
+    writeJsonStorage(storageKeys.costBreakdown, migrated);
+    return migrated;
   }
 
   return null;
