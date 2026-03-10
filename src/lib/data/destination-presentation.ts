@@ -24,103 +24,103 @@ const destinationHeroImages: Record<
   }
 > = {
   "muttrah-corniche": {
-    src: "https://images.unsplash.com/photo-1661396707813-5f2b83570c26?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?auto=format&fit=crop&w=1200&q=80",
     theme: "culture"
   },
   "royal-opera-house-muscat": {
-    src: "https://images.unsplash.com/photo-1666936885160-cac4d9ef7d24?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1597020642626-3c9b687eba70?auto=format&fit=crop&w=1200&q=80",
     theme: "urban"
   },
   "sultan-qaboos-grand-mosque": {
-    src: "https://images.unsplash.com/photo-1719314096247-b3b3a72b4366?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1587308263718-296560e5a3e4?auto=format&fit=crop&w=1200&q=80",
     theme: "culture"
   },
   "qurum-beach": {
-    src: "https://images.unsplash.com/photo-1621971600446-9a6da075d61d?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
     theme: "sea"
   },
   "bimmah-sinkhole": {
-    src: "https://images.unsplash.com/photo-1562602833-49e2f0c6d381?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
     theme: "nature"
   },
   "nizwa-fort": {
-    src: "https://images.unsplash.com/photo-1708515780646-f44aec13169a?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1578681994506-b8f463449011?auto=format&fit=crop&w=1200&q=80",
     theme: "culture"
   },
   "jebel-akhdar": {
-    src: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1619112623845-29ecabba4ee8?auto=format&fit=crop&w=1200&q=80",
     theme: "mountain"
   },
   "jebel-shams": {
-    src: "https://images.unsplash.com/photo-1626095460016-8664dc341f69?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1618828666498-eda61a79fbf4?auto=format&fit=crop&w=1200&q=80",
     theme: "adventure"
   },
   "misfat-al-abriyeen": {
-    src: "https://images.unsplash.com/photo-1736719060852-3c4e45144374?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1617713964959-7e94f2b07b24?auto=format&fit=crop&w=1200&q=80",
     theme: "heritage"
   },
   "bahla-fort": {
-    src: "https://images.unsplash.com/photo-1578825397504-f07d109167c8?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=1200&q=80",
     theme: "heritage"
   },
   "birkat-al-mouz": {
-    src: "https://images.unsplash.com/photo-1736719060852-3c4e45144374?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1617713964959-7e94f2b07b24?auto=format&fit=crop&w=1200&q=80",
     theme: "culture"
   },
   "wahiba-sands": {
-    src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
     theme: "desert"
   },
   "ras-al-jinz": {
-    src: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
     theme: "nature"
   },
   "wadi-bani-khalid": {
-    src: "https://images.unsplash.com/photo-1562602833-49e2f0c6d381?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
     theme: "nature"
   },
   "sur-dhow-yard": {
-    src: "https://images.unsplash.com/photo-1577587230708-187fdbef4d91?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?auto=format&fit=crop&w=1200&q=80",
     theme: "culture"
   },
   "fins-beach": {
-    src: "https://images.unsplash.com/photo-1621971600446-9a6da075d61d?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
     theme: "sea"
   },
   "salalah-waterfalls": {
-    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
     theme: "nature"
   },
   "mughsail-beach": {
-    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
     theme: "sea"
   },
   "anti-gravity-point": {
-    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1618828666498-eda61a79fbf4?auto=format&fit=crop&w=1200&q=80",
     theme: "nature"
   },
   "jebel-samhan": {
-    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1619112623845-29ecabba4ee8?auto=format&fit=crop&w=1200&q=80",
     theme: "mountain"
   },
   "nakhal-fort": {
-    src: "https://images.unsplash.com/photo-1741503488678-3dda4194252f?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=1200&q=80",
     theme: "heritage"
   },
   "ain-thowarah": {
-    src: "https://images.unsplash.com/photo-1741503488678-3dda4194252f?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
     theme: "nature"
   },
   "sawadi-beach": {
-    src: "https://images.unsplash.com/photo-1621971600446-9a6da075d61d?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
     theme: "sea"
   },
   "khasab-fjords": {
-    src: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?auto=format&fit=crop&w=1200&q=80",
     theme: "nature"
   },
   "telegraph-island": {
-    src: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80",
+    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
     theme: "sea"
   }
 };
@@ -221,7 +221,7 @@ export function getDestinationHeroImage(destination: DatasetDestination) {
   const theme = selected?.theme ?? pickTheme(destination);
 
   return {
-    src: selected?.src ?? "https://images.unsplash.com/photo-1626095460016-8664dc341f69?auto=format&fit=crop&w=1200&q=80",
+    src: selected?.src ?? "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
     width: imageDimensions.width,
     height: imageDimensions.height,
     theme
