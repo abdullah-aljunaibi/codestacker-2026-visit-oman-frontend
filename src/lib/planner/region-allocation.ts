@@ -1,13 +1,33 @@
-import type { PlannerPhase4CHandoff, PlannerHandoffRouteCandidate } from "@/lib/planner/candidate-ranking";
+/**
+ * Deterministic hierarchical region allocation across governorates and clusters.
+ */
+import type {
+  PlannerHandoffRouteCandidate,
+  PlannerPhase4CHandoff
+} from "@/lib/planner/candidate-ranking";
 
 interface RegionAllocationConfig {
   version: string;
   hoursPerDay: number;
+  densityWeight: number;
+  matchWeight: number;
+  diversityWeight: number;
 }
 
 export interface RegionAllocationDaySlot {
   dayNumber: number;
   region: string;
+}
+
+export interface RegionAllocationClusterBucket {
+  clusterKey: string;
+  clusterLabel: string;
+  candidateSlugs: string[];
+  candidateRanks: number[];
+  totalRecommendedHours: number;
+  averageCandidateScore: number;
+  destinationCount: number;
+  notes: string[];
 }
 
 export interface RegionAllocationRegionBucket {
@@ -17,7 +37,11 @@ export interface RegionAllocationRegionBucket {
   candidateRanks: number[];
   totalRecommendedHours: number;
   totalCandidateScore: number;
+  averageCandidateScore: number;
+  destinationDensity: number;
+  diversityBonus: number;
   allocationWeight: number;
+  clusters: RegionAllocationClusterBucket[];
   notes: string[];
 }
 
@@ -47,12 +71,19 @@ interface RegionStats {
   candidates: PlannerHandoffRouteCandidate[];
   totalRecommendedHours: number;
   totalCandidateScore: number;
+  averageCandidateScore: number;
+  destinationDensity: number;
+  diversityBonus: number;
   allocationWeight: number;
+  clusters: RegionAllocationClusterBucket[];
 }
 
 const defaultRegionAllocationConfig: RegionAllocationConfig = {
-  version: "phase-5a-v1",
-  hoursPerDay: 8
+  version: "phase-5a-v2",
+  hoursPerDay: 8,
+  densityWeight: 0.35,
+  matchWeight: 0.5,
+  diversityWeight: 0.15
 };
 
 function clampInteger(value: number, min: number, max: number): number {
@@ -67,29 +98,79 @@ function compareRegionStats(a: RegionStats, b: RegionStats): number {
   if (b.allocationWeight !== a.allocationWeight) {
     return b.allocationWeight - a.allocationWeight;
   }
-  if (b.totalCandidateScore !== a.totalCandidateScore) {
-    return b.totalCandidateScore - a.totalCandidateScore;
+  if (b.averageCandidateScore !== a.averageCandidateScore) {
+    return b.averageCandidateScore - a.averageCandidateScore;
   }
-  if (b.totalRecommendedHours !== a.totalRecommendedHours) {
-    return b.totalRecommendedHours - a.totalRecommendedHours;
-  }
-  return a.region.localeCompare(b.region);
-}
-
-function compareFractionalRemainder(
-  a: { index: number; remainder: number; weight: number; region: string },
-  b: { index: number; remainder: number; weight: number; region: string }
-): number {
-  if (b.remainder !== a.remainder) {
-    return b.remainder - a.remainder;
-  }
-  if (b.weight !== a.weight) {
-    return b.weight - a.weight;
+  if (b.destinationDensity !== a.destinationDensity) {
+    return b.destinationDensity - a.destinationDensity;
   }
   return a.region.localeCompare(b.region);
 }
 
-function buildRegionStats(candidates: PlannerHandoffRouteCandidate[], hoursPerDay: number): RegionStats[] {
+function compareClusterBuckets(a: RegionAllocationClusterBucket, b: RegionAllocationClusterBucket): number {
+  if (b.averageCandidateScore !== a.averageCandidateScore) {
+    return b.averageCandidateScore - a.averageCandidateScore;
+  }
+  if (b.destinationCount !== a.destinationCount) {
+    return b.destinationCount - a.destinationCount;
+  }
+  return a.clusterKey.localeCompare(b.clusterKey);
+}
+
+function primaryClusterLabel(candidate: PlannerHandoffRouteCandidate): string {
+  const categoryReason = candidate.reasonCodes
+    .find((reason) => reason === "category_match")
+    ? "aligned"
+    : "general";
+
+  const strengthLabel = candidate.strengths
+    .filter(Boolean)
+    .slice()
+    .sort((a, b) => a.localeCompare(b))[0];
+
+  return strengthLabel ?? categoryReason;
+}
+
+function buildClusters(candidates: PlannerHandoffRouteCandidate[]): RegionAllocationClusterBucket[] {
+  const grouped = new Map<string, PlannerHandoffRouteCandidate[]>();
+
+  candidates
+    .slice()
+    .sort((a, b) => {
+      if (a.rank !== b.rank) {
+        return a.rank - b.rank;
+      }
+      return a.slug.localeCompare(b.slug);
+    })
+    .forEach((candidate) => {
+      const clusterLabel = primaryClusterLabel(candidate);
+      const bucket = grouped.get(clusterLabel) ?? [];
+      bucket.push(candidate);
+      grouped.set(clusterLabel, bucket);
+    });
+
+  return [...grouped.entries()]
+    .map(([clusterLabel, clusterCandidates]) => ({
+      clusterKey: clusterLabel,
+      clusterLabel,
+      candidateSlugs: clusterCandidates.map((candidate) => candidate.slug),
+      candidateRanks: clusterCandidates.map((candidate) => candidate.rank),
+      totalRecommendedHours: deterministicRound(
+        clusterCandidates.reduce((sum, candidate) => sum + candidate.recommendedDurationHours, 0)
+      ),
+      averageCandidateScore: deterministicRound(
+        clusterCandidates.reduce((sum, candidate) => sum + candidate.score, 0) / clusterCandidates.length
+      ),
+      destinationCount: clusterCandidates.length,
+      notes: ["clustered_by_ranked_match_signature"]
+    }))
+    .sort(compareClusterBuckets);
+}
+
+function buildRegionStats(
+  candidates: PlannerHandoffRouteCandidate[],
+  config: RegionAllocationConfig
+): RegionStats[] {
   const grouped = new Map<string, PlannerHandoffRouteCandidate[]>();
   candidates
     .slice()
@@ -105,6 +186,8 @@ function buildRegionStats(candidates: PlannerHandoffRouteCandidate[], hoursPerDa
       grouped.set(candidate.region, list);
     });
 
+  const maxCandidateCount = Math.max(...[...grouped.values()].map((regionCandidates) => regionCandidates.length), 1);
+
   return [...grouped.entries()]
     .map(([region, regionCandidates]) => {
       const totalRecommendedHours = deterministicRound(
@@ -113,33 +196,52 @@ function buildRegionStats(candidates: PlannerHandoffRouteCandidate[], hoursPerDa
       const totalCandidateScore = deterministicRound(
         regionCandidates.reduce((sum, candidate) => sum + candidate.score, 0)
       );
-      const baseDays = totalRecommendedHours / hoursPerDay;
-      const weightedDays = baseDays * 0.7 + totalCandidateScore * 0.3;
+      const averageCandidateScore = deterministicRound(totalCandidateScore / regionCandidates.length);
+      const destinationDensity = deterministicRound(regionCandidates.length / maxCandidateCount);
+      const clusters = buildClusters(regionCandidates);
+      const diversityBonus = deterministicRound(1 / clusters.length);
+      const allocationWeight = deterministicRound(
+        (averageCandidateScore * config.matchWeight)
+        + (destinationDensity * config.densityWeight)
+        + (diversityBonus * config.diversityWeight)
+      );
+
       return {
         region,
         candidates: regionCandidates,
         totalRecommendedHours,
         totalCandidateScore,
-        allocationWeight: deterministicRound(weightedDays)
+        averageCandidateScore,
+        destinationDensity,
+        diversityBonus,
+        allocationWeight,
+        clusters
       };
     })
     .sort(compareRegionStats);
 }
 
 function buildDayRegionSequence(regionBuckets: RegionAllocationRegionBucket[]): RegionAllocationDaySlot[] {
-  const remaining = regionBuckets.map((bucket) => ({
-    region: bucket.region,
-    days: bucket.allocatedDays
-  }));
+  const remaining = regionBuckets
+    .map((bucket) => ({
+      region: bucket.region,
+      days: bucket.allocatedDays,
+      weight: bucket.allocationWeight
+    }))
+    .filter((bucket) => bucket.days > 0);
 
   const sequence: RegionAllocationDaySlot[] = [];
   let dayNumber = 1;
+
   while (remaining.some((item) => item.days > 0)) {
     remaining
       .slice()
       .sort((a, b) => {
         if (b.days !== a.days) {
           return b.days - a.days;
+        }
+        if (b.weight !== a.weight) {
+          return b.weight - a.weight;
         }
         return a.region.localeCompare(b.region);
       })
@@ -157,7 +259,7 @@ function buildDayRegionSequence(regionBuckets: RegionAllocationRegionBucket[]): 
       });
   }
 
-  return sequence.slice().sort((a, b) => a.dayNumber - b.dayNumber);
+  return sequence;
 }
 
 export function allocateTripDaysAcrossRegions(
@@ -166,7 +268,7 @@ export function allocateTripDaysAcrossRegions(
   const config = defaultRegionAllocationConfig;
   const tripDays = clampInteger(handoff.profile.tripDurationDays, 1, 7);
   const selected = handoff.routeGenerationInput.selectedCandidates;
-  const regionStats = buildRegionStats(selected, config.hoursPerDay);
+  const regionStats = buildRegionStats(selected, config);
 
   if (regionStats.length === 0) {
     return {
@@ -187,64 +289,57 @@ export function allocateTripDaysAcrossRegions(
     };
   }
 
-  const baselinePerRegion = tripDays >= regionStats.length ? 1 : 0;
-  const allocations = new Array<number>(regionStats.length).fill(baselinePerRegion);
+  const selectedRegions = regionStats.slice(0, Math.min(tripDays, regionStats.length));
+  const selectedRegionSet = new Set(selectedRegions.map((region) => region.region));
+  const allocations = new Map(selectedRegions.map((region) => [region.region, 1]));
+  let remainingDays = tripDays - selectedRegions.length;
 
-  let remainingDays = tripDays - allocations.reduce((sum, days) => sum + days, 0);
-  const totalWeight = regionStats.reduce((sum, item) => sum + item.allocationWeight, 0);
-
-  if (remainingDays > 0 && tripDays < regionStats.length) {
-    allocations.fill(0);
-    regionStats
+  while (remainingDays > 0) {
+    const nextRegion = selectedRegions
       .slice()
-      .sort(compareRegionStats)
-      .slice(0, remainingDays)
-      .forEach((item) => {
-        const index = regionStats.findIndex((region) => region.region === item.region);
-        allocations[index] = 1;
-      });
-    remainingDays = 0;
-  }
+      .sort((a, b) => {
+        const currentAllocationA = allocations.get(a.region) ?? 0;
+        const currentAllocationB = allocations.get(b.region) ?? 0;
+        const marginalA = deterministicRound(a.allocationWeight / (currentAllocationA + 1));
+        const marginalB = deterministicRound(b.allocationWeight / (currentAllocationB + 1));
 
-  if (remainingDays > 0) {
-    const shares = regionStats.map((item, index) => {
-      const raw = totalWeight > 0 ? (item.allocationWeight / totalWeight) * remainingDays : 0;
-      const base = Math.floor(raw);
-      allocations[index] += base;
-      return {
-        index,
-        remainder: deterministicRound(raw - base),
-        weight: item.allocationWeight,
-        region: item.region
-      };
-    });
-
-    let remainderDays = tripDays - allocations.reduce((sum, days) => sum + days, 0);
-    shares
-      .slice()
-      .sort(compareFractionalRemainder)
-      .forEach((item) => {
-        if (remainderDays <= 0) {
-          return;
+        if (marginalB !== marginalA) {
+          return marginalB - marginalA;
         }
-        allocations[item.index] += 1;
-        remainderDays -= 1;
-      });
+        if (b.averageCandidateScore !== a.averageCandidateScore) {
+          return b.averageCandidateScore - a.averageCandidateScore;
+        }
+        return a.region.localeCompare(b.region);
+      })[0];
+
+    allocations.set(nextRegion.region, (allocations.get(nextRegion.region) ?? 0) + 1);
+    remainingDays -= 1;
   }
 
-  const regionBuckets: RegionAllocationRegionBucket[] = regionStats.map((item, index) => ({
-    region: item.region,
-    allocatedDays: allocations[index],
-    candidateSlugs: item.candidates.map((candidate) => candidate.slug),
-    candidateRanks: item.candidates.map((candidate) => candidate.rank),
-    totalRecommendedHours: item.totalRecommendedHours,
-    totalCandidateScore: item.totalCandidateScore,
-    allocationWeight: item.allocationWeight,
-    notes: allocations[index] > 0 ? ["region_allocated"] : ["insufficient_trip_days_for_all_regions"]
-  }));
+  const regionBuckets: RegionAllocationRegionBucket[] = regionStats.map((item) => {
+    const allocatedDays = allocations.get(item.region) ?? 0;
+
+    return {
+      region: item.region,
+      allocatedDays,
+      candidateSlugs: item.candidates.map((candidate) => candidate.slug),
+      candidateRanks: item.candidates.map((candidate) => candidate.rank),
+      totalRecommendedHours: item.totalRecommendedHours,
+      totalCandidateScore: item.totalCandidateScore,
+      averageCandidateScore: item.averageCandidateScore,
+      destinationDensity: item.destinationDensity,
+      diversityBonus: item.diversityBonus,
+      allocationWeight: item.allocationWeight,
+      clusters: item.clusters,
+      notes:
+        allocatedDays > 0
+          ? ["region_allocated_with_hierarchical_clusters"]
+          : ["insufficient_trip_days_for_all_regions"]
+    };
+  });
 
   const unallocatedRegions = regionBuckets
-    .filter((bucket) => bucket.allocatedDays === 0)
+    .filter((bucket) => !selectedRegionSet.has(bucket.region))
     .map((bucket) => ({
       region: bucket.region,
       reason: "insufficient_trip_days_for_all_regions",
@@ -259,11 +354,8 @@ export function allocateTripDaysAcrossRegions(
     tripDays,
     allocationPolicy: {
       hoursPerDay: config.hoursPerDay,
-      baselinePerRegion,
-      approach:
-        tripDays < regionStats.length
-          ? "priority_fill_when_trip_days_below_region_count"
-          : "baseline_plus_largest_remainder_weighted_distribution"
+      baselinePerRegion: selectedRegions.length > 0 ? 1 : 0,
+      approach: "hierarchical_density_match_allocation_with_diminishing_returns"
     },
     regionBuckets,
     dayRegionSequence: buildDayRegionSequence(regionBuckets),
