@@ -1,4 +1,4 @@
-import type { InterestProfile } from "@/types/planner";
+import type { InterestProfile } from "@/types/domain";
 import { storageKeys } from "@/lib/persistence/keys";
 import { readJsonStorage, writeJsonStorage } from "@/lib/persistence/browser-storage";
 
@@ -11,7 +11,7 @@ export const defaultPlannerDraft: PlannerDraft = {
   themes: [],
   tripDays: 4,
   pace: "balanced",
-  budget: "medium",
+  budget: "moderate",
   selectedDestinationSlugs: [],
   updatedAt: ""
 };
@@ -35,7 +35,7 @@ export function readPlannerDraft(): PlannerDraft {
         ? raw.pace
         : defaultPlannerDraft.pace,
     budget:
-      raw.budget === "low" || raw.budget === "medium" || raw.budget === "high"
+      raw.budget === "budget" || raw.budget === "moderate" || raw.budget === "luxury"
         ? raw.budget
         : defaultPlannerDraft.budget,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : ""

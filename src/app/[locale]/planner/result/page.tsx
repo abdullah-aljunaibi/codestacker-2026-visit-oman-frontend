@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
 
 import { loadDestinationsWithVersion } from "@/lib/data/load-destinations";
+import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import { localeDirection, resolveLocale } from "@/lib/i18n/config";
 import { rankCandidatesForPlanner } from "@/lib/planner/candidate-ranking";
 import { assembleFinalItinerary } from "@/lib/planner/final-itinerary";
@@ -15,8 +16,12 @@ import { defaultPlannerDraft, readPlannerDraft } from "@/lib/persistence/planner
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = use(params);
   const locale = resolveLocale(localeParam);
-  const { datasetVersion, destinations } = loadDestinationsWithVersion();
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
+  const { datasetVersion, destinations } = useMemo(() => loadDestinationsWithVersion(), []);
+  const normalizedDestinations = useMemo(
+    () => normalizeDestinations(destinations, locale),
+    [destinations, locale]
+  );
 
   useEffect(() => {
     setDraft(readPlannerDraft());
@@ -32,11 +37,11 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
           budget: draft.budget,
           travelMonth: draft.travelMonth
         },
-        destinations,
+        destinations: normalizedDestinations,
         seedDestinationSlugs: draft.selectedDestinationSlugs,
         datasetVersion
       }),
-    [datasetVersion, destinations, draft]
+    [datasetVersion, draft, normalizedDestinations]
   );
 
   const regionAllocation = useMemo(() => allocateTripDaysAcrossRegions(ranking.handoff), [ranking]);
@@ -54,9 +59,9 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
       assembleFinalItinerary({
         handoff: ranking.handoff,
         routing: routingDayPlan,
-        destinations
+        destinations: normalizedDestinations
       }),
-    [destinations, ranking.handoff, routingDayPlan]
+    [normalizedDestinations, ranking.handoff, routingDayPlan]
   );
 
   return (

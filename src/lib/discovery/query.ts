@@ -1,12 +1,18 @@
 import type { DatasetDestination } from "@/types/dataset";
 
-import { getRegionKey, minutesToHours } from "@/lib/data/normalize-destinations";
+import {
+  getByCategory,
+  getByRegion,
+  getRegionKey,
+  sortByCost,
+  sortByCrowd
+} from "@/lib/data/selectors";
 
 export type DiscoverySort = "crowd_asc" | "cost_asc" | "duration_asc";
 
 export interface DiscoveryFilters {
   region?: string;
-  tag?: string;
+  category?: string;
   sort?: DiscoverySort;
 }
 
@@ -22,38 +28,28 @@ export function applyDiscoveryQuery(
   destinations: DatasetDestination[],
   filters: DiscoveryFilters
 ): DatasetDestination[] {
-  const filtered = destinations.filter((destination) => {
-    if (filters.region && getRegionKey(destination) !== filters.region) {
-      return false;
-    }
-
-    if (filters.tag && !destination.categories.includes(filters.tag)) {
-      return false;
-    }
-
-    return true;
-  });
+  const filtered = getByCategory(getByRegion(destinations, filters.region), filters.category);
 
   const sort = filters.sort ?? "crowd_asc";
 
-  return filtered.sort((a, b) => {
-    if (sort === "duration_asc") {
-      return a.avg_visit_duration_minutes - b.avg_visit_duration_minutes;
-    }
+  if (sort === "duration_asc") {
+    return filtered
+      .slice()
+      .sort((a, b) => a.avg_visit_duration_minutes - b.avg_visit_duration_minutes);
+  }
 
-    if (sort === "cost_asc") {
-      return a.ticket_cost_omr - b.ticket_cost_omr;
-    }
+  if (sort === "cost_asc") {
+    return sortByCost(filtered);
+  }
 
-    return a.crowd_level - b.crowd_level;
-  });
+  return sortByCrowd(filtered);
 }
 
 export function parseDiscoveryFilters(
   searchParams?: Record<string, string | string[] | undefined>
 ): DiscoveryFilters {
   const region = pickOne(searchParams?.region);
-  const tag = pickOne(searchParams?.tag);
+  const category = pickOne(searchParams?.category) ?? pickOne(searchParams?.tag);
   const sortRaw = pickOne(searchParams?.sort);
 
   const sort =
@@ -63,7 +59,7 @@ export function parseDiscoveryFilters(
       ? sortRaw
       : undefined;
 
-  return { region, tag, sort };
+  return { region, category, sort };
 }
 
 function pickOne(value?: string | string[]): string | undefined {

@@ -1,5 +1,4 @@
-import type { DatasetDestination } from "@/types/dataset";
-import type { InterestProfile } from "@/types/planner";
+import type { Destination, InterestProfile } from "@/types/domain";
 
 import {
   budgetLevelToTargetCost,
@@ -67,8 +66,8 @@ export function normalizeCostAgainstBudget(
 }
 
 export function scoreDiversityGain(
-  candidate: Pick<DatasetDestination, "region" | "categories">,
-  selected: Array<Pick<DatasetDestination, "region" | "categories">>
+  candidate: Pick<Destination, "region" | "categories">,
+  selected: Array<Pick<Destination, "region" | "categories">>
 ): number {
   if (selected.length === 0) {
     return 1;
@@ -88,8 +87,8 @@ export function scoreDiversityGain(
 }
 
 export function scoreDetourPenalty(
-  candidateCoordinates: DatasetDestination["coordinates"],
-  selected: Array<Pick<DatasetDestination, "coordinates">>,
+  candidateCoordinates: Destination["coordinates"],
+  selected: Array<Pick<Destination, "coordinates">>,
   softLimitKm = 120
 ): number {
   if (selected.length === 0) {

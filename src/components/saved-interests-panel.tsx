@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { loadDestinations } from "@/lib/data/load-destinations";
+import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import { filterDestinationsBySavedSlugs } from "@/lib/data/selectors";
 import {
   clearSavedInterests,
@@ -14,8 +15,11 @@ import { resolveLocale } from "@/lib/i18n/config";
 
 export function SavedInterestsPanel({ locale }: { locale: string }) {
   const normalizedLocale = resolveLocale(locale);
-  const destinations = loadDestinations();
   const [savedSlugs, setSavedSlugs] = useState<string[]>([]);
+  const destinations = useMemo(
+    () => normalizeDestinations(loadDestinations(), normalizedLocale),
+    [normalizedLocale]
+  );
 
   useEffect(() => {
     setSavedSlugs(readSavedInterestSlugs());

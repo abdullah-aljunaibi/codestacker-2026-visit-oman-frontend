@@ -3,15 +3,40 @@ import type { DatasetDestination, Locale } from "@/types/dataset";
 import {
   getLocalizedRegionLabel,
   getRegionKey,
-  normalizeDestination,
-  type NormalizedDestination
+  normalizeDestinations
 } from "@/lib/data/normalize-destinations";
 
-export function normalizeDestinations(
-  destinations: DatasetDestination[],
-  locale: Locale
-): NormalizedDestination[] {
-  return destinations.map((destination) => normalizeDestination(destination, locale));
+export function getByCategory(destinations: DatasetDestination[], category?: string): DatasetDestination[] {
+  if (!category) {
+    return destinations;
+  }
+  return destinations.filter((destination) => destination.categories.includes(category));
+}
+
+export function getByRegion(destinations: DatasetDestination[], region?: string): DatasetDestination[] {
+  if (!region) {
+    return destinations;
+  }
+  return destinations.filter((destination) => getRegionKey(destination) === region);
+}
+
+export function getBySeason(destinations: DatasetDestination[], month?: number): DatasetDestination[] {
+  if (!month) {
+    return destinations;
+  }
+  return destinations.filter((destination) => destination.idealVisitMonths.includes(month));
+}
+
+export function sortByCrowd(destinations: DatasetDestination[], direction: "asc" | "desc" = "asc") {
+  return destinations.slice().sort((a, b) =>
+    direction === "asc" ? a.crowd_level - b.crowd_level : b.crowd_level - a.crowd_level
+  );
+}
+
+export function sortByCost(destinations: DatasetDestination[], direction: "asc" | "desc" = "asc") {
+  return destinations.slice().sort((a, b) =>
+    direction === "asc" ? a.ticket_cost_omr - b.ticket_cost_omr : b.ticket_cost_omr - a.ticket_cost_omr
+  );
 }
 
 export function findDestinationBySlug(
@@ -45,3 +70,6 @@ export function filterDestinationsBySavedSlugs(
   const savedSlugSet = new Set(savedSlugs);
   return destinations.filter((destination) => savedSlugSet.has(destination.slug));
 }
+
+export { getLocalizedRegionLabel, getRegionKey };
+export { normalizeDestinations };

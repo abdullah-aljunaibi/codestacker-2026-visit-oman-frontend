@@ -1,31 +1,12 @@
 import type { DatasetDestination } from "@/types/dataset";
+import type {
+  InterestProfile,
+  ItineraryDay,
+  ItineraryPlan,
+  PlannerExplanation
+} from "@/types/domain";
 
-export interface InterestProfile {
-  themes: string[];
-  tripDays: number;
-  pace: "relaxed" | "balanced" | "packed";
-  budget: "low" | "medium" | "high";
-  travelMonth?: number;
-}
-
-export interface ItineraryDay {
-  dayNumber: number;
-  destinationSlugs: string[];
-}
-
-export interface PlannerExplanation {
-  weights: Record<string, number>;
-  selectionReasons: Record<string, string[]>;
-  exclusionReasons: Record<string, string[]>;
-}
-
-export interface ItineraryPlan {
-  id: string;
-  input: InterestProfile;
-  days: ItineraryDay[];
-  score: number;
-  explanation: PlannerExplanation;
-}
+export type { InterestProfile, ItineraryDay, PlannerExplanation, ItineraryPlan } from "@/types/domain";
 
 export interface PlannerContext {
   datasetVersion: string;

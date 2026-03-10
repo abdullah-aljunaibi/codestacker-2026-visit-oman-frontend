@@ -1,5 +1,5 @@
-import type { DatasetCoordinates, DatasetDestination } from "@/types/dataset";
-import type { InterestProfile } from "@/types/planner";
+import type { Destination, InterestProfile } from "@/types/domain";
+import type { DatasetCoordinates } from "@/types/dataset";
 
 export type BudgetLevel = InterestProfile["budget"];
 export type Coordinates = DatasetCoordinates;
@@ -24,10 +24,10 @@ export function monthDistance(a: number, b: number): number {
 }
 
 export function budgetLevelToTargetCost(level: BudgetLevel): number {
-  if (level === "low") {
+  if (level === "budget") {
     return 5;
   }
-  if (level === "medium") {
+  if (level === "moderate") {
     return 15;
   }
   return 30;
@@ -62,7 +62,7 @@ export function haversineDistanceKm(from: Coordinates, to: Coordinates): number 
   return earthRadiusKm * c;
 }
 
-export function centroid(destinations: Array<Pick<DatasetDestination, "coordinates">>): Coordinates | null {
+export function centroid(destinations: Array<Pick<Destination, "coordinates">>): Coordinates | null {
   if (destinations.length === 0) {
     return null;
   }

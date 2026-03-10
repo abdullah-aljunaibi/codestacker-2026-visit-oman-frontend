@@ -146,9 +146,9 @@ export function PlannerForm({
               }))
             }
           >
-            <option value="low">{normalizedLocale === "ar" ? "منخفض" : "Low"}</option>
-            <option value="medium">{normalizedLocale === "ar" ? "متوسط" : "Medium"}</option>
-            <option value="high">{normalizedLocale === "ar" ? "مرتفع" : "High"}</option>
+            <option value="budget">{normalizedLocale === "ar" ? "اقتصادية" : "Budget"}</option>
+            <option value="moderate">{normalizedLocale === "ar" ? "متوسطة" : "Moderate"}</option>
+            <option value="luxury">{normalizedLocale === "ar" ? "فاخرة" : "Luxury"}</option>
           </select>
         </label>
 

@@ -2,15 +2,10 @@ import Link from "next/link";
 
 import { SaveInterestButton } from "@/components/save-interest-button";
 import { loadDestinations } from "@/lib/data/load-destinations";
-import { getRegionOptions } from "@/lib/data/selectors";
-import { getLocalizedRegionLabel, minutesToHours } from "@/lib/data/normalize-destinations";
+import { normalizeDestinations } from "@/lib/data/normalize-destinations";
+import { getCategoryOptions, getRegionOptions } from "@/lib/data/selectors";
 import { getDiscoveryCopy } from "@/lib/discovery/content";
-import {
-  applyDiscoveryQuery,
-  getRegions,
-  getTags,
-  parseDiscoveryFilters
-} from "@/lib/discovery/query";
+import { applyDiscoveryQuery, parseDiscoveryFilters } from "@/lib/discovery/query";
 import { localeDirection, resolveLocale } from "@/lib/i18n/config";
 
 export default async function DiscoverPage({
@@ -26,10 +21,14 @@ export default async function DiscoverPage({
   const copy = getDiscoveryCopy(locale);
   const filters = parseDiscoveryFilters(resolvedSearchParams);
   const destinations = loadDestinations();
+  const normalizedDestinations = normalizeDestinations(destinations, locale);
+  const normalizedBySlug = new Map(normalizedDestinations.map((destination) => [destination.slug, destination]));
 
   const regions = getRegionOptions(destinations, locale);
-  const tags = getTags(destinations);
-  const results = applyDiscoveryQuery([...destinations], filters);
+  const categories = getCategoryOptions(destinations);
+  const results = applyDiscoveryQuery([...destinations], filters).map(
+    (destination) => normalizedBySlug.get(destination.slug)!
+  );
 
   return (
     <main dir={localeDirection[locale]} className={locale === "ar" ? "ar" : undefined}>
@@ -76,12 +75,12 @@ export default async function DiscoverPage({
           </div>
 
           <div>
-            <label htmlFor="tag">{copy.filterTag}</label>
-            <select id="tag" name="tag" defaultValue={filters.tag ?? ""}>
+            <label htmlFor="category">{copy.filterTag}</label>
+            <select id="category" name="category" defaultValue={filters.category ?? ""}>
               <option value="">{copy.allTags}</option>
-              {tags.map((tag) => (
-                <option key={tag} value={tag}>
-                  {tag}
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
                 </option>
               ))}
             </select>
@@ -125,9 +124,9 @@ export default async function DiscoverPage({
                 </h3>
                 <p>{destination.description[locale]}</p>
                 <div className="metaList">
-                  <span className="meta">{getLocalizedRegionLabel(destination, locale)}</span>
-                  <span className="meta">{destination.ticket_cost_omr} OMR</span>
-                  <span className="meta">{minutesToHours(destination.avg_visit_duration_minutes)}h</span>
+                  <span className="meta">{destination.regionLabel}</span>
+                  <span className="meta">{destination.budgetLevel}</span>
+                  <span className="meta">{destination.recommendedDurationHours}h</span>
                 </div>
                 <div className="ctaRow" style={{ marginTop: "0.85rem" }}>
                   <SaveInterestButton slug={destination.slug} locale={locale} />

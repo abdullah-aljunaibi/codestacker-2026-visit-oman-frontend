@@ -18,7 +18,7 @@ export interface DatasetDestination {
   region: LocalizedText;
   coordinates: DatasetCoordinates;
   categories: string[];
-  recommended_months: number[];
+  idealVisitMonths: number[];
   ticket_cost_omr: number;
   avg_visit_duration_minutes: number;
   crowd_level: 1 | 2 | 3 | 4 | 5;

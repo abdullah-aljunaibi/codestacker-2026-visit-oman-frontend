@@ -1,6 +1,7 @@
 import { challengeDataset, challengeDatasetVersion } from "@/data/challenge-dataset";
+import type { DatasetDestination } from "@/types/dataset";
 
-export function loadDestinations() {
+export function loadDestinations(): DatasetDestination[] {
   return challengeDataset;
 }
 

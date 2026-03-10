@@ -1,10 +1,5 @@
+import type { BudgetLevel, Destination } from "@/types/domain";
 import type { DatasetDestination, Locale } from "@/types/dataset";
-
-export interface NormalizedDestination extends DatasetDestination {
-  region_key: string;
-  region_label: string;
-  avg_visit_duration_hours: number;
-}
 
 export function getRegionKey(destination: Pick<DatasetDestination, "region">): string {
   return destination.region.en;
@@ -18,17 +13,36 @@ export function getLocalizedRegionLabel(
 }
 
 export function minutesToHours(minutes: number): number {
-  return minutes / 60;
+  return Math.round(((minutes / 60) + Number.EPSILON) * 100) / 100;
+}
+
+export function deriveBudgetLevel(ticketCostOmr: number): BudgetLevel {
+  if (ticketCostOmr <= 5) {
+    return "budget";
+  }
+  if (ticketCostOmr < 15) {
+    return "moderate";
+  }
+  return "luxury";
 }
 
 export function normalizeDestination(
   destination: DatasetDestination,
   locale: Locale
-): NormalizedDestination {
+): Destination {
   return {
     ...destination,
-    region_key: getRegionKey(destination),
-    region_label: getLocalizedRegionLabel(destination, locale),
-    avg_visit_duration_hours: minutesToHours(destination.avg_visit_duration_minutes)
+    budgetLevel: deriveBudgetLevel(destination.ticket_cost_omr),
+    recommendedDurationHours: minutesToHours(destination.avg_visit_duration_minutes),
+    regionKey: getRegionKey(destination),
+    regionLabel: getLocalizedRegionLabel(destination, locale),
+    locale
   };
+}
+
+export function normalizeDestinations(
+  destinations: DatasetDestination[],
+  locale: Locale
+): Destination[] {
+  return destinations.map((destination) => normalizeDestination(destination, locale));
 }

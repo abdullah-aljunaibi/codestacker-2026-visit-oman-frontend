@@ -1,11 +1,11 @@
-import type { DatasetDestination } from "@/types/dataset";
+import type { Destination } from "@/types/domain";
 
 import type { PlannerPhase4CHandoff, PlannerHandoffRouteCandidate } from "@/lib/planner/candidate-ranking";
 import type { PlannerPhase5BIntraRegionRouting } from "@/lib/planner/intra-region-routing";
 
 interface ItineraryStop {
   slug: string;
-  name: DatasetDestination["name"];
+  name: Destination["name"];
   region: string;
   estimatedVisitHours: number;
   rank: number | null;
@@ -63,8 +63,8 @@ function toCandidateMap(handoff: PlannerPhase4CHandoff): Map<string, PlannerHand
   return map;
 }
 
-function toDestinationMap(destinations: DatasetDestination[]): Map<string, DatasetDestination> {
-  const map = new Map<string, DatasetDestination>();
+function toDestinationMap(destinations: Destination[]): Map<string, Destination> {
+  const map = new Map<string, Destination>();
   destinations.forEach((destination) => {
     map.set(destination.slug, destination);
   });
@@ -74,7 +74,7 @@ function toDestinationMap(destinations: DatasetDestination[]): Map<string, Datas
 export function assembleFinalItinerary(input: {
   handoff: PlannerPhase4CHandoff;
   routing: PlannerPhase5BIntraRegionRouting;
-  destinations: DatasetDestination[];
+  destinations: Destination[];
 }): PlannerPhase5CFinalItinerary {
   const candidateMap = toCandidateMap(input.handoff);
   const destinationMap = toDestinationMap(input.destinations);
@@ -90,7 +90,7 @@ export function assembleFinalItinerary(input: {
         return {
           slug,
           name: destination?.name ?? { en: slug, ar: slug },
-          region: destination?.region.en ?? candidate?.region ?? day.region,
+          region: destination?.regionKey ?? candidate?.region ?? day.region,
           estimatedVisitHours: candidate?.recommendedDurationHours ?? 0,
           rank: candidate?.rank ?? null,
           score: candidate?.score ?? null,
