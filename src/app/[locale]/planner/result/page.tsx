@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { SiteHeader } from "../../../../components/site-header";
 import { loadDestinationsWithVersion } from "../../../../lib/data/load-destinations";
@@ -15,6 +15,7 @@ import {
   formatNumber,
   formatTicketCost,
   getBudgetLabel,
+  getCategoryLabel,
   getMessages,
   getMonthLabel,
   getTravelIntensityLabel
@@ -23,6 +24,7 @@ import { rankCandidatesForPlanner } from "../../../../lib/planner/candidate-rank
 import { assembleFinalItinerary } from "../../../../lib/planner/final-itinerary";
 import { generateIntraRegionDayPlans } from "../../../../lib/planner/intra-region-routing";
 import { allocateTripDaysAcrossRegions } from "../../../../lib/planner/region-allocation";
+import { haversineDistanceKm } from "../../../../lib/planner/scoring-utils";
 import {
   clearPersistedItinerary,
   deriveCostBreakdown,
@@ -39,6 +41,7 @@ import {
   readPlannerDraft
 } from "../../../../lib/persistence/planner-draft";
 import type { Locale } from "../../../../types/dataset";
+import type { ItineraryStop } from "../../../../lib/planner/final-itinerary";
 
 const ItineraryMapClient = dynamic(
   () => import("../../../../components/maps/itinerary-map.client"),
@@ -54,11 +57,20 @@ function getCrowdLabel(crowdLevel: number, locale: Locale): string {
   return messages.plannerResult.crowdPeak;
 }
 
-function getReasonExplanation(
-  reasonCode: string | undefined,
-  name: string,
-  locale: Locale
-): string {
+function getReasonLabel(reasonCode: string | undefined, locale: Locale): string {
+  const messages = getMessages(locale);
+
+  if (reasonCode === "interest_match") return messages.plannerResult.reasonInterestLabel;
+  if (reasonCode === "season_fit") return messages.plannerResult.reasonSeasonLabel;
+  if (reasonCode === "diversity_gain") return messages.plannerResult.reasonDiversityLabel;
+  if (reasonCode === "cost_penalty") return messages.plannerResult.reasonBudgetLabel;
+  if (reasonCode === "crowd_penalty") return messages.plannerResult.reasonCrowdLabel;
+  if (reasonCode === "detour_penalty") return messages.plannerResult.reasonDetourLabel;
+
+  return messages.plannerResult.reasonFallbackLabel;
+}
+
+function getReasonExplanation(reasonCode: string | undefined, name: string, locale: Locale): string {
   const messages = getMessages(locale);
   const template =
     reasonCode === "interest_match"
@@ -68,7 +80,7 @@ function getReasonExplanation(
         : reasonCode === "diversity_gain"
           ? messages.plannerResult.reasonDiversity
           : reasonCode === "cost_penalty"
-            ? messages.plannerResult.reasonCost
+            ? messages.plannerResult.reasonBudget
             : reasonCode === "crowd_penalty"
               ? messages.plannerResult.reasonCrowd
               : reasonCode === "detour_penalty"
@@ -78,26 +90,55 @@ function getReasonExplanation(
   return formatMessage(template, { name });
 }
 
-function getContributorChipLabel(reasonCode: string, locale: Locale): string {
-  const messages = getMessages(locale);
+function formatStoredAt(value: string, locale: Locale): string {
+  if (!value) {
+    return "";
+  }
 
-  if (reasonCode === "interest_match") return messages.plannerResult.chipInterest;
-  if (reasonCode === "season_fit") return messages.plannerResult.chipSeason;
-  if (reasonCode === "diversity_gain") return messages.plannerResult.chipDiversity;
-  if (reasonCode === "cost_penalty") return messages.plannerResult.chipCost;
-  if (reasonCode === "crowd_penalty") return messages.plannerResult.chipCrowd;
-  if (reasonCode === "detour_penalty") return messages.plannerResult.chipDetour;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
 
-  return messages.plannerResult.chipFallback;
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar" : "en", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
 }
 
-function getPrimaryExplanationReason(
-  topContributors: Array<{ reasonCode: string; weightedScore: number }>,
-  fallbackReasonCodes: string[]
-): string | undefined {
-  return topContributors.find((contribution) => contribution.weightedScore > 0)?.reasonCode
-    ?? topContributors[0]?.reasonCode
-    ?? fallbackReasonCodes[0];
+function formatList(values: string[], locale: Locale): string {
+  if (values.length === 0) {
+    return "";
+  }
+
+  return new Intl.ListFormat(locale === "ar" ? "ar" : "en", {
+    style: "long",
+    type: "conjunction"
+  }).format(values);
+}
+
+function getIntensityCap(travelIntensity: PlannerDraft["travelIntensity"]): number {
+  if (travelIntensity === "relaxed") return 3;
+  if (travelIntensity === "balanced") return 4;
+  return 5;
+}
+
+function getTravelKmFromPrevious(stops: ItineraryStop[], stopIndex: number, coordinatesBySlug: Map<string, {
+  lat: number;
+  lng: number;
+}>): number {
+  if (stopIndex === 0) {
+    return 0;
+  }
+
+  const previous = coordinatesBySlug.get(stops[stopIndex - 1].slug);
+  const current = coordinatesBySlug.get(stops[stopIndex].slug);
+
+  if (!previous || !current) {
+    return 0;
+  }
+
+  return haversineDistanceKm(previous, current);
 }
 
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -113,6 +154,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     () => normalizeDestinations(destinations, locale),
     [destinations, locale]
   );
+  const tabRefs = useRef<Record<number, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     setDraft(readPlannerDraft());
@@ -221,12 +263,25 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     });
   }, [selectedDay]);
 
+  const destinationBySlug = useMemo(
+    () => new Map(normalizedDestinations.map((destination) => [destination.slug, destination])),
+    [normalizedDestinations]
+  );
+
+  const coordinatesBySlug = useMemo(
+    () =>
+      new Map(
+        normalizedDestinations.map((destination) => [destination.slug, destination.coordinates])
+      ),
+    [normalizedDestinations]
+  );
+
   const itineraryMapDays = useMemo(
     () =>
       finalItinerary.days.map((day) => ({
         dayNumber: day.dayNumber,
         stops: day.stops.map((stop) => {
-          const destination = normalizedDestinations.find((item) => item.slug === stop.slug);
+          const destination = destinationBySlug.get(stop.slug);
 
           return {
             slug: stop.slug,
@@ -236,46 +291,210 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
           };
         })
       })),
-    [finalItinerary.days, locale, normalizedDestinations]
+    [destinationBySlug, finalItinerary.days, locale]
   );
 
-  const tripSnapshot = [
-    { label: messages.plannerResult.days, value: formatNumber(draft.tripDurationDays, locale) },
-    { label: messages.plannerResult.budget, value: getBudgetLabel(draft.budget, locale) },
-    { label: messages.plannerResult.pace, value: getTravelIntensityLabel(draft.travelIntensity, locale) },
-    { label: messages.plannerResult.travelMonth, value: getMonthLabel(draft.travelMonth, locale) },
-    {
-      label: messages.plannerResult.themesSelected,
-      value: formatNumber(draft.preferredCategories.length, locale)
-    },
-    {
-      label: messages.plannerResult.savedSeeds,
-      value: formatNumber(savedInterestSlugs.length, locale)
-    }
+  const uniqueRegions = useMemo(
+    () => Array.from(new Set(finalItinerary.days.map((day) => day.region))),
+    [finalItinerary.days]
+  );
+
+  const tripSettings = [
+    getBudgetLabel(draft.budget, locale),
+    getTravelIntensityLabel(draft.travelIntensity, locale),
+    getMonthLabel(draft.travelMonth, locale),
+    formatMessage(messages.plannerResult.tripCategoryCount, {
+      count: formatNumber(draft.preferredCategories.length, locale)
+    }),
+    formatMessage(messages.plannerResult.tripSavedCount, {
+      count: formatNumber(savedInterestSlugs.length, locale)
+    })
   ];
 
-  const overviewStats = [
+  const overviewCards = [
     {
-      label: messages.plannerResult.itineraryDays,
-      value: `${formatNumber(finalItinerary.totals.dayCount, locale)}/${formatNumber(finalItinerary.tripDays, locale)}`
+      label: messages.plannerResult.days,
+      value: formatNumber(finalItinerary.totals.dayCount, locale),
+      meta: formatMessage(messages.plannerResult.overviewDaysMeta, {
+        total: formatNumber(finalItinerary.tripDays, locale)
+      })
     },
     {
       label: messages.plannerResult.totalStops,
-      value: formatNumber(finalItinerary.totals.stopCount, locale)
+      value: formatNumber(finalItinerary.totals.stopCount, locale),
+      meta: formatMessage(messages.plannerResult.overviewStopsMeta, {
+        count: formatNumber(persistedCostBreakdown.paidStopCount, locale)
+      })
+    },
+    {
+      label: messages.plannerResult.overviewRegions,
+      value: formatNumber(uniqueRegions.length, locale),
+      meta: formatList(uniqueRegions, locale)
     },
     {
       label: messages.plannerResult.totalVisitHours,
-      value: formatDecimal(finalItinerary.totals.estimatedVisitHours, locale, 1)
+      value: formatDecimal(finalItinerary.totals.estimatedVisitHours, locale, 1),
+      meta: messages.plannerResult.overviewVisitMeta
     },
     {
       label: messages.plannerResult.totalTravelKm,
-      value: formatDecimal(finalItinerary.totals.estimatedTravelKm, locale, 1)
+      value: formatDecimal(finalItinerary.totals.estimatedTravelKm, locale, 1),
+      meta: formatMessage(messages.plannerResult.overviewTravelMeta, {
+        minutes: formatNumber(
+          finalItinerary.days.reduce((sum, day) => sum + day.estimatedTravelMinutes, 0),
+          locale
+        )
+      })
     },
     {
-      label: messages.plannerResult.unresolvedDays,
-      value: formatNumber(finalItinerary.totals.unresolvedDayCount, locale)
+      label: messages.plannerResult.overviewTotalCost,
+      value: formatTicketCost(persistedCostBreakdown.totalCostOmr, locale),
+      meta: formatMessage(messages.plannerResult.overviewBudgetMeta, {
+        threshold: formatTicketCost(persistedCostBreakdown.budgetThresholdOmr, locale)
+      })
+    },
+    {
+      label: messages.plannerResult.overviewBudgetStatus,
+      value: persistedCostBreakdown.withinBudget
+        ? messages.plannerResult.withinBudgetYes
+        : messages.plannerResult.withinBudgetNo,
+      meta:
+        finalItinerary.repairSummary.actions.length > 0
+          ? formatMessage(messages.plannerResult.overviewRepairMeta, {
+              count: formatNumber(finalItinerary.repairSummary.actions.length, locale)
+            })
+          : messages.plannerResult.overviewRepairClean
     }
   ];
+
+  const selectedDaySummary = selectedDay
+    ? {
+        paidStopCount: selectedDay.stops.filter((stop) => stop.ticketCostOmr > 0).length,
+        freeStopCount: selectedDay.stops.filter((stop) => stop.ticketCostOmr <= 0).length
+      }
+    : null;
+
+  const selectedDayTimeline = useMemo(() => {
+    if (!selectedDay) {
+      return [];
+    }
+
+    return selectedDay.stops.map((stop, index) => {
+      const destination = destinationBySlug.get(stop.slug);
+
+      return {
+        ...stop,
+        order: index + 1,
+        categories: (destination?.categories ?? []).map((category) => getCategoryLabel(category, locale)),
+        travelKmFromPrevious: getTravelKmFromPrevious(selectedDay.stops, index, coordinatesBySlug),
+        reasonLabels: Array.from(
+          new Set(stop.topContributors.slice(0, 2).map((item) => getReasonLabel(item.reasonCode, locale)))
+        )
+      };
+    });
+  }, [coordinatesBySlug, destinationBySlug, locale, selectedDay]);
+
+  const selectedDayReasonLabels = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          selectedDayTimeline.flatMap((stop) => stop.reasonLabels)
+        )
+      ).slice(0, 3),
+    [selectedDayTimeline]
+  );
+
+  const selectedRegionCandidateCount = useMemo(() => {
+    if (!selectedDay) {
+      return 0;
+    }
+
+    return ranking.handoff.rankedCandidates.filter((candidate) => {
+      const destination = destinationBySlug.get(candidate.slug);
+      return destination?.regionKey === selectedDay.region && candidate.decision !== "excluded";
+    }).length;
+  }, [destinationBySlug, ranking.handoff.rankedCandidates, selectedDay]);
+
+  const selectionFactors = useMemo(
+    () => [
+      formatMessage(messages.plannerResult.selectionFactorCategories, {
+        count: formatNumber(draft.preferredCategories.length, locale)
+      }),
+      formatMessage(messages.plannerResult.selectionFactorMonth, {
+        month: getMonthLabel(draft.travelMonth, locale)
+      }),
+      formatMessage(messages.plannerResult.selectionFactorBudget, {
+        budget: getBudgetLabel(draft.budget, locale)
+      }),
+      formatMessage(messages.plannerResult.selectionFactorPace, {
+        pace: getTravelIntensityLabel(draft.travelIntensity, locale),
+        cap: formatNumber(getIntensityCap(draft.travelIntensity), locale)
+      }),
+      formatMessage(messages.plannerResult.selectionFactorRegions, {
+        count: formatNumber(uniqueRegions.length, locale)
+      }),
+      ...(savedInterestSlugs.length > 0
+        ? [
+            formatMessage(messages.plannerResult.selectionFactorSaved, {
+              count: formatNumber(savedInterestSlugs.length, locale)
+            })
+          ]
+        : [])
+    ],
+    [draft.budget, draft.preferredCategories.length, draft.travelIntensity, draft.travelMonth, locale, messages.plannerResult.selectionFactorBudget, messages.plannerResult.selectionFactorCategories, messages.plannerResult.selectionFactorMonth, messages.plannerResult.selectionFactorPace, messages.plannerResult.selectionFactorRegions, messages.plannerResult.selectionFactorSaved, savedInterestSlugs.length, uniqueRegions.length]
+  );
+
+  const handleDayChange = (dayNumber: number) => {
+    const day = finalItinerary.days.find((item) => item.dayNumber === dayNumber);
+    setSelectedDayNumber(dayNumber);
+    setActiveStopSlug(day?.stops[0]?.slug ?? null);
+  };
+
+  const handleDayTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    if (finalItinerary.days.length === 0) {
+      return;
+    }
+
+    const lastIndex = finalItinerary.days.length - 1;
+    let nextIndex = currentIndex;
+
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      nextIndex = currentIndex === lastIndex ? 0 : currentIndex + 1;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      nextIndex = currentIndex === 0 ? lastIndex : currentIndex - 1;
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      event.preventDefault();
+      nextIndex = lastIndex;
+    } else {
+      return;
+    }
+
+    const nextDayNumber = finalItinerary.days[nextIndex]?.dayNumber;
+    if (!nextDayNumber) {
+      return;
+    }
+
+    handleDayChange(nextDayNumber);
+    tabRefs.current[nextDayNumber]?.focus();
+  };
+
+  const handleMapStopChange = (slug: string) => {
+    const day = finalItinerary.days.find((item) => item.stops.some((stop) => stop.slug === slug));
+    if (day) {
+      setSelectedDayNumber(day.dayNumber);
+    }
+    setActiveStopSlug(slug);
+  };
+
+  const repairSavings = Math.max(
+    0,
+    finalItinerary.repairSummary.initialTotalCostOmr - finalItinerary.repairSummary.finalTotalCostOmr
+  );
 
   return (
     <main className="page">
@@ -286,277 +505,185 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
           <span className="kicker">{messages.plannerResult.outputTitle}</span>
           <h1>{messages.plannerResult.title}</h1>
           <p>{messages.plannerResult.body}</p>
+          <div className="plannerTripSettings" aria-label={messages.plannerResult.tripSettingsTitle}>
+            {tripSettings.map((item) => (
+              <span key={item} className="plannerInlineChip">
+                {item}
+              </span>
+            ))}
+          </div>
           <p className="plannerPersistedMeta">
             {messages.plannerResult.storageStatus}
-            {persistedAt ? ` ${persistedAt}` : ""}
+            {persistedAt ? ` ${formatStoredAt(persistedAt, locale)}` : ""}
           </p>
         </section>
 
-        <section className="plannerResultLayout">
-          <aside className="plannerResultRail">
-            <article className="card plannerPanel">
-              <h2>{messages.plannerResult.preferencesTitle}</h2>
-              <div className="plannerInfoStack">
-                {tripSnapshot.map((item) => (
-                  <div key={item.label} className="plannerInfoRow">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
+        <section className="plannerOverviewGrid" aria-label={messages.plannerResult.overviewTitle}>
+          {overviewCards.map((card) => (
+            <article key={card.label} className="card plannerOverviewCard">
+              <span>{card.label}</span>
+              <strong>{card.value}</strong>
+              <p>{card.meta}</p>
             </article>
+          ))}
+        </section>
 
-            <article className="card plannerPanel">
-              <div className="plannerPanelHeader">
-                <h2>{messages.plannerResult.costBreakdownTitle}</h2>
-                <span
-                  className={
-                    persistedCostBreakdown.withinBudget
-                      ? "plannerBadge plannerBadgeSuccess"
-                      : "plannerBadge plannerBadgeAlert"
-                  }
-                >
-                  {persistedCostBreakdown.withinBudget
-                    ? messages.plannerResult.withinBudgetYes
-                    : messages.plannerResult.withinBudgetNo}
-                </span>
-              </div>
-              <div className="plannerInfoStack">
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costFuel}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.fuelCostOmr, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costTickets}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.ticketsCostOmr, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costFood}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.foodCostOmr, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costHotel}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.hotelCostOmr, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costTotal}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.totalCostOmr, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costAverage}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.averageCostPerDayOmr, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costPaidStops}</span>
-                  <strong>{formatNumber(persistedCostBreakdown.paidStopCount, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costFreeStops}</span>
-                  <strong>{formatNumber(persistedCostBreakdown.freeStopCount, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costBudgetTier}</span>
-                  <strong>{getBudgetLabel(persistedCostBreakdown.budgetTier, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costThreshold}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.budgetThresholdOmr, locale)}</strong>
-                </div>
-                <div className="plannerInfoRow">
-                  <span>{messages.plannerResult.costWithinBudget}</span>
-                  <strong>
-                    {persistedCostBreakdown.withinBudget
-                      ? messages.plannerResult.withinBudgetYes
-                      : messages.plannerResult.withinBudgetNo}
-                  </strong>
+        {finalItinerary.days.length > 0 ? (
+          <>
+            <section className="card plannerDaySelectorCard">
+              <div className="plannerDaySelectorHeader">
+                <div>
+                  <h2>{messages.plannerResult.itineraryTitle}</h2>
+                  <p>{messages.plannerResult.daySelectorBody}</p>
                 </div>
               </div>
-            </article>
 
-            <article className="card plannerPanel">
-              <h2>{messages.plannerResult.outputTitle}</h2>
-              <div className="plannerMetricGrid">
-                {overviewStats.map((item) => (
-                  <div key={item.label} className="plannerMetric">
-                    <span>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="card plannerMapCard">
-              <div className="plannerMapCardHeader">
-                <h2>{messages.plannerResult.mapTitle}</h2>
-                <p>{messages.plannerResult.mapBody}</p>
-              </div>
               <div className="plannerDayTabs" role="tablist" aria-label={messages.plannerResult.daySwitcherLabel}>
-                {finalItinerary.days.map((day) => (
+                {finalItinerary.days.map((day, index) => (
                   <button
-                    key={`map-day-${day.dayNumber}`}
+                    key={`day-tab-${day.dayNumber}`}
+                    ref={(node) => {
+                      tabRefs.current[day.dayNumber] = node;
+                    }}
+                    id={`day-tab-${day.dayNumber}`}
                     type="button"
                     role="tab"
+                    aria-controls={`day-panel-${day.dayNumber}`}
                     aria-selected={day.dayNumber === selectedDayNumber}
+                    tabIndex={day.dayNumber === selectedDayNumber ? 0 : -1}
                     className={day.dayNumber === selectedDayNumber ? "plannerDayTab plannerDayTabActive" : "plannerDayTab"}
-                    onClick={() => {
-                      setSelectedDayNumber(day.dayNumber);
-                      setActiveStopSlug(day.stops[0]?.slug ?? null);
-                    }}
+                    onClick={() => handleDayChange(day.dayNumber)}
+                    onKeyDown={(event) => handleDayTabKeyDown(event, index)}
                   >
-                    {formatMessage(messages.plannerResult.dayTabLabel, {
+                    <span>{formatMessage(messages.plannerResult.dayTabLabel, {
                       dayNumber: formatNumber(day.dayNumber, locale)
-                    })}
+                    })}</span>
+                    <small>{day.region}</small>
                   </button>
                 ))}
               </div>
-              <ItineraryMapClient
-                days={itineraryMapDays}
-                selectedDayNumber={selectedDayNumber}
-                activeStopSlug={activeStopSlug}
-                locale={locale}
-                onActiveStopChange={setActiveStopSlug}
-              />
-              <div className="plannerLegend" aria-label={messages.plannerResult.mapLegendTitle}>
-                <div className="plannerLegendItem">
-                  <span className="plannerLegendSwatch plannerLegendSwatchRoute" aria-hidden="true" />
-                  <span>{messages.plannerResult.mapLegendRoute}</span>
-                </div>
-                <div className="plannerLegendItem">
-                  <span className="plannerLegendSwatch plannerLegendSwatchStop" aria-hidden="true" />
-                  <span>{messages.plannerResult.mapLegendStop}</span>
-                </div>
-                <div className="plannerLegendItem">
-                  <span className="plannerLegendSwatch plannerLegendSwatchActive" aria-hidden="true" />
-                  <span>{messages.plannerResult.mapLegendActive}</span>
-                </div>
-              </div>
-            </article>
-          </aside>
+            </section>
 
-          <section className="plannerResultMain">
-            <div className="sectionCard">
-              <h2>{messages.plannerResult.itineraryTitle}</h2>
-            </div>
-
-            <div className="plannerDayGrid">
-              {selectedDay ? (() => {
-                const day = selectedDay;
-                const paidStopCount = day.stops.filter((stop) => stop.ticketCostOmr > 0).length;
-                const freeStopCount = day.stops.length - paidStopCount;
-                const highlightedStops = day.stops
-                  .slice()
-                  .sort((left, right) => {
-                    if ((right.score ?? 0) !== (left.score ?? 0)) {
-                      return (right.score ?? 0) - (left.score ?? 0);
-                    }
-                    if ((left.rank ?? Number.MAX_SAFE_INTEGER) !== (right.rank ?? Number.MAX_SAFE_INTEGER)) {
-                      return (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
-                    }
-                    return left.slug.localeCompare(right.slug);
-                  })
-                  .slice(0, 2);
-
-                return (
-                  <article key={`planner-day-${day.dayNumber}`} className="card plannerDayCard">
-                    <header className="plannerDayHeader">
+            {selectedDay ? (
+              <section className="plannerWorkbench">
+                <div className="plannerPrimaryColumn">
+                  <article
+                    id={`day-panel-${selectedDay.dayNumber}`}
+                    role="tabpanel"
+                    aria-labelledby={`day-tab-${selectedDay.dayNumber}`}
+                    className="card plannerDaySummaryCard"
+                  >
+                    <div className="plannerDaySummaryHeader">
                       <div>
-                        <h3>
+                        <h2>
                           {formatMessage(messages.plannerResult.dayHeading, {
-                            dayNumber: formatNumber(day.dayNumber, locale)
+                            dayNumber: formatNumber(selectedDay.dayNumber, locale)
                           })}
-                        </h3>
+                        </h2>
                         <p>{formatMessage(messages.plannerResult.daySubheading, {
-                          region: day.region,
-                          regionDayNumber: formatNumber(day.regionDayNumber, locale)
+                          region: selectedDay.region,
+                          regionDayNumber: formatNumber(selectedDay.regionDayNumber, locale)
                         })}</p>
                       </div>
                       <div className="plannerDayMeta">
                         <span className="plannerBadge">
                           {formatMessage(messages.plannerResult.dayWindow, {
-                            start: day.startTime || routingDayPlan.routingPolicy.dayStartTime,
-                            end: day.endTime || routingDayPlan.routingPolicy.dayStartTime
+                            start: selectedDay.startTime || routingDayPlan.routingPolicy.dayStartTime,
+                            end: selectedDay.endTime || routingDayPlan.routingPolicy.dayStartTime
                           })}
                         </span>
-                        {day.notes.includes("unresolved_region_day_slot") ? (
+                        {selectedDay.notes.includes("unresolved_region_day_slot") ? (
                           <span className="plannerBadge plannerBadgeAlert">
                             {messages.plannerResult.unresolvedLabel}
                           </span>
                         ) : null}
                       </div>
-                    </header>
-
-                    <div className="plannerDaySummary">
-                      <div className="plannerSummaryStat">
-                        <span>{messages.plannerResult.daySummaryLabel}</span>
-                        <strong>
-                          {formatMessage(messages.plannerResult.dayStats, {
-                            stops: formatNumber(day.stopCount, locale),
-                            hours: formatDecimal(day.estimatedVisitHours, locale, 1),
-                            km: formatDecimal(day.estimatedTravelKm, locale, 1)
-                          })}
-                        </strong>
-                      </div>
-                      <div className="plannerSummaryStat">
-                        <span>{messages.plannerResult.dayTravelTime}</span>
-                        <strong>
-                          {formatNumber(day.estimatedTravelMinutes, locale)} {messages.plannerResult.minuteUnit}
-                        </strong>
-                      </div>
                     </div>
 
-                    <section className="plannerDayCost">
-                      <h4>{messages.plannerResult.dayCostTitle}</h4>
-                      <div className="plannerCostGrid">
-                        <div>
-                          <span>{messages.plannerResult.dayCostTotal}</span>
-                          <strong>{formatTicketCost(day.estimatedTicketCostOmr, locale)}</strong>
-                        </div>
-                        <div>
-                          <span>{messages.plannerResult.dayCostPaid}</span>
-                          <strong>{formatNumber(paidStopCount, locale)}</strong>
-                        </div>
-                        <div>
-                          <span>{messages.plannerResult.dayCostFree}</span>
-                          <strong>{formatNumber(freeStopCount, locale)}</strong>
-                        </div>
+                    <div className="plannerDaySummaryGrid">
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryRegion}</span>
+                        <strong>{selectedDay.region}</strong>
                       </div>
-                    </section>
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryDistance}</span>
+                        <strong>{formatDecimal(selectedDay.estimatedTravelKm, locale, 1)} km</strong>
+                      </div>
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryDrive}</span>
+                        <strong>
+                          {formatNumber(selectedDay.estimatedTravelMinutes, locale)} {messages.plannerResult.minuteUnit}
+                        </strong>
+                      </div>
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryVisit}</span>
+                        <strong>{formatDecimal(selectedDay.estimatedVisitHours, locale, 1)} {messages.plannerResult.hourUnitShort}</strong>
+                      </div>
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryPaid}</span>
+                        <strong>{formatNumber(selectedDaySummary?.paidStopCount ?? 0, locale)}</strong>
+                      </div>
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryFree}</span>
+                        <strong>{formatNumber(selectedDaySummary?.freeStopCount ?? 0, locale)}</strong>
+                      </div>
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryTickets}</span>
+                        <strong>{formatTicketCost(selectedDay.estimatedTicketCostOmr, locale)}</strong>
+                      </div>
+                    </div>
+                  </article>
 
-                    <section>
-                      <h4>{messages.plannerResult.dayExplanationsTitle}</h4>
-                      {highlightedStops.length > 0 ? (
-                        <ul className="plannerExplanationList">
-                          {highlightedStops.map((stop) => (
-                            <li key={`explanation-${day.dayNumber}-${stop.slug}`}>
-                              {getReasonExplanation(
-                                getPrimaryExplanationReason(stop.topContributors, stop.reasonCodes),
-                                stop.name[locale],
-                                locale
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>{messages.plannerResult.noStops}</p>
-                      )}
-                    </section>
+                  <article className="card plannerTimelineCard">
+                    <div className="plannerSectionIntro">
+                      <h2>{messages.plannerResult.timelineTitle}</h2>
+                      <p>{messages.plannerResult.timelineBody}</p>
+                    </div>
 
-                    <section>
-                      <h4>{messages.plannerResult.stopsTitle}</h4>
-                      {day.stops.length > 0 ? (
-                        <ol className="plannerStopList">
-                          {day.stops.map((stop) => (
-                            <li
-                              key={`${day.dayNumber}-${stop.slug}`}
-                              className={
-                                stop.slug === activeStopSlug
-                                  ? "plannerStopCard plannerStopCardActive"
-                                  : "plannerStopCard"
-                              }
+                    {selectedDayTimeline.length > 0 ? (
+                      <ol className="plannerTimeline">
+                        {selectedDayTimeline.map((stop) => (
+                          <li
+                            key={`${selectedDay.dayNumber}-${stop.slug}`}
+                            className={
+                              stop.slug === activeStopSlug
+                                ? "plannerTimelineItem plannerTimelineItemActive"
+                                : "plannerTimelineItem"
+                            }
+                          >
+                            <button
+                              type="button"
+                              className="plannerTimelineMarker"
+                              onClick={() => setActiveStopSlug(stop.slug)}
+                              aria-label={formatMessage(messages.plannerResult.stopOrderLabel, {
+                                order: formatNumber(stop.order, locale)
+                              })}
                             >
-                              <div className="plannerStopHeader">
+                              {formatNumber(stop.order, locale)}
+                            </button>
+
+                            <article className="plannerTimelineCardInner">
+                              <div className="plannerTimelineHeader">
                                 <div>
-                                  <strong>{stop.name[locale]}</strong>
+                                  <div className="plannerTimelineEyebrow">
+                                    <span className="plannerTimelineOrder">
+                                      {formatMessage(messages.plannerResult.stopOrderLabel, {
+                                        order: formatNumber(stop.order, locale)
+                                      })}
+                                    </span>
+                                    <span
+                                      className={
+                                        stop.ticketCostOmr > 0
+                                          ? "plannerBadge plannerBadgeNeutral"
+                                          : "plannerBadge plannerBadgeSuccess"
+                                      }
+                                    >
+                                      {stop.ticketCostOmr > 0
+                                        ? messages.plannerResult.stopPaidBadge
+                                        : messages.plannerResult.stopFreeBadge}
+                                    </span>
+                                  </div>
+                                  <h3>{stop.name[locale]}</h3>
                                   <p>{formatMessage(messages.plannerResult.stopTimeRange, {
                                     start: stop.startTime,
                                     end: stop.endTime
@@ -564,8 +691,16 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                                 </div>
                                 <span className="plannerBadge">{getCrowdLabel(stop.crowdLevel, locale)}</span>
                               </div>
-                              <p>{stop.description[locale]}</p>
-                              <div className="plannerStopMeta">
+
+                              <div className="plannerChipRow">
+                                {stop.categories.map((category) => (
+                                  <span key={`${stop.slug}-${category}`} className="plannerChip">
+                                    {category}
+                                  </span>
+                                ))}
+                              </div>
+
+                              <div className="plannerTimelineMeta">
                                 <span>
                                   {messages.plannerResult.stopDuration}: {formatDecimal(stop.estimatedVisitHours, locale, 1)} {messages.plannerResult.hourUnitShort}
                                 </span>
@@ -575,85 +710,199 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                                     : messages.plannerResult.costFreeValue}
                                 </span>
                                 <span>
-                                  {messages.plannerResult.stopCrowd}: {getCrowdLabel(stop.crowdLevel, locale)}
-                                </span>
-                                <span>
-                                  {messages.plannerResult.stopTransit}: {formatNumber(stop.travelMinutesFromPrevious, locale)} {messages.plannerResult.minuteUnit}
+                                  {messages.plannerResult.stopTravel}: {stop.order === 1
+                                    ? messages.plannerResult.stopTravelStart
+                                    : formatMessage(messages.plannerResult.stopTravelSummary, {
+                                        km: formatDecimal(stop.travelKmFromPrevious, locale, 1),
+                                        minutes: formatNumber(stop.travelMinutesFromPrevious, locale)
+                                      })}
                                 </span>
                               </div>
-                              {stop.topContributors.length > 0 ? (
-                                <div className="plannerChipRow">
-                                  {stop.topContributors.map((contribution) => (
-                                    <span
-                                      key={`${stop.slug}-${contribution.metric}`}
-                                      className={
-                                        contribution.weightedScore < 0
-                                          ? "plannerBadge plannerBadgePenalty"
-                                          : "plannerBadge plannerBadgeSuccess"
-                                      }
-                                    >
-                                      {getContributorChipLabel(contribution.reasonCode, locale)}
+
+                              {stop.reasonLabels.length > 0 ? (
+                                <div className="plannerTimelineReasons" aria-label={messages.plannerResult.stopReasonTitle}>
+                                  {stop.reasonLabels.map((reason) => (
+                                    <span key={`${stop.slug}-${reason}`} className="plannerReasonChip">
+                                      {reason}
                                     </span>
                                   ))}
                                 </div>
                               ) : null}
-                              <button
-                                type="button"
-                                className="plannerStopFocusButton"
-                                onClick={() => setActiveStopSlug(stop.slug)}
-                              >
-                                {messages.plannerResult.focusStop}
-                              </button>
-                            </li>
-                          ))}
-                        </ol>
-                      ) : (
-                        <p>{messages.plannerResult.noStops}</p>
-                      )}
-                    </section>
-                  </article>
-                );
-              })() : null}
-            </div>
 
-            <div className="ctaRow">
-              <Link className="pill" href={`/${locale}/planner`}>
-                {messages.common.editInputs}
-              </Link>
-              <button
-                type="button"
-                className="pill"
-                onClick={() => {
-                  clearPersistedItinerary();
-                  setPersistedAt("");
-                  setPersistedCostBreakdown(readPersistedCostBreakdown() ?? currentCostBreakdown);
-                }}
-              >
-                {messages.plannerResult.clearStored}
-              </button>
-              <button
-                type="button"
-                className="pill"
-                onClick={() => {
-                  clearPlannerDraft();
-                  clearPersistedItinerary();
-                  setDraft(defaultPlannerDraft);
-                  setPersistedAt("");
-                  setPersistedCostBreakdown(currentCostBreakdown);
-                  router.push(`/${locale}/planner`);
-                }}
-              >
-                {messages.plannerResult.resetAll}
-              </button>
-              <Link className="pill" href={`/${locale}/saved`}>
-                {messages.common.savedInterests}
-              </Link>
-              <Link className="pill" href={`/${locale}/discover`}>
-                {messages.common.backToDiscovery}
-              </Link>
-            </div>
+                              <p className="plannerTimelineExplanation">
+                                {getReasonExplanation(stop.topContributors[0]?.reasonCode, stop.name[locale], locale)}
+                              </p>
+                            </article>
+                          </li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p>{messages.plannerResult.noStops}</p>
+                    )}
+                  </article>
+                </div>
+
+                <aside className="plannerSecondaryColumn">
+                  <article className="card plannerWhyCard">
+                    <div className="plannerSectionIntro">
+                      <h2>{messages.plannerResult.whyTitle}</h2>
+                      <p>{messages.plannerResult.whyBody}</p>
+                    </div>
+
+                    <div className="plannerWhyBlock">
+                      <h3>{messages.plannerResult.whyRegionTitle}</h3>
+                      <p>{formatMessage(messages.plannerResult.whyRegionBody, {
+                        region: selectedDay.region,
+                        count: formatNumber(selectedRegionCandidateCount, locale),
+                        dayNumber: formatNumber(selectedDay.dayNumber, locale),
+                        factors: selectedDayReasonLabels.length > 0
+                          ? formatList(selectedDayReasonLabels, locale)
+                          : messages.plannerResult.reasonFallbackLabel
+                      })}</p>
+                    </div>
+
+                    <div className="plannerWhyBlock">
+                      <h3>{messages.plannerResult.whyBudgetTitle}</h3>
+                      <p>
+                        {finalItinerary.repairSummary.actions.length > 0
+                          ? formatMessage(messages.plannerResult.whyBudgetWithRepair, {
+                              count: formatNumber(finalItinerary.repairSummary.actions.length, locale),
+                              savings: formatTicketCost(repairSavings, locale),
+                              status: persistedCostBreakdown.withinBudget
+                                ? messages.plannerResult.withinBudgetYes
+                                : messages.plannerResult.withinBudgetNo
+                            })
+                          : formatMessage(messages.plannerResult.whyBudgetNoRepair, {
+                              status: persistedCostBreakdown.withinBudget
+                                ? messages.plannerResult.withinBudgetYes
+                                : messages.plannerResult.withinBudgetNo
+                            })}
+                      </p>
+                    </div>
+
+                    <div className="plannerWhyBlock">
+                      <h3>{messages.plannerResult.whyFactorsTitle}</h3>
+                      <ul className="plannerSelectionFactors">
+                        {selectionFactors.map((factor) => (
+                          <li key={factor}>{factor}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </article>
+
+                  <article className="card plannerMapCard">
+                    <div className="plannerMapCardHeader">
+                      <h2>{messages.plannerResult.mapTitle}</h2>
+                      <p>{messages.plannerResult.mapBody}</p>
+                    </div>
+                    <ItineraryMapClient
+                      days={itineraryMapDays}
+                      selectedDayNumber={selectedDayNumber}
+                      activeStopSlug={activeStopSlug}
+                      locale={locale}
+                      onActiveStopChange={handleMapStopChange}
+                    />
+                    <div className="plannerLegend" aria-label={messages.plannerResult.mapLegendTitle}>
+                      <div className="plannerLegendItem">
+                        <span className="plannerLegendSwatch plannerLegendSwatchRoute" aria-hidden="true" />
+                        <span>{messages.plannerResult.mapLegendRoute}</span>
+                      </div>
+                      <div className="plannerLegendItem">
+                        <span className="plannerLegendSwatch plannerLegendSwatchStop" aria-hidden="true" />
+                        <span>{messages.plannerResult.mapLegendStop}</span>
+                      </div>
+                      <div className="plannerLegendItem">
+                        <span className="plannerLegendSwatch plannerLegendSwatchActive" aria-hidden="true" />
+                        <span>{messages.plannerResult.mapLegendActive}</span>
+                      </div>
+                    </div>
+                  </article>
+
+                  <article className="card plannerCostPanel">
+                    <div className="plannerPanelHeader">
+                      <h2>{messages.plannerResult.costBreakdownTitle}</h2>
+                      <span
+                        className={
+                          persistedCostBreakdown.withinBudget
+                            ? "plannerBadge plannerBadgeSuccess"
+                            : "plannerBadge plannerBadgeAlert"
+                        }
+                      >
+                        {persistedCostBreakdown.withinBudget
+                          ? messages.plannerResult.withinBudgetYes
+                          : messages.plannerResult.withinBudgetNo}
+                      </span>
+                    </div>
+                    <div className="plannerInfoStack">
+                      <div className="plannerInfoRow">
+                        <span>{messages.plannerResult.costFuel}</span>
+                        <strong>{formatTicketCost(persistedCostBreakdown.fuelCostOmr, locale)}</strong>
+                      </div>
+                      <div className="plannerInfoRow">
+                        <span>{messages.plannerResult.costTickets}</span>
+                        <strong>{formatTicketCost(persistedCostBreakdown.ticketsCostOmr, locale)}</strong>
+                      </div>
+                      <div className="plannerInfoRow">
+                        <span>{messages.plannerResult.costFood}</span>
+                        <strong>{formatTicketCost(persistedCostBreakdown.foodCostOmr, locale)}</strong>
+                      </div>
+                      <div className="plannerInfoRow">
+                        <span>{messages.plannerResult.costHotel}</span>
+                        <strong>{formatTicketCost(persistedCostBreakdown.hotelCostOmr, locale)}</strong>
+                      </div>
+                      <div className="plannerInfoRow">
+                        <span>{messages.plannerResult.costTotal}</span>
+                        <strong>{formatTicketCost(persistedCostBreakdown.totalCostOmr, locale)}</strong>
+                      </div>
+                    </div>
+                  </article>
+                </aside>
+              </section>
+            ) : null}
+          </>
+        ) : (
+          <section className="card plannerEmptyState">
+            <h2>{messages.plannerResult.itineraryTitle}</h2>
+            <p>{messages.plannerResult.noStops}</p>
           </section>
-        </section>
+        )}
+
+        <div className="ctaRow">
+          <Link className="pill" href={`/${locale}/planner`}>
+            {messages.common.editInputs}
+          </Link>
+          <button
+            type="button"
+            className="pill"
+            onClick={() => {
+              clearPersistedItinerary();
+              setPersistedAt("");
+              setPersistedCostBreakdown(readPersistedCostBreakdown() ?? currentCostBreakdown);
+            }}
+          >
+            {messages.plannerResult.clearStored}
+          </button>
+          <button
+            type="button"
+            className="pill"
+            onClick={() => {
+              clearPlannerDraft();
+              clearPersistedItinerary();
+              setDraft(defaultPlannerDraft);
+              setPersistedAt("");
+              setPersistedCostBreakdown(currentCostBreakdown);
+              router.push(`/${locale}/planner`);
+            }}
+          >
+            {messages.plannerResult.resetAll}
+          </button>
+          <Link className="pill" href={`/${locale}/saved`}>
+            {messages.common.savedInterests}
+          </Link>
+          <Link className="pill" href={`/${locale}/discover`}>
+            {messages.common.backToDiscovery}
+          </Link>
+        </div>
       </div>
     </main>
   );

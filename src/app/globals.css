@@ -304,34 +304,120 @@ a {
 
 .plannerResultHero {
   margin-bottom: 1rem;
+  gap: 1rem;
 }
 
 .plannerPersistedMeta {
   font-size: 0.92rem;
 }
 
-.plannerResultLayout {
+.plannerTripSettings,
+.plannerOverviewGrid,
+.plannerWorkbench,
+.plannerPrimaryColumn,
+.plannerSecondaryColumn,
+.plannerInfoStack,
+.plannerStopList,
+.plannerExplanationList,
+.plannerTimeline,
+.plannerTimelineReasons,
+.plannerSelectionFactors {
   display: grid;
   gap: 1rem;
-  grid-template-columns: minmax(18rem, 22rem) minmax(0, 1fr);
+}
+
+.plannerTripSettings {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), max-content));
+}
+
+.plannerInlineChip,
+.plannerChip,
+.plannerReasonChip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.plannerInlineChip,
+.plannerChip {
+  border: 1px solid rgba(129, 112, 77, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.plannerReasonChip {
+  background: rgba(11, 111, 91, 0.1);
+  color: var(--brand);
+}
+
+.plannerOverviewGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  margin-bottom: 1rem;
+}
+
+.plannerWorkbench {
+  grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.95fr);
   align-items: start;
 }
 
-.plannerResultRail,
-.plannerResultMain,
-.plannerInfoStack,
-.plannerDayGrid,
-.plannerStopList,
-.plannerExplanationList {
+.plannerPrimaryColumn,
+.plannerSecondaryColumn {
+  gap: 1rem;
+}
+
+.plannerOverviewCard,
+.plannerDaySelectorCard,
+.plannerDaySummaryCard,
+.plannerTimelineCard,
+.plannerWhyCard,
+.plannerCostPanel {
   display: grid;
   gap: 1rem;
 }
 
-.plannerPanel h2,
-.plannerMapCard h2,
-.plannerDayCard h3,
-.plannerDayCard h4 {
+.plannerOverviewCard span,
+.plannerOverviewCard p,
+.plannerSectionIntro p,
+.plannerSummaryStat span,
+.plannerMapCard p,
+.plannerTimelineExplanation,
+.plannerTimelineMeta span,
+.plannerSelectionFactors li {
+  color: var(--muted);
+}
+
+.plannerOverviewCard strong {
+  font-size: clamp(1.4rem, 2vw, 2rem);
+  line-height: 1;
+}
+
+.plannerOverviewCard p {
   margin: 0;
+}
+
+.plannerSectionIntro {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.plannerSectionIntro h2,
+.plannerDaySelectorHeader h2,
+.plannerDaySummaryHeader h2,
+.plannerMapCard h2,
+.plannerTimelineCard h3,
+.plannerWhyCard h3 {
+  margin: 0;
+}
+
+.plannerDaySelectorHeader,
+.plannerDaySummaryHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .plannerPanelHeader {
@@ -358,15 +444,14 @@ a {
 .plannerMetric span,
 .plannerCostGrid span,
 .plannerSummaryStat span,
-.plannerMapCard p,
-.plannerDayCard p,
 .plannerStopMeta span {
   color: var(--muted);
 }
 
 .plannerMetricGrid,
 .plannerCostGrid,
-.plannerDaySummary {
+.plannerDaySummary,
+.plannerDaySummaryGrid {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
@@ -379,26 +464,7 @@ a {
 .plannerMapCardHeader {
   display: grid;
   gap: 0.35rem;
-  margin-bottom: 0.85rem;
-}
-
-.plannerDayCard {
-  display: grid;
-  gap: 1rem;
-}
-
-.plannerDayHeader,
-.plannerStopHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-
-.plannerDayHeader p,
-.plannerStopHeader p {
-  margin: 0.2rem 0 0;
+  margin-bottom: 0.5rem;
 }
 
 .plannerDayMeta {
@@ -428,40 +494,15 @@ a {
   color: var(--brand);
 }
 
-.plannerBadgePenalty {
-  background: rgba(189, 122, 45, 0.14);
-  color: #955813;
+.plannerBadgeNeutral {
+  background: rgba(25, 37, 31, 0.08);
+  color: var(--ink);
 }
 
 .plannerExplanationList,
 .plannerStopList {
   margin: 0;
   padding-inline-start: 1.2rem;
-}
-
-.plannerStopCard {
-  display: grid;
-  gap: 0.7rem;
-  padding: 1rem;
-  border-radius: 18px;
-  border: 1px solid rgba(129, 112, 77, 0.16);
-  background: rgba(255, 255, 255, 0.62);
-}
-
-.plannerStopCardActive {
-  border-color: rgba(11, 111, 91, 0.42);
-  box-shadow: inset 0 0 0 1px rgba(11, 111, 91, 0.12);
-}
-
-.plannerStopCard p {
-  margin: 0;
-}
-
-.plannerStopMeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem 1rem;
-  font-size: 0.9rem;
 }
 
 .plannerChipRow {
@@ -480,8 +521,7 @@ a {
 }
 
 .plannerDayTabs {
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-  margin-bottom: 0.85rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
 
 .plannerDayTab,
@@ -495,9 +535,18 @@ a {
 }
 
 .plannerDayTab {
-  min-height: 2.8rem;
-  padding: 0.65rem 0.8rem;
+  min-height: 4rem;
+  padding: 0.85rem 0.95rem;
   font-weight: 700;
+  text-align: start;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.plannerDayTab small {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 600;
 }
 
 .plannerDayTabActive {
@@ -514,6 +563,102 @@ a {
 .plannerLegend {
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   margin-top: 0.85rem;
+}
+
+.plannerTimeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.plannerTimelineItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.plannerTimelineMarker {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  border: 1px solid rgba(11, 111, 91, 0.22);
+  background: linear-gradient(180deg, rgba(11, 111, 91, 0.14), rgba(11, 111, 91, 0.04));
+  color: var(--brand);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  position: sticky;
+  top: 1rem;
+}
+
+.plannerTimelineCardInner {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(129, 112, 77, 0.16);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.plannerTimelineItemActive .plannerTimelineCardInner {
+  border-color: rgba(11, 111, 91, 0.32);
+  box-shadow: 0 14px 34px rgba(11, 111, 91, 0.08);
+}
+
+.plannerTimelineHeader,
+.plannerTimelineEyebrow,
+.plannerTimelineMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.plannerTimelineHeader p,
+.plannerTimelineExplanation,
+.plannerWhyBlock p {
+  margin: 0;
+}
+
+.plannerTimelineOrder {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.plannerTimelineReasons {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), max-content));
+}
+
+.plannerTimelineMeta {
+  justify-content: flex-start;
+  gap: 0.75rem 1rem;
+  font-size: 0.92rem;
+}
+
+.plannerWhyBlock {
+  display: grid;
+  gap: 0.4rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(129, 112, 77, 0.12);
+}
+
+.plannerWhyBlock:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.plannerSelectionFactors {
+  margin: 0;
+  padding-inline-start: 1rem;
+}
+
+.plannerSelectionFactors li {
+  line-height: 1.55;
 }
 
 .plannerLegendItem,
@@ -626,16 +771,22 @@ a {
 [dir="rtl"] .metaList,
 [dir="rtl"] .ctaRow,
 [dir="rtl"] .navlinks,
-[dir="rtl"] .plannerDayHeader,
-[dir="rtl"] .plannerStopHeader,
+[dir="rtl"] .plannerDaySelectorHeader,
+[dir="rtl"] .plannerDaySummaryHeader,
+[dir="rtl"] .plannerTimelineHeader,
+[dir="rtl"] .plannerTimelineEyebrow,
+[dir="rtl"] .plannerTimelineMeta,
 [dir="rtl"] .plannerDayMeta,
-[dir="rtl"] .plannerStopMeta {
+[dir="rtl"] .plannerPanelHeader {
   flex-direction: row-reverse;
 }
 
 [dir="rtl"] .detailMapLegendItem,
 [dir="rtl"] .detailMapLegend,
-[dir="rtl"] .plannerLegendItem {
+[dir="rtl"] .plannerLegendItem,
+[dir="rtl"] .plannerInlineChip,
+[dir="rtl"] .plannerChip,
+[dir="rtl"] .plannerReasonChip {
   flex-direction: row-reverse;
 }
 
@@ -651,12 +802,20 @@ a {
   .split,
   .detailGrid,
   .checkGrid,
-  .plannerResultLayout {
+  .plannerWorkbench {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 720px) {
+  .plannerTimelineItem {
+    grid-template-columns: 1fr;
+  }
+
+  .plannerTimelineMarker {
+    position: static;
+  }
+
   .page {
     padding-block: 1rem 2rem;
   }
