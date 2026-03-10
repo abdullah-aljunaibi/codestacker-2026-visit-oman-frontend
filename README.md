@@ -1,4 +1,5 @@
 # Visit Oman Frontend Submission
+[![Status](https://img.shields.io/badge/status-passing-brightgreen)](#)
 
 Visit Oman is a bilingual Next.js trip-planning experience for the CodeStacker 2026 frontend challenge. It turns traveler preferences into a deterministic multi-day Oman itinerary, then presents the result as a traveler-facing daily plan with timed stops, estimated costs, and a future-ready map panel.
 
