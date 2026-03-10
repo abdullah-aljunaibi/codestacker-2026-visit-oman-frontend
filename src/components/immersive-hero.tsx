@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { immersiveHeroImage } from "@/lib/data/immersive-showcase";
 import type { Locale } from "@/types/dataset";
 
 export function ImmersiveHero({
@@ -28,7 +29,7 @@ export function ImmersiveHero({
       aria-label={heroTitle}
       style={{
         backgroundImage:
-          "linear-gradient(180deg, rgba(10, 77, 92, 0.12) 0%, rgba(26, 26, 46, 0.84) 100%), url('https://images.unsplash.com/photo-1626095460016-8664dc341f69?auto=format&fit=crop&w=2000&q=80')"
+          `linear-gradient(180deg, rgba(10, 77, 92, 0.12) 0%, rgba(26, 26, 46, 0.84) 100%), url('${immersiveHeroImage.src}')`
       }}
     >
       <div className="shell immersiveHeroContent">

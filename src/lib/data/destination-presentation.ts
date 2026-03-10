@@ -16,54 +16,114 @@ const imageDimensions = {
   height: 800
 } as const;
 
-const imageThemes: Record<ImageTheme, string[]> = {
-  mountain: [
-    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1464820453369-31d2c0b651af?auto=format&fit=crop&w=1200&q=80"
-  ],
-  desert: [
-    "https://images.unsplash.com/photo-1509316785289-025f5b846b35?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?auto=format&fit=crop&w=1200&q=80"
-  ],
-  sea: [
-    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1493558103817-58b2924bce98?auto=format&fit=crop&w=1200&q=80"
-  ],
-  culture: [
-    "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80"
-  ],
-  nature: [
-    "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80"
-  ],
-  adventure: [
-    "https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1200&q=80"
-  ],
-  heritage: [
-    "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1512632578888-169bbbc64f33?auto=format&fit=crop&w=1200&q=80"
-  ],
-  urban: [
-    "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?auto=format&fit=crop&w=1200&q=80",
-    "https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1200&q=80"
-  ]
+const destinationHeroImages: Record<
+  string,
+  {
+    src: string;
+    theme: ImageTheme;
+  }
+> = {
+  "muttrah-corniche": {
+    src: "https://images.unsplash.com/photo-1661396707813-5f2b83570c26?auto=format&fit=crop&w=1200&q=80",
+    theme: "culture"
+  },
+  "royal-opera-house-muscat": {
+    src: "https://images.unsplash.com/photo-1666936885160-cac4d9ef7d24?auto=format&fit=crop&w=1200&q=80",
+    theme: "urban"
+  },
+  "sultan-qaboos-grand-mosque": {
+    src: "https://images.unsplash.com/photo-1719314096247-b3b3a72b4366?auto=format&fit=crop&w=1200&q=80",
+    theme: "culture"
+  },
+  "qurum-beach": {
+    src: "https://images.unsplash.com/photo-1621971600446-9a6da075d61d?auto=format&fit=crop&w=1200&q=80",
+    theme: "sea"
+  },
+  "bimmah-sinkhole": {
+    src: "https://images.unsplash.com/photo-1562602833-49e2f0c6d381?auto=format&fit=crop&w=1200&q=80",
+    theme: "nature"
+  },
+  "nizwa-fort": {
+    src: "https://images.unsplash.com/photo-1708515780646-f44aec13169a?auto=format&fit=crop&w=1200&q=80",
+    theme: "culture"
+  },
+  "jebel-akhdar": {
+    src: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1200&q=80",
+    theme: "mountain"
+  },
+  "jebel-shams": {
+    src: "https://images.unsplash.com/photo-1626095460016-8664dc341f69?auto=format&fit=crop&w=1200&q=80",
+    theme: "adventure"
+  },
+  "misfat-al-abriyeen": {
+    src: "https://images.unsplash.com/photo-1736719060852-3c4e45144374?auto=format&fit=crop&w=1200&q=80",
+    theme: "heritage"
+  },
+  "bahla-fort": {
+    src: "https://images.unsplash.com/photo-1578825397504-f07d109167c8?auto=format&fit=crop&w=1200&q=80",
+    theme: "heritage"
+  },
+  "birkat-al-mouz": {
+    src: "https://images.unsplash.com/photo-1736719060852-3c4e45144374?auto=format&fit=crop&w=1200&q=80",
+    theme: "culture"
+  },
+  "wahiba-sands": {
+    src: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
+    theme: "desert"
+  },
+  "ras-al-jinz": {
+    src: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80",
+    theme: "nature"
+  },
+  "wadi-bani-khalid": {
+    src: "https://images.unsplash.com/photo-1562602833-49e2f0c6d381?auto=format&fit=crop&w=1200&q=80",
+    theme: "nature"
+  },
+  "sur-dhow-yard": {
+    src: "https://images.unsplash.com/photo-1577587230708-187fdbef4d91?auto=format&fit=crop&w=1200&q=80",
+    theme: "culture"
+  },
+  "fins-beach": {
+    src: "https://images.unsplash.com/photo-1621971600446-9a6da075d61d?auto=format&fit=crop&w=1200&q=80",
+    theme: "sea"
+  },
+  "salalah-waterfalls": {
+    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    theme: "nature"
+  },
+  "mughsail-beach": {
+    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    theme: "sea"
+  },
+  "anti-gravity-point": {
+    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    theme: "nature"
+  },
+  "jebel-samhan": {
+    src: "https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=1200&q=80",
+    theme: "mountain"
+  },
+  "nakhal-fort": {
+    src: "https://images.unsplash.com/photo-1741503488678-3dda4194252f?auto=format&fit=crop&w=1200&q=80",
+    theme: "heritage"
+  },
+  "ain-thowarah": {
+    src: "https://images.unsplash.com/photo-1741503488678-3dda4194252f?auto=format&fit=crop&w=1200&q=80",
+    theme: "nature"
+  },
+  "sawadi-beach": {
+    src: "https://images.unsplash.com/photo-1621971600446-9a6da075d61d?auto=format&fit=crop&w=1200&q=80",
+    theme: "sea"
+  },
+  "khasab-fjords": {
+    src: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80",
+    theme: "nature"
+  },
+  "telegraph-island": {
+    src: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80",
+    theme: "sea"
+  }
 };
-
-function stableHash(value: string): number {
-  return Array.from(value).reduce((hash, character) => {
-    return (hash * 31 + character.charCodeAt(0)) >>> 0;
-  }, 7);
-}
 
 function pickTheme(destination: DatasetDestination): ImageTheme {
   const { categories, crowd_level, avg_visit_duration_minutes, region } = destination;
@@ -157,12 +217,11 @@ export function buildDestinationDescription(destination: DatasetDestination): Lo
 }
 
 export function getDestinationHeroImage(destination: DatasetDestination) {
-  const theme = pickTheme(destination);
-  const options = imageThemes[theme];
-  const index = stableHash(destination.slug) % options.length;
+  const selected = destinationHeroImages[destination.slug];
+  const theme = selected?.theme ?? pickTheme(destination);
 
   return {
-    src: options[index],
+    src: selected?.src ?? "https://images.unsplash.com/photo-1626095460016-8664dc341f69?auto=format&fit=crop&w=1200&q=80",
     width: imageDimensions.width,
     height: imageDimensions.height,
     theme
