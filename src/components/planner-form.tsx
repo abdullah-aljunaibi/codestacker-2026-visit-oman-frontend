@@ -13,6 +13,7 @@ import {
 } from "@/lib/i18n/messages";
 import { readSavedInterestSlugs } from "@/lib/persistence/interests";
 import {
+  clearPlannerDraft,
   defaultPlannerDraft,
   type PlannerDraft,
   readPlannerDraft,
@@ -56,6 +57,19 @@ export function PlannerForm({
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
   const [savedNotice, setSavedNotice] = useState("");
   const [validationMessage, setValidationMessage] = useState("");
+
+  function resetDraft() {
+    const savedSlugs = readSavedInterestSlugs();
+    const derivedCategories = deriveDefaultCategories(destinationOptions, savedSlugs, focusSlug);
+
+    clearPlannerDraft();
+    setDraft({
+      ...defaultPlannerDraft,
+      preferredCategories: derivedCategories
+    });
+    setSavedNotice("");
+    setValidationMessage("");
+  }
 
   useEffect(() => {
     const persisted = readPlannerDraft();
@@ -209,6 +223,9 @@ export function PlannerForm({
         <div className="ctaRow">
           <button className="pill pillPrimary" type="submit">
             {copy.submit}
+          </button>
+          <button className="pill" type="button" onClick={resetDraft}>
+            {copy.reset}
           </button>
           <Link className="pill" href={`/${normalizedLocale}/saved`}>
             {copy.manageSaved}

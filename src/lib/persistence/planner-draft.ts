@@ -1,5 +1,5 @@
 import type { InterestProfile } from "@/types/domain";
-import { readJsonStorage, writeJsonStorage } from "@/lib/persistence/browser-storage";
+import { readJsonStorage, removeStorageKey, writeJsonStorage } from "@/lib/persistence/browser-storage";
 import { storageKeys } from "@/lib/persistence/keys";
 
 type LegacyPlannerDraft = Partial<InterestProfile> & {
@@ -90,4 +90,8 @@ export function writePlannerDraft(draft: PlannerDraft): void {
     travelMonth: Math.max(1, Math.min(12, Math.floor(draft.travelMonth))),
     updatedAt: new Date().toISOString()
   });
+}
+
+export function clearPlannerDraft(): void {
+  removeStorageKey(storageKeys.plannerDraft);
 }

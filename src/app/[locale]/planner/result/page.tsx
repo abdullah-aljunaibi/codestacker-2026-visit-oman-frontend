@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
 
 import { SiteHeader } from "@/components/site-header";
@@ -11,6 +12,7 @@ import {
   formatDecimal,
   formatMessage,
   formatNumber,
+  formatTicketCost,
   getBudgetLabel,
   getMessages,
   getMonthLabel,
@@ -20,16 +22,30 @@ import { rankCandidatesForPlanner } from "@/lib/planner/candidate-ranking";
 import { assembleFinalItinerary } from "@/lib/planner/final-itinerary";
 import { generateIntraRegionDayPlans } from "@/lib/planner/intra-region-routing";
 import { allocateTripDaysAcrossRegions } from "@/lib/planner/region-allocation";
+import {
+  clearPersistedItinerary,
+  deriveCostBreakdown,
+  readPersistedCostBreakdown,
+  readPersistedItinerary,
+  writePersistedCostBreakdown,
+  writePersistedItinerary
+} from "@/lib/persistence/itinerary";
 import { readSavedInterestSlugs } from "@/lib/persistence/interests";
 import type { PlannerDraft } from "@/lib/persistence/planner-draft";
-import { defaultPlannerDraft, readPlannerDraft } from "@/lib/persistence/planner-draft";
+import {
+  clearPlannerDraft,
+  defaultPlannerDraft,
+  readPlannerDraft
+} from "@/lib/persistence/planner-draft";
 
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = use(params);
   const locale = resolveLocale(localeParam);
   const messages = getMessages(locale);
+  const router = useRouter();
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
   const [savedInterestSlugs, setSavedInterestSlugs] = useState<string[]>([]);
+  const [persistedAt, setPersistedAt] = useState("");
   const { datasetVersion, destinations } = useMemo(() => loadDestinationsWithVersion(), []);
   const normalizedDestinations = useMemo(
     () => normalizeDestinations(destinations, locale),
@@ -55,7 +71,12 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
   useEffect(() => {
     setDraft(readPlannerDraft());
     setSavedInterestSlugs(readSavedInterestSlugs());
-  }, []);
+
+    const persistedItinerary = readPersistedItinerary();
+    if (persistedItinerary?.locale === locale) {
+      setPersistedAt(persistedItinerary.savedAt);
+    }
+  }, [locale]);
 
   const ranking = useMemo(
     () =>
@@ -94,6 +115,32 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     [normalizedDestinations, ranking.handoff, routingDayPlan]
   );
 
+  const currentCostBreakdown = useMemo(
+    () => deriveCostBreakdown(finalItinerary, normalizedDestinations),
+    [finalItinerary, normalizedDestinations]
+  );
+  const [persistedCostBreakdown, setPersistedCostBreakdown] = useState(currentCostBreakdown);
+
+  useEffect(() => {
+    const now = new Date().toISOString();
+    writePersistedItinerary({
+      locale,
+      datasetVersion,
+      savedAt: now,
+      itinerary: finalItinerary
+    });
+    writePersistedCostBreakdown(currentCostBreakdown);
+    setPersistedAt(now);
+    setPersistedCostBreakdown(currentCostBreakdown);
+  }, [currentCostBreakdown, datasetVersion, finalItinerary, locale]);
+
+  useEffect(() => {
+    const savedBreakdown = readPersistedCostBreakdown();
+    if (savedBreakdown) {
+      setPersistedCostBreakdown(savedBreakdown);
+    }
+  }, []);
+
   return (
     <main className="page">
       <div className="shell">
@@ -102,6 +149,8 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
         <section className="card">
           <h1>{messages.plannerResult.title}</h1>
           <p>{messages.plannerResult.body}</p>
+          <p className="listHeader">{messages.plannerResult.storageStatus}</p>
+          {persistedAt ? <p className="eyebrow">{persistedAt}</p> : null}
 
           <h2>{messages.plannerResult.inputSummary}</h2>
           <ul>
@@ -140,6 +189,32 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
               })}
             </li>
           </ul>
+
+          <section className="card cardSubtle sectionCard">
+            <h2>{messages.plannerResult.costBreakdownTitle}</h2>
+            <ul>
+              <li>
+                {formatMessage(messages.plannerResult.costTotal, {
+                  value: formatTicketCost(persistedCostBreakdown.totalTicketCostOmr, locale)
+                })}
+              </li>
+              <li>
+                {formatMessage(messages.plannerResult.costAverage, {
+                  value: formatTicketCost(persistedCostBreakdown.averageTicketCostPerDayOmr, locale)
+                })}
+              </li>
+              <li>
+                {formatMessage(messages.plannerResult.costPaidStops, {
+                  value: formatNumber(persistedCostBreakdown.paidStopCount, locale)
+                })}
+              </li>
+              <li>
+                {formatMessage(messages.plannerResult.costFreeStops, {
+                  value: formatNumber(persistedCostBreakdown.freeStopCount, locale)
+                })}
+              </li>
+            </ul>
+          </section>
 
           <div className="listStack">
             {finalItinerary.days.map((day) => (
@@ -231,6 +306,31 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             <Link className="pill" href={`/${locale}/planner`}>
               {messages.common.editInputs}
             </Link>
+            <button
+              type="button"
+              className="pill"
+              onClick={() => {
+                clearPersistedItinerary();
+                setPersistedAt("");
+                setPersistedCostBreakdown(readPersistedCostBreakdown() ?? currentCostBreakdown);
+              }}
+            >
+              {messages.plannerResult.clearStored}
+            </button>
+            <button
+              type="button"
+              className="pill"
+              onClick={() => {
+                clearPlannerDraft();
+                clearPersistedItinerary();
+                setDraft(defaultPlannerDraft);
+                setPersistedAt("");
+                setPersistedCostBreakdown(currentCostBreakdown);
+                router.push(`/${locale}/planner`);
+              }}
+            >
+              {messages.plannerResult.resetAll}
+            </button>
             <Link className="pill" href={`/${locale}/saved`}>
               {messages.common.savedInterests}
             </Link>

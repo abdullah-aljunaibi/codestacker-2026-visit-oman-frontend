@@ -22,3 +22,11 @@ export function writeJsonStorage<T>(key: string, value: T): void {
 
   window.localStorage.setItem(key, JSON.stringify(value));
 }
+
+export function removeStorageKey(key: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(key);
+}
