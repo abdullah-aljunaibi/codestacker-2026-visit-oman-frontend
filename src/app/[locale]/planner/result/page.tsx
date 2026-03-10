@@ -37,6 +37,38 @@ import {
   defaultPlannerDraft,
   readPlannerDraft
 } from "@/lib/persistence/planner-draft";
+import type { Locale } from "@/types/dataset";
+
+function getCrowdLabel(crowdLevel: number, locale: Locale): string {
+  const messages = getMessages(locale);
+  if (crowdLevel <= 1) return messages.plannerResult.crowdLow;
+  if (crowdLevel === 2) return messages.plannerResult.crowdModerate;
+  if (crowdLevel === 3) return messages.plannerResult.crowdBusy;
+  if (crowdLevel === 4) return messages.plannerResult.crowdHigh;
+  return messages.plannerResult.crowdPeak;
+}
+
+function getReasonExplanation(
+  reasonCode: string | undefined,
+  name: string,
+  locale: Locale
+): string {
+  const messages = getMessages(locale);
+  const template =
+    reasonCode === "category_match"
+      ? messages.plannerResult.reasonCategory
+      : reasonCode === "season_match"
+        ? messages.plannerResult.reasonSeason
+        : reasonCode === "budget_match"
+          ? messages.plannerResult.reasonBudget
+          : reasonCode === "crowd_preference"
+            ? messages.plannerResult.reasonCrowd
+            : reasonCode === "duration_fit"
+              ? messages.plannerResult.reasonDuration
+              : messages.plannerResult.reasonFallback;
+
+  return formatMessage(template, { name });
+}
 
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = use(params);
@@ -51,22 +83,6 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     () => normalizeDestinations(destinations, locale),
     [destinations, locale]
   );
-  const summaryLabels =
-    locale === "ar"
-      ? {
-          days: "الأيام",
-          budget: "الميزانية",
-          travelIntensity: "كثافة الرحلة",
-          travelMonth: "شهر السفر",
-          categoriesSelected: "الفئات المختارة"
-        }
-      : {
-          days: "Days",
-          budget: "Budget",
-          travelIntensity: "Travel intensity",
-          travelMonth: "Travel month",
-          categoriesSelected: "Categories selected"
-        };
 
   useEffect(() => {
     setDraft(readPlannerDraft());
@@ -141,203 +157,301 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     }
   }, []);
 
+  const tripSnapshot = [
+    { label: messages.plannerResult.days, value: formatNumber(draft.tripDurationDays, locale) },
+    { label: messages.plannerResult.budget, value: getBudgetLabel(draft.budget, locale) },
+    { label: messages.plannerResult.pace, value: getTravelIntensityLabel(draft.travelIntensity, locale) },
+    { label: messages.plannerResult.travelMonth, value: getMonthLabel(draft.travelMonth, locale) },
+    {
+      label: messages.plannerResult.themesSelected,
+      value: formatNumber(draft.preferredCategories.length, locale)
+    },
+    {
+      label: messages.plannerResult.savedSeeds,
+      value: formatNumber(savedInterestSlugs.length, locale)
+    }
+  ];
+
+  const overviewStats = [
+    {
+      label: messages.plannerResult.itineraryDays,
+      value: `${formatNumber(finalItinerary.totals.dayCount, locale)}/${formatNumber(finalItinerary.tripDays, locale)}`
+    },
+    {
+      label: messages.plannerResult.totalStops,
+      value: formatNumber(finalItinerary.totals.stopCount, locale)
+    },
+    {
+      label: messages.plannerResult.totalVisitHours,
+      value: formatDecimal(finalItinerary.totals.estimatedVisitHours, locale, 1)
+    },
+    {
+      label: messages.plannerResult.totalTravelKm,
+      value: formatDecimal(finalItinerary.totals.estimatedTravelKm, locale, 1)
+    },
+    {
+      label: messages.plannerResult.unresolvedDays,
+      value: formatNumber(finalItinerary.totals.unresolvedDayCount, locale)
+    }
+  ];
+
   return (
     <main className="page">
       <div className="shell">
         <SiteHeader locale={locale} />
 
-        <section className="card">
+        <section className="hero plannerResultHero">
+          <span className="kicker">{messages.plannerResult.outputTitle}</span>
           <h1>{messages.plannerResult.title}</h1>
           <p>{messages.plannerResult.body}</p>
-          <p className="listHeader">{messages.plannerResult.storageStatus}</p>
-          {persistedAt ? <p className="eyebrow">{persistedAt}</p> : null}
+          <p className="plannerPersistedMeta">
+            {messages.plannerResult.storageStatus}
+            {persistedAt ? ` ${persistedAt}` : ""}
+          </p>
+        </section>
 
-          <h2>{messages.plannerResult.inputSummary}</h2>
-          <ul>
-            <li>{summaryLabels.days}: {formatNumber(draft.tripDurationDays, locale)}</li>
-            <li>{summaryLabels.budget}: {getBudgetLabel(draft.budget, locale)}</li>
-            <li>{summaryLabels.travelIntensity}: {getTravelIntensityLabel(draft.travelIntensity, locale)}</li>
-            <li>{summaryLabels.travelMonth}: {getMonthLabel(draft.travelMonth, locale)}</li>
-            <li>{summaryLabels.categoriesSelected}: {formatNumber(draft.preferredCategories.length, locale)}</li>
-          </ul>
+        <section className="plannerResultLayout">
+          <aside className="plannerResultRail">
+            <article className="card plannerPanel">
+              <h2>{messages.plannerResult.preferencesTitle}</h2>
+              <div className="plannerInfoStack">
+                {tripSnapshot.map((item) => (
+                  <div key={item.label} className="plannerInfoRow">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </article>
 
-          <h2>{messages.plannerResult.outputTitle}</h2>
-          <ul>
-            <li>
-              {formatMessage(messages.plannerResult.itineraryDays, {
-                value: `${formatNumber(finalItinerary.totals.dayCount, locale)}/${formatNumber(finalItinerary.tripDays, locale)}`
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.totalStops, {
-                value: formatNumber(finalItinerary.totals.stopCount, locale)
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.totalVisitHours, {
-                value: formatDecimal(finalItinerary.totals.estimatedVisitHours, locale, 1)
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.totalTravelKm, {
-                value: formatDecimal(finalItinerary.totals.estimatedTravelKm, locale, 1)
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.unresolvedDays, {
-                value: formatNumber(finalItinerary.totals.unresolvedDayCount, locale)
-              })}
-            </li>
-          </ul>
-
-          <section className="card cardSubtle sectionCard">
-            <h2>{messages.plannerResult.costBreakdownTitle}</h2>
-            <ul>
-              <li>
-                {formatMessage(messages.plannerResult.costTotal, {
-                  value: formatTicketCost(persistedCostBreakdown.totalTicketCostOmr, locale)
-                })}
-              </li>
-              <li>
-                {formatMessage(messages.plannerResult.costAverage, {
-                  value: formatTicketCost(persistedCostBreakdown.averageTicketCostPerDayOmr, locale)
-                })}
-              </li>
-              <li>
-                {formatMessage(messages.plannerResult.costPaidStops, {
-                  value: formatNumber(persistedCostBreakdown.paidStopCount, locale)
-                })}
-              </li>
-              <li>
-                {formatMessage(messages.plannerResult.costFreeStops, {
-                  value: formatNumber(persistedCostBreakdown.freeStopCount, locale)
-                })}
-              </li>
-            </ul>
-          </section>
-
-          <div className="listStack">
-            {finalItinerary.days.map((day) => (
-              <article key={`phase5c-day-${day.dayNumber}`} className="card cardSubtle itineraryDay">
-                <h3>
-                  {formatMessage(messages.plannerResult.dayHeading, {
-                    dayNumber: formatNumber(day.dayNumber, locale),
-                    region: day.region,
-                    regionDayNumber: formatNumber(day.regionDayNumber, locale)
-                  })}
-                </h3>
-                <p>
-                  {formatMessage(messages.plannerResult.dayStats, {
-                    stops: formatNumber(day.stopCount, locale),
-                    hours: formatDecimal(day.estimatedVisitHours, locale, 1),
-                    km: formatDecimal(day.estimatedTravelKm, locale, 1)
-                  })}
-                </p>
-
-                {day.stops.length > 0 ? (
-                  <ol className="itineraryStops">
-                    {day.stops.map((stop) => (
-                      <li key={`${day.dayNumber}-${stop.slug}`} className="itineraryStop">
-                        <strong>{stop.name[locale]}</strong>
-                        <span>
-                          {formatMessage(messages.plannerResult.stopHours, {
-                            slug: stop.slug,
-                            hours: formatDecimal(stop.estimatedVisitHours, locale, 1)
-                          })}
-                        </span>
-                        <span>
-                          {formatMessage(messages.plannerResult.stopRank, {
-                            rank: stop.rank ?? "-",
-                            score: stop.score == null ? "-" : formatDecimal(stop.score, locale, 3)
-                          })}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                ) : (
-                  <p>{messages.plannerResult.noStops}</p>
-                )}
-
-                <div className="metaList">
-                  {day.notes.map((note) => (
-                    <span key={`${day.dayNumber}-${note}`} className="meta">
-                      {note}
-                    </span>
-                  ))}
+            <article className="card plannerPanel">
+              <h2>{messages.plannerResult.costBreakdownTitle}</h2>
+              <div className="plannerInfoStack">
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costTotal}</span>
+                  <strong>{formatTicketCost(persistedCostBreakdown.totalTicketCostOmr, locale)}</strong>
                 </div>
-              </article>
-            ))}
-          </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costAverage}</span>
+                  <strong>{formatTicketCost(persistedCostBreakdown.averageTicketCostPerDayOmr, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costPaidStops}</span>
+                  <strong>{formatNumber(persistedCostBreakdown.paidStopCount, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costFreeStops}</span>
+                  <strong>{formatNumber(persistedCostBreakdown.freeStopCount, locale)}</strong>
+                </div>
+              </div>
+            </article>
 
-          <h2>{messages.plannerResult.traceabilityTitle}</h2>
-          <ul>
-            <li>
-              {formatMessage(messages.plannerResult.planningContext, {
-                value: ranking.handoff.planningContextId
+            <article className="card plannerPanel">
+              <h2>{messages.plannerResult.outputTitle}</h2>
+              <div className="plannerMetricGrid">
+                {overviewStats.map((item) => (
+                  <div key={item.label} className="plannerMetric">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <article className="card plannerMapCard">
+              <div className="plannerMapCardHeader">
+                <h2>{messages.plannerResult.mapTitle}</h2>
+                <p>{messages.plannerResult.mapBody}</p>
+              </div>
+              <div className="plannerMapPlaceholder" aria-hidden="true" />
+            </article>
+          </aside>
+
+          <section className="plannerResultMain">
+            <div className="sectionCard">
+              <h2>{messages.plannerResult.itineraryTitle}</h2>
+            </div>
+
+            <div className="plannerDayGrid">
+              {finalItinerary.days.map((day) => {
+                const paidStopCount = day.stops.filter((stop) => stop.ticketCostOmr > 0).length;
+                const freeStopCount = day.stops.length - paidStopCount;
+                const highlightedStops = day.stops
+                  .slice()
+                  .sort((left, right) => {
+                    if ((right.score ?? 0) !== (left.score ?? 0)) {
+                      return (right.score ?? 0) - (left.score ?? 0);
+                    }
+                    if ((left.rank ?? Number.MAX_SAFE_INTEGER) !== (right.rank ?? Number.MAX_SAFE_INTEGER)) {
+                      return (left.rank ?? Number.MAX_SAFE_INTEGER) - (right.rank ?? Number.MAX_SAFE_INTEGER);
+                    }
+                    return left.slug.localeCompare(right.slug);
+                  })
+                  .slice(0, 2);
+
+                return (
+                  <article key={`planner-day-${day.dayNumber}`} className="card plannerDayCard">
+                    <header className="plannerDayHeader">
+                      <div>
+                        <h3>
+                          {formatMessage(messages.plannerResult.dayHeading, {
+                            dayNumber: formatNumber(day.dayNumber, locale)
+                          })}
+                        </h3>
+                        <p>{formatMessage(messages.plannerResult.daySubheading, {
+                          region: day.region,
+                          regionDayNumber: formatNumber(day.regionDayNumber, locale)
+                        })}</p>
+                      </div>
+                      <div className="plannerDayMeta">
+                        <span className="plannerBadge">
+                          {formatMessage(messages.plannerResult.dayWindow, {
+                            start: day.startTime || routingDayPlan.routingPolicy.dayStartTime,
+                            end: day.endTime || routingDayPlan.routingPolicy.dayStartTime
+                          })}
+                        </span>
+                        {day.notes.includes("unresolved_region_day_slot") ? (
+                          <span className="plannerBadge plannerBadgeAlert">
+                            {messages.plannerResult.unresolvedLabel}
+                          </span>
+                        ) : null}
+                      </div>
+                    </header>
+
+                    <div className="plannerDaySummary">
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.daySummaryLabel}</span>
+                        <strong>
+                          {formatMessage(messages.plannerResult.dayStats, {
+                            stops: formatNumber(day.stopCount, locale),
+                            hours: formatDecimal(day.estimatedVisitHours, locale, 1),
+                            km: formatDecimal(day.estimatedTravelKm, locale, 1)
+                          })}
+                        </strong>
+                      </div>
+                      <div className="plannerSummaryStat">
+                        <span>{messages.plannerResult.dayTravelTime}</span>
+                        <strong>
+                          {formatNumber(day.estimatedTravelMinutes, locale)} {messages.plannerResult.minuteUnit}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <section className="plannerDayCost">
+                      <h4>{messages.plannerResult.dayCostTitle}</h4>
+                      <div className="plannerCostGrid">
+                        <div>
+                          <span>{messages.plannerResult.dayCostTotal}</span>
+                          <strong>{formatTicketCost(day.estimatedTicketCostOmr, locale)}</strong>
+                        </div>
+                        <div>
+                          <span>{messages.plannerResult.dayCostPaid}</span>
+                          <strong>{formatNumber(paidStopCount, locale)}</strong>
+                        </div>
+                        <div>
+                          <span>{messages.plannerResult.dayCostFree}</span>
+                          <strong>{formatNumber(freeStopCount, locale)}</strong>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section>
+                      <h4>{messages.plannerResult.dayExplanationsTitle}</h4>
+                      {highlightedStops.length > 0 ? (
+                        <ul className="plannerExplanationList">
+                          {highlightedStops.map((stop) => (
+                            <li key={`explanation-${day.dayNumber}-${stop.slug}`}>
+                              {getReasonExplanation(stop.reasonCodes[0], stop.name[locale], locale)}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>{messages.plannerResult.noStops}</p>
+                      )}
+                    </section>
+
+                    <section>
+                      <h4>{messages.plannerResult.stopsTitle}</h4>
+                      {day.stops.length > 0 ? (
+                        <ol className="plannerStopList">
+                          {day.stops.map((stop) => (
+                            <li key={`${day.dayNumber}-${stop.slug}`} className="plannerStopCard">
+                              <div className="plannerStopHeader">
+                                <div>
+                                  <strong>{stop.name[locale]}</strong>
+                                  <p>{formatMessage(messages.plannerResult.stopTimeRange, {
+                                    start: stop.startTime,
+                                    end: stop.endTime
+                                  })}</p>
+                                </div>
+                                <span className="plannerBadge">{getCrowdLabel(stop.crowdLevel, locale)}</span>
+                              </div>
+                              <p>{stop.description[locale]}</p>
+                              <div className="plannerStopMeta">
+                                <span>
+                                  {messages.plannerResult.stopDuration}: {formatDecimal(stop.estimatedVisitHours, locale, 1)} {messages.plannerResult.hourUnitShort}
+                                </span>
+                                <span>
+                                  {messages.plannerResult.stopCost}: {stop.ticketCostOmr > 0
+                                    ? formatTicketCost(stop.ticketCostOmr, locale)
+                                    : messages.plannerResult.costFreeValue}
+                                </span>
+                                <span>
+                                  {messages.plannerResult.stopCrowd}: {getCrowdLabel(stop.crowdLevel, locale)}
+                                </span>
+                                <span>
+                                  {messages.plannerResult.stopTransit}: {formatNumber(stop.travelMinutesFromPrevious, locale)} {messages.plannerResult.minuteUnit}
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p>{messages.plannerResult.noStops}</p>
+                      )}
+                    </section>
+                  </article>
+                );
               })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.sourceVersions, {
-                handoff: ranking.handoff.handoffVersion,
-                allocation: regionAllocation.allocationVersion,
-                routing: routingDayPlan.routingVersion
-              })}
-            </li>
-            <li>
-              {formatMessage(messages.plannerResult.finalVersion, {
-                value: finalItinerary.itineraryVersion
-              })}
-            </li>
-          </ul>
+            </div>
 
-          <h3>{messages.plannerResult.handoffTitle}</h3>
-          <pre>{JSON.stringify(ranking.handoff, null, 2)}</pre>
-
-          <h3>{messages.plannerResult.allocationTitle}</h3>
-          <pre>{JSON.stringify(regionAllocation, null, 2)}</pre>
-
-          <h3>{messages.plannerResult.routingTitle}</h3>
-          <pre>{JSON.stringify(routingDayPlan, null, 2)}</pre>
-
-          <h3>{messages.plannerResult.finalContractTitle}</h3>
-          <pre>{JSON.stringify(finalItinerary, null, 2)}</pre>
-
-          <div className="ctaRow">
-            <Link className="pill" href={`/${locale}/planner`}>
-              {messages.common.editInputs}
-            </Link>
-            <button
-              type="button"
-              className="pill"
-              onClick={() => {
-                clearPersistedItinerary();
-                setPersistedAt("");
-                setPersistedCostBreakdown(readPersistedCostBreakdown() ?? currentCostBreakdown);
-              }}
-            >
-              {messages.plannerResult.clearStored}
-            </button>
-            <button
-              type="button"
-              className="pill"
-              onClick={() => {
-                clearPlannerDraft();
-                clearPersistedItinerary();
-                setDraft(defaultPlannerDraft);
-                setPersistedAt("");
-                setPersistedCostBreakdown(currentCostBreakdown);
-                router.push(`/${locale}/planner`);
-              }}
-            >
-              {messages.plannerResult.resetAll}
-            </button>
-            <Link className="pill" href={`/${locale}/saved`}>
-              {messages.common.savedInterests}
-            </Link>
-            <Link className="pill" href={`/${locale}/discover`}>
-              {messages.common.backToDiscovery}
-            </Link>
-          </div>
+            <div className="ctaRow">
+              <Link className="pill" href={`/${locale}/planner`}>
+                {messages.common.editInputs}
+              </Link>
+              <button
+                type="button"
+                className="pill"
+                onClick={() => {
+                  clearPersistedItinerary();
+                  setPersistedAt("");
+                  setPersistedCostBreakdown(readPersistedCostBreakdown() ?? currentCostBreakdown);
+                }}
+              >
+                {messages.plannerResult.clearStored}
+              </button>
+              <button
+                type="button"
+                className="pill"
+                onClick={() => {
+                  clearPlannerDraft();
+                  clearPersistedItinerary();
+                  setDraft(defaultPlannerDraft);
+                  setPersistedAt("");
+                  setPersistedCostBreakdown(currentCostBreakdown);
+                  router.push(`/${locale}/planner`);
+                }}
+              >
+                {messages.plannerResult.resetAll}
+              </button>
+              <Link className="pill" href={`/${locale}/saved`}>
+                {messages.common.savedInterests}
+              </Link>
+              <Link className="pill" href={`/${locale}/discover`}>
+                {messages.common.backToDiscovery}
+              </Link>
+            </div>
+          </section>
         </section>
       </div>
     </main>
