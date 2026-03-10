@@ -1,6 +1,10 @@
+/**
+ * Deterministic candidate ranking built on the normalized multi-objective scorer.
+ */
 import type { Destination, InterestProfile } from "@/types/domain";
 
 import {
+  buildNormalizationContext,
   defaultWeightedScoringConfig,
   scoreDestinationWeighted,
   type WeightedScoreBreakdown
@@ -82,7 +86,7 @@ interface CandidateSelectionConfig {
 }
 
 const defaultSelectionConfig: CandidateSelectionConfig = {
-  version: "phase-4c-v1",
+  version: "phase-4c-v2",
   minCandidateCount: 3,
   maxCandidateCount: 10,
   minViableScore: 0.4,
@@ -167,18 +171,20 @@ export function rankCandidatesForPlanner(input: CandidateRankingInput): Candidat
   const seedSlugs = uniqueStableSlugs(input.seedDestinationSlugs ?? []);
   const seedSlugSet = new Set(seedSlugs);
 
-  const seedDestinations = input.destinations
-    .filter((destination) => seedSlugSet.has(destination.slug))
-    .slice()
-    .sort((a, b) => a.slug.localeCompare(b.slug));
+  const normalizationContext = buildNormalizationContext({
+    destinations: input.destinations,
+    profile: input.profile,
+    config: {
+      version: defaultWeightedScoringConfig.version
+    }
+  });
 
   const scored = input.destinations
     .map((destination) => {
-      const selectedContext = seedDestinations.filter((item) => item.slug !== destination.slug);
       const scoreBreakdown = scoreDestinationWeighted({
         destination,
         profile: input.profile,
-        selectedDestinations: selectedContext,
+        normalizationContext,
         config: {
           version: defaultWeightedScoringConfig.version
         }

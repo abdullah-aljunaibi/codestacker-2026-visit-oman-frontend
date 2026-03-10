@@ -1,48 +1,27 @@
+/**
+ * Deterministic normalized multi-objective scoring for planner candidates.
+ */
 import type { Destination, InterestProfile } from "@/types/domain";
 
 import {
-  normalizeCostAgainstBudget,
-  normalizeCrowdPressure,
-  scoreCategoryInterestMatch,
-  scoreDetourPenalty,
-  scoreDiversityGain,
-  scoreSeasonFit
+  buildPrimitiveScores,
+  type MultiObjectivePrimitiveScores
 } from "@/lib/planner/scoring-primitives";
 import { clamp01 } from "@/lib/planner/scoring-utils";
 
 export type WeightedScoreMetricKey =
-  | "interestMatch"
-  | "seasonFit"
-  | "crowdComfort"
-  | "budgetFit"
-  | "diversityGain"
-  | "detourEfficiency";
+  | "categoryMatch"
+  | "seasonMatch"
+  | "budgetMatch"
+  | "crowdPreference"
+  | "durationFit";
 
 export type WeightedScoreWeights = Record<WeightedScoreMetricKey, number>;
 
 export interface WeightedScoringConfig {
   version: string;
-  detourSoftLimitKm: number;
   precisionDigits: number;
   weights: WeightedScoreWeights;
-}
-
-export interface WeightedScorePrimitives {
-  interestMatch: number;
-  seasonFit: number;
-  crowdPressure: number;
-  budgetFit: number;
-  diversityGain: number;
-  detourPenalty: number;
-}
-
-export interface WeightedScoreNormalized {
-  interestMatch: number;
-  seasonFit: number;
-  crowdComfort: number;
-  budgetFit: number;
-  diversityGain: number;
-  detourEfficiency: number;
 }
 
 export interface WeightedScoreContribution {
@@ -63,41 +42,42 @@ export interface WeightedScoreBreakdown {
   destinationSlug: string;
   configVersion: string;
   totalScore: number;
-  primitives: WeightedScorePrimitives;
-  normalized: WeightedScoreNormalized;
+  primitives: MultiObjectivePrimitiveScores;
+  normalized: MultiObjectivePrimitiveScores;
   normalizedWeights: WeightedScoreWeights;
   contributions: WeightedScoreContribution[];
   signals: WeightedScoreSignals;
 }
 
+export interface NormalizationContext {
+  configVersion: string;
+  ranges: Record<WeightedScoreMetricKey, { min: number; max: number }>;
+}
+
 export interface WeightedScoringInput {
   destination: Destination;
   profile: InterestProfile;
-  selectedDestinations?: Array<Pick<Destination, "region" | "categories" | "coordinates">>;
+  normalizationContext: NormalizationContext;
   config?: Partial<WeightedScoringConfig>;
 }
 
 const metricOrder: WeightedScoreMetricKey[] = [
-  "interestMatch",
-  "seasonFit",
-  "crowdComfort",
-  "budgetFit",
-  "diversityGain",
-  "detourEfficiency"
+  "categoryMatch",
+  "seasonMatch",
+  "budgetMatch",
+  "crowdPreference",
+  "durationFit"
 ];
 
-// Baseline deterministic weight configuration for Phase 4B.
 export const defaultWeightedScoringConfig: WeightedScoringConfig = {
-  version: "phase-4b-v1",
-  detourSoftLimitKm: 120,
+  version: "phase-4b-v2",
   precisionDigits: 6,
   weights: {
-    interestMatch: 0.3,
-    seasonFit: 0.15,
-    crowdComfort: 0.1,
-    budgetFit: 0.2,
-    diversityGain: 0.15,
-    detourEfficiency: 0.1
+    categoryMatch: 0.32,
+    seasonMatch: 0.18,
+    budgetMatch: 0.2,
+    crowdPreference: 0.12,
+    durationFit: 0.18
   }
 };
 
@@ -132,13 +112,23 @@ function normalizeWeights(weights: WeightedScoreWeights): WeightedScoreWeights {
 function mergeConfig(config?: Partial<WeightedScoringConfig>): WeightedScoringConfig {
   return {
     version: config?.version ?? defaultWeightedScoringConfig.version,
-    detourSoftLimitKm: config?.detourSoftLimitKm ?? defaultWeightedScoringConfig.detourSoftLimitKm,
     precisionDigits: config?.precisionDigits ?? defaultWeightedScoringConfig.precisionDigits,
     weights: {
       ...defaultWeightedScoringConfig.weights,
       ...(config?.weights ?? {})
     }
   };
+}
+
+function normalizePrimitive(
+  rawValue: number,
+  range: { min: number; max: number }
+): number {
+  if (range.max <= range.min) {
+    return rawValue >= range.max ? 1 : 0;
+  }
+
+  return clamp01((rawValue - range.min) / (range.max - range.min));
 }
 
 function toSignals(contributions: WeightedScoreContribution[]): WeightedScoreSignals {
@@ -157,48 +147,60 @@ function toSignals(contributions: WeightedScoreContribution[]): WeightedScoreSig
 }
 
 function buildReasonCode(metric: WeightedScoreMetricKey): string {
-  if (metric === "interestMatch") return "theme_alignment";
-  if (metric === "seasonFit") return "season_match";
-  if (metric === "crowdComfort") return "crowd_comfort";
-  if (metric === "budgetFit") return "budget_fit";
-  if (metric === "diversityGain") return "diversity_gain";
-  return "detour_efficiency";
+  if (metric === "categoryMatch") return "category_match";
+  if (metric === "seasonMatch") return "season_match";
+  if (metric === "budgetMatch") return "budget_match";
+  if (metric === "crowdPreference") return "crowd_preference";
+  return "duration_fit";
+}
+
+export function buildNormalizationContext(input: {
+  destinations: Destination[];
+  profile: InterestProfile;
+  config?: Partial<WeightedScoringConfig>;
+}): NormalizationContext {
+  const config = mergeConfig(input.config);
+  const rawScores = input.destinations.map((destination) => buildPrimitiveScores(destination, input.profile));
+
+  const ranges = metricOrder.reduce((acc, metric) => {
+    const values = rawScores.map((score) => score[metric]);
+    const min = values.length > 0 ? Math.min(...values) : 0;
+    const max = values.length > 0 ? Math.max(...values) : 1;
+    acc[metric] = {
+      min: roundDeterministic(min, config.precisionDigits),
+      max: roundDeterministic(max, config.precisionDigits)
+    };
+    return acc;
+  }, {} as NormalizationContext["ranges"]);
+
+  return {
+    configVersion: config.version,
+    ranges
+  };
 }
 
 export function scoreDestinationWeighted(input: WeightedScoringInput): WeightedScoreBreakdown {
   const config = mergeConfig(input.config);
   const normalizedWeights = normalizeWeights(config.weights);
   const precision = config.precisionDigits;
-  const selected = input.selectedDestinations ?? [];
+  const primitives = buildPrimitiveScores(input.destination, input.profile);
 
-  const primitives: WeightedScorePrimitives = {
-    interestMatch: clamp01(
-      scoreCategoryInterestMatch(input.destination.categories, input.profile.preferredCategories)
-    ),
-    seasonFit: clamp01(scoreSeasonFit(input.destination.idealVisitMonths, input.profile.travelMonth)),
-    crowdPressure: clamp01(normalizeCrowdPressure(input.destination.crowd_level)),
-    budgetFit: clamp01(normalizeCostAgainstBudget(input.destination.ticket_cost_omr, input.profile.budget)),
-    diversityGain: clamp01(scoreDiversityGain(input.destination, selected)),
-    detourPenalty: clamp01(
-      scoreDetourPenalty(input.destination.coordinates, selected, config.detourSoftLimitKm)
-    )
-  };
-
-  const normalized: WeightedScoreNormalized = {
-    interestMatch: primitives.interestMatch,
-    seasonFit: primitives.seasonFit,
-    crowdComfort: clamp01(1 - primitives.crowdPressure),
-    budgetFit: primitives.budgetFit,
-    diversityGain: primitives.diversityGain,
-    detourEfficiency: clamp01(1 - primitives.detourPenalty)
-  };
+  const normalized = metricOrder.reduce((acc, metric) => {
+    acc[metric] = roundDeterministic(
+      normalizePrimitive(primitives[metric], input.normalizationContext.ranges[metric]),
+      precision
+    );
+    return acc;
+  }, {} as MultiObjectivePrimitiveScores);
 
   const contributions = metricOrder.map((metric) => {
-    const normalizedScore = roundDeterministic(normalized[metric], precision);
+    const rawScore = roundDeterministic(primitives[metric], precision);
+    const normalizedScore = normalized[metric];
     const weight = roundDeterministic(normalizedWeights[metric], precision);
+
     return {
       metric,
-      rawScore: normalizedScore,
+      rawScore,
       normalizedScore,
       weight,
       weightedScore: roundDeterministic(normalizedScore * weight, precision),
@@ -215,30 +217,15 @@ export function scoreDestinationWeighted(input: WeightedScoringInput): WeightedS
     destinationSlug: input.destination.slug,
     configVersion: config.version,
     totalScore,
-    primitives: {
-      interestMatch: roundDeterministic(primitives.interestMatch, precision),
-      seasonFit: roundDeterministic(primitives.seasonFit, precision),
-      crowdPressure: roundDeterministic(primitives.crowdPressure, precision),
-      budgetFit: roundDeterministic(primitives.budgetFit, precision),
-      diversityGain: roundDeterministic(primitives.diversityGain, precision),
-      detourPenalty: roundDeterministic(primitives.detourPenalty, precision)
-    },
-    normalized: {
-      interestMatch: roundDeterministic(normalized.interestMatch, precision),
-      seasonFit: roundDeterministic(normalized.seasonFit, precision),
-      crowdComfort: roundDeterministic(normalized.crowdComfort, precision),
-      budgetFit: roundDeterministic(normalized.budgetFit, precision),
-      diversityGain: roundDeterministic(normalized.diversityGain, precision),
-      detourEfficiency: roundDeterministic(normalized.detourEfficiency, precision)
-    },
-    normalizedWeights: {
-      interestMatch: roundDeterministic(normalizedWeights.interestMatch, precision),
-      seasonFit: roundDeterministic(normalizedWeights.seasonFit, precision),
-      crowdComfort: roundDeterministic(normalizedWeights.crowdComfort, precision),
-      budgetFit: roundDeterministic(normalizedWeights.budgetFit, precision),
-      diversityGain: roundDeterministic(normalizedWeights.diversityGain, precision),
-      detourEfficiency: roundDeterministic(normalizedWeights.detourEfficiency, precision)
-    },
+    primitives: metricOrder.reduce((acc, metric) => {
+      acc[metric] = roundDeterministic(primitives[metric], precision);
+      return acc;
+    }, {} as MultiObjectivePrimitiveScores),
+    normalized,
+    normalizedWeights: metricOrder.reduce((acc, metric) => {
+      acc[metric] = roundDeterministic(normalizedWeights[metric], precision);
+      return acc;
+    }, {} as WeightedScoreWeights),
     contributions,
     signals: toSignals(contributions)
   };

@@ -1,16 +1,37 @@
+/**
+ * Deterministic primitive scoring functions for normalized planner objectives.
+ */
 import type { Destination, InterestProfile } from "@/types/domain";
 
 import {
   budgetLevelToTargetCost,
-  centroid,
   clamp01,
-  haversineDistanceKm,
   monthDistance,
   normalizeCrowdLevel,
   toUniqueNormalized
 } from "@/lib/planner/scoring-utils";
 
-export function scoreCategoryInterestMatch(
+export interface MultiObjectivePrimitiveScores {
+  categoryMatch: number;
+  seasonMatch: number;
+  budgetMatch: number;
+  crowdPreference: number;
+  durationFit: number;
+}
+
+const intensityCrowdTargets: Record<InterestProfile["travelIntensity"], number> = {
+  relaxed: 0.2,
+  balanced: 0.45,
+  packed: 0.7
+};
+
+const intensityStopTargets: Record<InterestProfile["travelIntensity"], number> = {
+  relaxed: 1.5,
+  balanced: 2,
+  packed: 2.5
+};
+
+export function scoreCategoryMatch(
   destinationCategories: string[],
   preferredThemes: string[]
 ): number {
@@ -27,10 +48,11 @@ export function scoreCategoryInterestMatch(
   const overlapCount = Array.from(preferredThemeSet).filter((theme) =>
     destinationSet.has(theme)
   ).length;
+
   return clamp01(overlapCount / preferredThemeSet.size);
 }
 
-export function scoreSeasonFit(recommendedMonths: number[], travelMonth?: number): number {
+export function scoreSeasonMatch(recommendedMonths: number[], travelMonth?: number): number {
   if (!travelMonth) {
     return 0.5;
   }
@@ -53,60 +75,56 @@ export function scoreSeasonFit(recommendedMonths: number[], travelMonth?: number
   return clamp01(1 - nearestDistance / 6);
 }
 
-export function normalizeCrowdPressure(crowdLevel: number): number {
-  return normalizeCrowdLevel(crowdLevel);
-}
-
-export function normalizeCostAgainstBudget(
+export function scoreBudgetMatch(
   destinationTicketCostOmr: number,
   budgetLevel: InterestProfile["budget"]
 ): number {
   const budgetTargetCost = budgetLevelToTargetCost(budgetLevel);
+  const maxDeviation = Math.max(budgetTargetCost, 1);
+  const deviation = Math.abs(destinationTicketCostOmr - budgetTargetCost);
 
-  if (destinationTicketCostOmr <= budgetTargetCost) {
-    return clamp01(1 - (budgetTargetCost - destinationTicketCostOmr) / Math.max(budgetTargetCost, 1) * 0.1);
-  }
-
-  return clamp01(1 - (destinationTicketCostOmr - budgetTargetCost) / Math.max(budgetTargetCost, 1));
+  return clamp01(1 - deviation / maxDeviation);
 }
 
-export function scoreDiversityGain(
-  candidate: Pick<Destination, "region" | "categories">,
-  selected: Array<Pick<Destination, "region" | "categories">>
+export function scoreCrowdPreference(
+  crowdLevel: number,
+  travelIntensity: InterestProfile["travelIntensity"]
 ): number {
-  if (selected.length === 0) {
-    return 1;
-  }
+  const normalizedCrowd = normalizeCrowdLevel(crowdLevel);
+  const targetCrowd = intensityCrowdTargets[travelIntensity];
 
-  const seenRegions = new Set(selected.map((destination) => destination.region.en));
-  const seenTags = new Set(
-    selected.flatMap((destination) => toUniqueNormalized(destination.categories))
-  );
-
-  const normalizedCandidateTags = toUniqueNormalized(candidate.categories);
-  const newTagCount = normalizedCandidateTags.filter((tag) => !seenTags.has(tag)).length;
-  const tagNovelty = normalizedCandidateTags.length === 0 ? 0 : newTagCount / normalizedCandidateTags.length;
-  const regionNovelty = seenRegions.has(candidate.region.en) ? 0 : 1;
-
-  return clamp01(tagNovelty * 0.7 + regionNovelty * 0.3);
+  return clamp01(1 - Math.abs(normalizedCrowd - targetCrowd));
 }
 
-export function scoreDetourPenalty(
-  candidateCoordinates: Destination["coordinates"],
-  selected: Array<Pick<Destination, "coordinates">>,
-  softLimitKm = 120
+export function scoreDurationFit(
+  recommendedDurationHours: number,
+  tripDurationDays: number,
+  travelIntensity: InterestProfile["travelIntensity"]
 ): number {
-  if (selected.length === 0) {
-    return 0;
-  }
+  const stopTarget = intensityStopTargets[travelIntensity];
+  const effectiveTripDays = Math.max(1, tripDurationDays);
+  const targetHoursPerStop = 8 / stopTarget;
+  const tripCompression = Math.max(0.75, Math.min(1.15, 4 / effectiveTripDays));
+  const adjustedTargetHours = targetHoursPerStop * tripCompression;
+  const tolerance = Math.max(1.5, adjustedTargetHours);
+  const deviation = Math.abs(recommendedDurationHours - adjustedTargetHours);
 
-  const reference = centroid(selected);
-  if (!reference) {
-    return 0;
-  }
+  return clamp01(1 - deviation / tolerance);
+}
 
-  const distanceKm = haversineDistanceKm(reference, candidateCoordinates);
-  const overflow = Math.max(0, distanceKm - softLimitKm);
-
-  return clamp01(overflow / (softLimitKm * 2));
+export function buildPrimitiveScores(
+  destination: Destination,
+  profile: InterestProfile
+): MultiObjectivePrimitiveScores {
+  return {
+    categoryMatch: scoreCategoryMatch(destination.categories, profile.preferredCategories),
+    seasonMatch: scoreSeasonMatch(destination.idealVisitMonths, profile.travelMonth),
+    budgetMatch: scoreBudgetMatch(destination.ticket_cost_omr, profile.budget),
+    crowdPreference: scoreCrowdPreference(destination.crowd_level, profile.travelIntensity),
+    durationFit: scoreDurationFit(
+      destination.recommendedDurationHours,
+      profile.tripDurationDays,
+      profile.travelIntensity
+    )
+  };
 }
