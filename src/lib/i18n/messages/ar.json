@@ -247,11 +247,19 @@
     "crowdBusy": "نشط",
     "crowdHigh": "مرتفع",
     "crowdPeak": "ذروة",
-    "reasonCategory": "{name} يتوافق بقوة مع اهتماماتك المختارة.",
+    "reasonInterest": "{name} يتوافق بقوة مع اهتماماتك المختارة.",
     "reasonSeason": "{name} مناسب جداً لشهر السفر الذي اخترته.",
-    "reasonBudget": "{name} يتماشى مع تفضيل الميزانية لديك.",
-    "reasonCrowd": "{name} يلائم مستوى الازدحام المناسب لوتيرة الرحلة.",
-    "reasonDuration": "{name} يناسب الوقت المتاح داخل اليوم.",
-    "reasonFallback": "{name} بقي من أقوى الخيارات في المنطقة بعد التوجيه الحتمي."
+    "reasonDiversity": "{name} يضيف تنوعاً جديداً إلى برنامج الرحلة.",
+    "reasonCost": "{name} يحمل تكلفة تذاكر أعلى من البدائل الأخرى.",
+    "reasonCrowd": "{name} قد يكون أكثر ازدحاماً من الخيارات الأخرى.",
+    "reasonDetour": "{name} يضيف مسافة إضافية على مسار الرحلة.",
+    "reasonFallback": "{name} بقي من أقوى الخيارات في المنطقة بعد التوجيه الحتمي.",
+    "chipInterest": "مطابقة الاهتمامات",
+    "chipSeason": "أفضل موسم",
+    "chipDiversity": "يزيد التنوع",
+    "chipCost": "تكلفة أعلى",
+    "chipCrowd": "أكثر ازدحاماً",
+    "chipDetour": "التفاف إضافي",
+    "chipFallback": "إشارة التخطيط"
   }
 }

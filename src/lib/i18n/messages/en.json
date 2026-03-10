@@ -247,11 +247,19 @@
     "crowdBusy": "Busy",
     "crowdHigh": "High",
     "crowdPeak": "Peak",
-    "reasonCategory": "{name} strongly matches your selected interests.",
-    "reasonSeason": "{name} fits the travel month especially well.",
-    "reasonBudget": "{name} aligns with your budget preference.",
-    "reasonCrowd": "{name} matches the crowd comfort level implied by your pace.",
-    "reasonDuration": "{name} fits the amount of time available in the day.",
-    "reasonFallback": "{name} remained one of the strongest regional matches after deterministic routing."
+    "reasonInterest": "{name} strongly matches your selected interests.",
+    "reasonSeason": "{name} is especially well timed for your travel month.",
+    "reasonDiversity": "{name} adds variety to the mix of places in your trip.",
+    "reasonCost": "{name} comes with a higher ticket-cost tradeoff.",
+    "reasonCrowd": "{name} is likely to be busier than your other options.",
+    "reasonDetour": "{name} adds extra route distance compared with other stops.",
+    "reasonFallback": "{name} remained one of the strongest regional matches after deterministic routing.",
+    "chipInterest": "Interest match",
+    "chipSeason": "Best season",
+    "chipDiversity": "Adds variety",
+    "chipCost": "Higher cost",
+    "chipCrowd": "Busier stop",
+    "chipDetour": "Extra detour",
+    "chipFallback": "Planner signal"
   }
 }

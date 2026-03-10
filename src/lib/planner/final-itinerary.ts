@@ -8,6 +8,7 @@ import type {
   PlannerPhase4CHandoff
 } from "@/lib/planner/candidate-ranking";
 import type { PlannerPhase5BIntraRegionRouting } from "@/lib/planner/intra-region-routing";
+import type { WeightedScoreBreakdown } from "@/lib/planner/weighted-scoring-engine";
 import { repairGeneratedItinerary } from "@/lib/planner/itinerary-repair";
 
 export interface ItineraryStop {
@@ -24,6 +25,8 @@ export interface ItineraryStop {
   rank: number | null;
   score: number | null;
   reasonCodes: string[];
+  scoreBreakdown: WeightedScoreBreakdown | null;
+  topContributors: WeightedScoreBreakdown["topContributors"];
 }
 
 export interface PlannerPhase5CItineraryDay {
@@ -134,7 +137,9 @@ function buildStop(
     crowdLevel: destination?.crowd_level ?? 3,
     rank: candidate?.rank ?? null,
     score: candidate?.score ?? null,
-    reasonCodes: candidate?.reasonCodes ?? []
+    reasonCodes: candidate?.reasonCodes ?? [],
+    scoreBreakdown: candidate?.scoreBreakdown ?? null,
+    topContributors: candidate?.topContributors ?? []
   };
 }
 

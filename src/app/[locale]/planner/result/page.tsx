@@ -61,19 +61,43 @@ function getReasonExplanation(
 ): string {
   const messages = getMessages(locale);
   const template =
-    reasonCode === "category_match"
-      ? messages.plannerResult.reasonCategory
-      : reasonCode === "season_match"
+    reasonCode === "interest_match"
+      ? messages.plannerResult.reasonInterest
+      : reasonCode === "season_fit"
         ? messages.plannerResult.reasonSeason
-        : reasonCode === "budget_match"
-          ? messages.plannerResult.reasonBudget
-          : reasonCode === "crowd_preference"
-            ? messages.plannerResult.reasonCrowd
-            : reasonCode === "duration_fit"
-              ? messages.plannerResult.reasonDuration
-              : messages.plannerResult.reasonFallback;
+        : reasonCode === "diversity_gain"
+          ? messages.plannerResult.reasonDiversity
+          : reasonCode === "cost_penalty"
+            ? messages.plannerResult.reasonCost
+            : reasonCode === "crowd_penalty"
+              ? messages.plannerResult.reasonCrowd
+              : reasonCode === "detour_penalty"
+                ? messages.plannerResult.reasonDetour
+                : messages.plannerResult.reasonFallback;
 
   return formatMessage(template, { name });
+}
+
+function getContributorChipLabel(reasonCode: string, locale: Locale): string {
+  const messages = getMessages(locale);
+
+  if (reasonCode === "interest_match") return messages.plannerResult.chipInterest;
+  if (reasonCode === "season_fit") return messages.plannerResult.chipSeason;
+  if (reasonCode === "diversity_gain") return messages.plannerResult.chipDiversity;
+  if (reasonCode === "cost_penalty") return messages.plannerResult.chipCost;
+  if (reasonCode === "crowd_penalty") return messages.plannerResult.chipCrowd;
+  if (reasonCode === "detour_penalty") return messages.plannerResult.chipDetour;
+
+  return messages.plannerResult.chipFallback;
+}
+
+function getPrimaryExplanationReason(
+  topContributors: Array<{ reasonCode: string; weightedScore: number }>,
+  fallbackReasonCodes: string[]
+): string | undefined {
+  return topContributors.find((contribution) => contribution.weightedScore > 0)?.reasonCode
+    ?? topContributors[0]?.reasonCode
+    ?? fallbackReasonCodes[0];
 }
 
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -504,7 +528,11 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                         <ul className="plannerExplanationList">
                           {highlightedStops.map((stop) => (
                             <li key={`explanation-${day.dayNumber}-${stop.slug}`}>
-                              {getReasonExplanation(stop.reasonCodes[0], stop.name[locale], locale)}
+                              {getReasonExplanation(
+                                getPrimaryExplanationReason(stop.topContributors, stop.reasonCodes),
+                                stop.name[locale],
+                                locale
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -553,6 +581,22 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                                   {messages.plannerResult.stopTransit}: {formatNumber(stop.travelMinutesFromPrevious, locale)} {messages.plannerResult.minuteUnit}
                                 </span>
                               </div>
+                              {stop.topContributors.length > 0 ? (
+                                <div className="plannerChipRow">
+                                  {stop.topContributors.map((contribution) => (
+                                    <span
+                                      key={`${stop.slug}-${contribution.metric}`}
+                                      className={
+                                        contribution.weightedScore < 0
+                                          ? "plannerBadge plannerBadgePenalty"
+                                          : "plannerBadge plannerBadgeSuccess"
+                                      }
+                                    >
+                                      {getContributorChipLabel(contribution.reasonCode, locale)}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : null}
                               <button
                                 type="button"
                                 className="plannerStopFocusButton"

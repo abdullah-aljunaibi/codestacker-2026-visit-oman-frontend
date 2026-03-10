@@ -6,6 +6,7 @@ import type { Destination } from "@/types/domain";
 import type { PlannerPhase4CHandoff } from "@/lib/planner/candidate-ranking";
 import { buildTimedRouteSummary, type PlannerPhase5BIntraRegionRouting } from "@/lib/planner/intra-region-routing";
 import { haversineDistanceKm } from "@/lib/planner/scoring-utils";
+import type { WeightedScoreBreakdown } from "@/lib/planner/weighted-scoring-engine";
 import type {
   ItineraryRepairAction,
   ItineraryRepairSummary,
@@ -32,6 +33,8 @@ interface RankedCandidateSignal {
   score: number;
   reasonCodes: string[];
   recommendedDurationHours: number;
+  scoreBreakdown: WeightedScoreBreakdown;
+  topContributors: WeightedScoreBreakdown["topContributors"];
 }
 
 function deterministicRound(value: number, precision = 6): number {
@@ -61,7 +64,9 @@ function toCandidateSignalMap(handoff: PlannerPhase4CHandoff): Map<string, Ranke
         rank: candidate.rank,
         score: candidate.score,
         reasonCodes: candidate.reasonCodes,
-        recommendedDurationHours: candidate.recommendedDurationHours
+        recommendedDurationHours: candidate.recommendedDurationHours,
+        scoreBreakdown: candidate.scoreBreakdown,
+        topContributors: candidate.topContributors
       }
     ])
   );
@@ -87,7 +92,9 @@ function buildStop(
     crowdLevel: destination.crowd_level,
     rank: rankedCandidate?.rank ?? null,
     score: rankedCandidate?.score ?? null,
-    reasonCodes: rankedCandidate?.reasonCodes ?? []
+    reasonCodes: rankedCandidate?.reasonCodes ?? [],
+    scoreBreakdown: rankedCandidate?.scoreBreakdown ?? null,
+    topContributors: rankedCandidate?.topContributors ?? []
   };
 }
 

@@ -32,6 +32,8 @@ export interface PlannerHandoffRouteCandidate {
   strengths: string[];
   tradeoffs: string[];
   reasonCodes: string[];
+  scoreBreakdown: WeightedScoreBreakdown;
+  topContributors: WeightedScoreBreakdown["topContributors"];
 }
 
 export interface PlannerPhase4CHandoff {
@@ -113,11 +115,12 @@ function uniqueStableSlugs(slugs: string[]): string[] {
 }
 
 function reasonCodesFromBreakdown(scoreBreakdown: WeightedScoreBreakdown): string[] {
-  return scoreBreakdown.contributions
+  return scoreBreakdown.topContributors
     .slice()
     .sort((a, b) => {
-      if (b.weightedScore !== a.weightedScore) {
-        return b.weightedScore - a.weightedScore;
+      const impactDelta = Math.abs(b.weightedScore) - Math.abs(a.weightedScore);
+      if (impactDelta !== 0) {
+        return impactDelta;
       }
       return a.metric.localeCompare(b.metric);
     })
@@ -135,7 +138,9 @@ function buildRouteCandidate(candidate: RankedCandidate): PlannerHandoffRouteCan
     recommendedDurationHours: candidate.destination.recommendedDurationHours,
     strengths: candidate.scoreBreakdown.signals.strengths,
     tradeoffs: candidate.scoreBreakdown.signals.tradeoffs,
-    reasonCodes: reasonCodesFromBreakdown(candidate.scoreBreakdown)
+    reasonCodes: reasonCodesFromBreakdown(candidate.scoreBreakdown),
+    scoreBreakdown: candidate.scoreBreakdown,
+    topContributors: candidate.scoreBreakdown.topContributors
   };
 }
 
@@ -170,38 +175,63 @@ function buildPlanningContextId(input: {
 export function rankCandidatesForPlanner(input: CandidateRankingInput): CandidateRankingResult {
   const seedSlugs = uniqueStableSlugs(input.seedDestinationSlugs ?? []);
   const seedSlugSet = new Set(seedSlugs);
+  const destinationMap = new Map(input.destinations.map((destination) => [destination.slug, destination]));
 
   const normalizationContext = buildNormalizationContext({
     destinations: input.destinations,
-    profile: input.profile,
     config: {
       version: defaultWeightedScoringConfig.version
     }
   });
 
-  const scored = input.destinations
-    .map((destination) => {
-      const scoreBreakdown = scoreDestinationWeighted({
-        destination,
-        profile: input.profile,
-        normalizationContext,
-        config: {
-          version: defaultWeightedScoringConfig.version
+  const selectedRouteSlugs = seedSlugs.filter((slug) => destinationMap.has(slug));
+  const remainingCandidates = input.destinations.slice();
+  const scored: Array<{
+    destination: Destination;
+    totalScore: number;
+    scoreBreakdown: WeightedScoreBreakdown;
+  }> = [];
+
+  while (remainingCandidates.length > 0) {
+    const scoredRound = remainingCandidates
+      .map((destination) => {
+        const selectedDestinations = selectedRouteSlugs
+          .filter((slug) => slug !== destination.slug)
+          .map((slug) => destinationMap.get(slug))
+          .filter((item): item is Destination => Boolean(item));
+        const scoreBreakdown = scoreDestinationWeighted({
+          destination,
+          profile: input.profile,
+          normalizationContext,
+          selectedDestinations,
+          config: {
+            version: defaultWeightedScoringConfig.version
+          }
+        });
+
+        return {
+          destination,
+          totalScore: scoreBreakdown.totalScore,
+          scoreBreakdown
+        };
+      })
+      .sort((a, b) => {
+        if (b.totalScore !== a.totalScore) {
+          return b.totalScore - a.totalScore;
         }
+        return a.destination.slug.localeCompare(b.destination.slug);
       });
 
-      return {
-        destination,
-        totalScore: scoreBreakdown.totalScore,
-        scoreBreakdown
-      };
-    })
-    .sort((a, b) => {
-      if (b.totalScore !== a.totalScore) {
-        return b.totalScore - a.totalScore;
-      }
-      return a.destination.slug.localeCompare(b.destination.slug);
-    });
+    const nextCandidate = scoredRound[0];
+    scored.push(nextCandidate);
+    if (!selectedRouteSlugs.includes(nextCandidate.destination.slug)) {
+      selectedRouteSlugs.push(nextCandidate.destination.slug);
+    }
+    const nextIndex = remainingCandidates.findIndex(
+      (candidate) => candidate.slug === nextCandidate.destination.slug
+    );
+    remainingCandidates.splice(nextIndex, 1);
+  }
 
   const paceMultiplier = defaultSelectionConfig.intensityMultipliers[input.profile.travelIntensity];
   const targetCandidateCount = clampInteger(

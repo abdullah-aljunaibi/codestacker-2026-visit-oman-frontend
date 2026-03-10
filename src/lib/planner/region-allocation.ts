@@ -119,7 +119,7 @@ function compareClusterBuckets(a: RegionAllocationClusterBucket, b: RegionAlloca
 
 function primaryClusterLabel(candidate: PlannerHandoffRouteCandidate): string {
   const categoryReason = candidate.reasonCodes
-    .find((reason) => reason === "category_match")
+    .find((reason) => reason === "interest_match")
     ? "aligned"
     : "general";
 

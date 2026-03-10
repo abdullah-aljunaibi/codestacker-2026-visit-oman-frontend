@@ -428,6 +428,11 @@ a {
   color: var(--brand);
 }
 
+.plannerBadgePenalty {
+  background: rgba(189, 122, 45, 0.14);
+  color: #955813;
+}
+
 .plannerExplanationList,
 .plannerStopList {
   margin: 0;
@@ -457,6 +462,12 @@ a {
   flex-wrap: wrap;
   gap: 0.65rem 1rem;
   font-size: 0.9rem;
+}
+
+.plannerChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .plannerDayTabs,
