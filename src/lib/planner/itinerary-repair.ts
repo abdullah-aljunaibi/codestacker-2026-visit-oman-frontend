@@ -4,7 +4,7 @@
 import type { Destination } from "@/types/domain";
 
 import type { PlannerPhase4CHandoff } from "@/lib/planner/candidate-ranking";
-import type { PlannerPhase5BIntraRegionRouting } from "@/lib/planner/intra-region-routing";
+import { buildTimedRouteSummary, type PlannerPhase5BIntraRegionRouting } from "@/lib/planner/intra-region-routing";
 import { haversineDistanceKm } from "@/lib/planner/scoring-utils";
 import type {
   ItineraryRepairAction,
@@ -77,8 +77,14 @@ function buildStop(
   return {
     slug: destination.slug,
     name: destination.name,
+    description: destination.description,
     region,
+    startTime: "",
+    endTime: "",
+    travelMinutesFromPrevious: 0,
     estimatedVisitHours: rankedCandidate?.recommendedDurationHours ?? destination.recommendedDurationHours,
+    ticketCostOmr: destination.ticket_cost_omr,
+    crowdLevel: destination.crowd_level,
     rank: rankedCandidate?.rank ?? null,
     score: rankedCandidate?.score ?? null,
     reasonCodes: rankedCandidate?.reasonCodes ?? []
@@ -126,13 +132,45 @@ function updateDayMetrics(
   day: PlannerPhase5CItineraryDay,
   destinationMap: Map<string, Destination>
 ): PlannerPhase5CItineraryDay {
+  const schedulableStops = day.stops
+    .map((stop) => {
+      const destination = destinationMap.get(stop.slug);
+      if (!destination) {
+        return null;
+      }
+
+      return {
+        slug: stop.slug,
+        coordinates: destination.coordinates,
+        recommendedDurationHours: stop.estimatedVisitHours
+      };
+    })
+    .filter((stop): stop is NonNullable<typeof stop> => stop !== null);
+  const schedule = buildTimedRouteSummary(schedulableStops);
+  const scheduledStopsBySlug = new Map(schedule.scheduledStops.map((stop) => [stop.slug, stop]));
+
   return {
     ...day,
+    stops: day.stops.map((stop) => {
+      const scheduledStop = scheduledStopsBySlug.get(stop.slug);
+      return {
+        ...stop,
+        startTime: scheduledStop?.startTime ?? stop.startTime,
+        endTime: scheduledStop?.endTime ?? stop.endTime,
+        travelMinutesFromPrevious: scheduledStop?.travelMinutesFromPrevious ?? stop.travelMinutesFromPrevious,
+        estimatedVisitHours: scheduledStop?.estimatedVisitHours ?? stop.estimatedVisitHours
+      };
+    }),
     stopCount: day.stops.length,
-    estimatedVisitHours: deterministicRound(
-      day.stops.reduce((sum, stop) => sum + stop.estimatedVisitHours, 0)
-    ),
-    estimatedTravelKm: computeDayTravelKm(day, destinationMap)
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+    estimatedVisitHours: schedule.estimatedVisitHours,
+    estimatedTravelKm: computeDayTravelKm(day, destinationMap),
+    estimatedTravelMinutes: schedule.estimatedTravelMinutes,
+    estimatedTicketCostOmr: deterministicRound(
+      day.stops.reduce((sum, stop) => sum + stop.ticketCostOmr, 0),
+      2
+    )
   };
 }
 

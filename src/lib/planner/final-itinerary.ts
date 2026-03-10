@@ -14,7 +14,13 @@ export interface ItineraryStop {
   slug: string;
   name: Destination["name"];
   region: string;
+  description: Destination["description"];
+  startTime: string;
+  endTime: string;
+  travelMinutesFromPrevious: number;
   estimatedVisitHours: number;
+  ticketCostOmr: number;
+  crowdLevel: Destination["crowd_level"];
   rank: number | null;
   score: number | null;
   reasonCodes: string[];
@@ -26,8 +32,12 @@ export interface PlannerPhase5CItineraryDay {
   regionDayNumber: number;
   stops: ItineraryStop[];
   stopCount: number;
+  startTime: string;
+  endTime: string;
   estimatedVisitHours: number;
   estimatedTravelKm: number;
+  estimatedTravelMinutes: number;
+  estimatedTicketCostOmr: number;
   notes: string[];
 }
 
@@ -100,6 +110,7 @@ function toDestinationMap(destinations: Destination[]): Map<string, Destination>
 function buildStop(
   slug: string,
   region: string,
+  scheduledStop: PlannerPhase5BIntraRegionRouting["dayPlans"][number]["scheduledStops"][number] | undefined,
   candidateMap: Map<string, PlannerHandoffRouteCandidate>,
   destinationMap: Map<string, Destination>
 ): ItineraryStop {
@@ -109,8 +120,18 @@ function buildStop(
   return {
     slug,
     name: destination?.name ?? { en: slug, ar: slug },
+    description: destination?.description ?? { en: slug, ar: slug },
     region: destination?.regionKey ?? candidate?.region ?? region,
-    estimatedVisitHours: candidate?.recommendedDurationHours ?? destination?.recommendedDurationHours ?? 0,
+    startTime: scheduledStop?.startTime ?? "",
+    endTime: scheduledStop?.endTime ?? "",
+    travelMinutesFromPrevious: scheduledStop?.travelMinutesFromPrevious ?? 0,
+    estimatedVisitHours:
+      scheduledStop?.estimatedVisitHours
+      ?? candidate?.recommendedDurationHours
+      ?? destination?.recommendedDurationHours
+      ?? 0,
+    ticketCostOmr: destination?.ticket_cost_omr ?? 0,
+    crowdLevel: destination?.crowd_level ?? 3,
     rank: candidate?.rank ?? null,
     score: candidate?.score ?? null,
     reasonCodes: candidate?.reasonCodes ?? []
@@ -129,8 +150,13 @@ export function assembleFinalItinerary(input: {
     .slice()
     .sort((a, b) => a.dayNumber - b.dayNumber)
     .map((day) => {
+      const timedStops = new Map(day.scheduledStops.map((stop) => [stop.slug, stop]));
       const stops: ItineraryStop[] = day.destinationSlugs.map((slug) =>
-        buildStop(slug, day.region, candidateMap, destinationMap)
+        buildStop(slug, day.region, timedStops.get(slug), candidateMap, destinationMap)
+      );
+      const estimatedTicketCostOmr = deterministicRound(
+        stops.reduce((sum, stop) => sum + stop.ticketCostOmr, 0),
+        2
       );
 
       return {
@@ -139,8 +165,12 @@ export function assembleFinalItinerary(input: {
         regionDayNumber: day.regionDayNumber,
         stops,
         stopCount: stops.length,
+        startTime: day.startTime,
+        endTime: day.endTime,
         estimatedVisitHours: day.estimatedVisitHours,
         estimatedTravelKm: day.estimatedTravelKm,
+        estimatedTravelMinutes: day.estimatedTravelMinutes,
+        estimatedTicketCostOmr,
         notes: day.notes.slice()
       };
     });
