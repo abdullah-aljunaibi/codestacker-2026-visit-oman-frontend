@@ -110,9 +110,6 @@ export function getFeaturedDestinations(destinations: DatasetDestination[], limi
       if (a.crowd_level !== b.crowd_level) {
         return a.crowd_level - b.crowd_level;
       }
-      if (a.ticket_cost_omr !== b.ticket_cost_omr) {
-        return a.ticket_cost_omr - b.ticket_cost_omr;
-      }
       return b.avg_visit_duration_minutes - a.avg_visit_duration_minutes;
     })
     .slice(0, limit);
@@ -122,7 +119,14 @@ export function getRegionHighlights(destinations: DatasetDestination[], locale: 
   return getRegionOptions(destinations, locale)
     .map((region) => {
       const regionDestinations = getByRegion(destinations, region.value);
-      const sample = sortByCrowd(sortByCost(regionDestinations))[0];
+      const sample = regionDestinations
+        .slice()
+        .sort((a, b) => {
+          if (a.crowd_level !== b.crowd_level) {
+            return a.crowd_level - b.crowd_level;
+          }
+          return b.avg_visit_duration_minutes - a.avg_visit_duration_minutes;
+        })[0];
 
       return {
         ...region,

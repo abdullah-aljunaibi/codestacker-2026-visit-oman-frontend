@@ -70,5 +70,8 @@ export function formatDecimal(
 
 export function formatTicketCost(value: number, locale: Locale): string {
   const messages = getMessages(locale);
+  if (value === 0) {
+    return messages.common.freeEntry;
+  }
   return `${formatNumber(value, locale)} ${messages.common.omr}`;
 }

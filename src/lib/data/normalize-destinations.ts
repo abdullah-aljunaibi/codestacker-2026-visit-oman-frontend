@@ -2,7 +2,12 @@
  * Dataset-to-domain normalization helpers for planner-ready destinations.
  */
 import type { BudgetLevel, Destination } from "@/types/domain";
-import type { DatasetDestination, Locale, LocalizedText } from "@/types/dataset";
+import type { DatasetDestination, Locale } from "@/types/dataset";
+
+import {
+  buildDestinationDescription,
+  getDestinationHeroImage
+} from "@/lib/data/destination-presentation";
 
 const regionLabelsEn: Record<DatasetDestination["region"]["en"], string> = {
   muscat: "Muscat",
@@ -12,13 +17,6 @@ const regionLabelsEn: Record<DatasetDestination["region"]["en"], string> = {
   batinah: "Batinah",
   dhahira: "Dhahira"
 };
-
-export function buildPlaceholderDescription(destination: DatasetDestination): LocalizedText {
-  return {
-    en: `${destination.name.en} is a ${destination.categories.join(", ")} destination in ${regionLabelsEn[destination.region.en]}.`,
-    ar: `${destination.name.ar} وجهة ضمن ${destination.region.ar} تناسب أنماط ${destination.categories.join("، ")}.`
-  };
-}
 
 export function getRegionKey(
   destination: Pick<DatasetDestination, "region">
@@ -57,7 +55,8 @@ export function normalizeDestination(
       lat: destination.lat,
       lng: destination.lng
     },
-    description: buildPlaceholderDescription(destination),
+    heroImage: getDestinationHeroImage(destination),
+    description: buildDestinationDescription(destination),
     budgetLevel: deriveBudgetLevel(destination.ticket_cost_omr),
     recommendedDurationHours: minutesToHours(destination.avg_visit_duration_minutes),
     regionKey: getRegionKey(destination),

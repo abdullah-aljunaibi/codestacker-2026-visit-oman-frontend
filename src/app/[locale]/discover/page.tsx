@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DestinationImage } from "@/components/destination-image";
 import { SaveInterestButton } from "@/components/save-interest-button";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
@@ -181,6 +182,7 @@ export default async function DiscoverPage({
           <section className="destinationGrid">
             {results.map((destination) => (
               <article key={destination.id} className="card destinationCard">
+                <DestinationImage destination={destination} locale={locale} />
                 <div className="destinationCardTop">
                   <p className="eyebrow">{destination.regionLabel}</p>
                   <div className="crowdMeter" aria-label={`${messages.common.crowdLevel} ${destination.crowd_level}/5`}>

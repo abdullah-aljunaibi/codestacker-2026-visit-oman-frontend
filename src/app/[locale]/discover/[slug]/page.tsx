@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DestinationImage } from "@/components/destination-image";
 import { DestinationPreviewHydrated } from "@/components/maps/destination-preview-hydrated.client";
 import { StaticDestinationPreview } from "@/components/maps/static-destination-preview";
 import { SaveInterestButton } from "@/components/save-interest-button";
@@ -61,6 +62,12 @@ export default async function DestinationPage({
 
         <section className="hero detailHero">
           <div className="heroPanel">
+            <DestinationImage
+              destination={destination}
+              locale={locale}
+              priority
+              className="destinationImage destinationImageHero"
+            />
             <span className="kicker">{destination.regionLabel}</span>
             <h1>{destination.name[locale]}</h1>
             <p>{destination.description[locale]}</p>

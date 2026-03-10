@@ -25,6 +25,7 @@
     "season": "Season",
     "duration": "Duration",
     "ticketCost": "Ticket cost",
+    "freeEntry": "Free entry",
     "location": "Location",
     "coordinates": "Coordinates",
     "crowdLevel": "Crowd level",
@@ -34,8 +35,8 @@
     "savedInterests": "Saved interests",
     "backToDiscovery": "Back to discovery",
     "editInputs": "Edit inputs",
-    "viewSaved": "View saved interests",
-    "openPlanner": "Open planner input",
+    "viewSaved": "View Saved Places",
+    "openPlanner": "Start Planning",
     "distanceUnitShort": "km",
     "hourUnitShort": "h"
   },
@@ -96,7 +97,7 @@
     "heroTitle": "Curated discovery for coastlines, mountain air, forts, and desert nights.",
     "heroBody": "Browse a bilingual, server-rendered collection of destinations across Oman, then move straight into a planner that turns your interests into an itinerary.",
     "ctaPrimary": "Explore destinations",
-    "ctaSecondary": "Open the planner",
+    "ctaSecondary": "Start Planning",
     "heroStatsDestinations": "{count} curated places",
     "heroStatsRegions": "{count} regions",
     "heroStatsCategories": "{count} travel styles",
@@ -111,13 +112,13 @@
     "plannerTitle": "Build the trip after discovery",
     "plannerBody": "Save standout places while browsing, then open the planner to generate a deterministic itinerary and cost view.",
     "plannerPrimary": "Start planning",
-    "plannerSecondary": "View saved interests",
+    "plannerSecondary": "View Saved Places",
     "categoryCta": "Explore this category",
     "regionCta": "Browse this region"
   },
   "discover": {
     "title": "Discover Oman",
-    "body": "Browse server-rendered destination listings with shareable URL filters for region, category, season, and traveler-friendly sorting.",
+    "body": "Explore destinations across Oman",
     "plannerBridgeTitle": "Move from discovery to planning",
     "plannerBridgeBody": "Save destinations while browsing, then open the planner to turn those interests into a deterministic itinerary.",
     "filterTitle": "Refine your search",
@@ -132,7 +133,7 @@
     "planWithThis": "Plan with this"
   },
   "detail": {
-    "sendToPlanner": "Send to planner input",
+    "sendToPlanner": "Add to Trip",
     "overviewTitle": "Why go",
     "practicalTitle": "Plan your visit",
     "mapTitle": "Map preview",
@@ -161,7 +162,7 @@
     "saved": "Saved to interests"
   },
   "plannerForm": {
-    "title": "Planner input",
+    "title": "Plan Your Trip",
     "body": "Choose the exact trip inputs used by the planner. Duration, budget, travel month, pace, and preferred categories directly affect the itinerary.",
     "savedHint": "Saved destinations shape the default category selection. You can still edit the categories manually.",
     "days": "Trip days",

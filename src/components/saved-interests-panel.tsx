@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { DestinationImage } from "@/components/destination-image";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import { filterDestinationsBySavedSlugs } from "@/lib/data/selectors";
@@ -56,6 +57,11 @@ export function SavedInterestsPanel({ locale }: { locale: string }) {
       <div className="listStack">
         {savedDestinations.map((destination) => (
           <article key={destination.id} className="card cardSubtle">
+            <DestinationImage
+              destination={destination}
+              locale={normalizedLocale}
+              className="destinationImage destinationImageCompact"
+            />
             <h3>
               <Link href={`/${normalizedLocale}/discover/${destination.slug}`}>
                 {destination.name[normalizedLocale]}

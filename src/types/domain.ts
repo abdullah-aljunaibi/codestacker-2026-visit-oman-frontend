@@ -36,6 +36,12 @@ export interface Destination extends DatasetDestination {
     lat: number;
     lng: number;
   };
+  heroImage: {
+    src: string;
+    width: number;
+    height: number;
+    theme: string;
+  };
   description: LocalizedText;
   budgetLevel: BudgetLevel;
   recommendedDurationHours: number;

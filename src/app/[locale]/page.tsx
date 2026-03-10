@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { DestinationImage } from "@/components/destination-image";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
@@ -89,6 +90,12 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
             <div className="heroFeatureList">
               {featuredDestinations.slice(0, 3).map((destination) => (
                 <article key={destination.slug} className="heroFeatureItem">
+                  <DestinationImage
+                    destination={destination}
+                    locale={locale}
+                    priority
+                    className="destinationImage destinationImageCompact"
+                  />
                   <div>
                     <p className="eyebrow">{destination.regionLabel}</p>
                     <h3>{destination.name[locale]}</h3>
@@ -155,6 +162,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
           <div className="featureDeck">
             {featuredDestinations.map((destination) => (
               <article key={destination.slug} className="card destinationCard destinationCardWide">
+                <DestinationImage destination={destination} locale={locale} className="destinationImage" />
                 <p className="eyebrow">{destination.regionLabel}</p>
                 <h3>
                   <Link href={`/${locale}/discover/${destination.slug}`}>{destination.name[locale]}</Link>
@@ -193,6 +201,11 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
                 </div>
                 {region.sample ? (
                   <>
+                    <DestinationImage
+                      destination={normalizedBySlug.get(region.sample.slug)!}
+                      locale={locale}
+                      className="destinationImage destinationImageCompact"
+                    />
                     <p>{normalizedBySlug.get(region.sample.slug)?.description[locale] ?? region.sample.name[locale]}</p>
                     <Link className="textLink" href={`/${locale}/discover/${region.sample.slug}`}>
                       {region.sample.name[locale]}
