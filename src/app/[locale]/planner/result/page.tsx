@@ -138,8 +138,8 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
   );
 
   const currentCostBreakdown = useMemo(
-    () => deriveCostBreakdown(finalItinerary, normalizedDestinations),
-    [finalItinerary, normalizedDestinations]
+    () => deriveCostBreakdown(finalItinerary, draft.budget),
+    [draft.budget, finalItinerary]
   );
   const [persistedCostBreakdown, setPersistedCostBreakdown] = useState(currentCostBreakdown);
   const [selectedDayNumber, setSelectedDayNumber] = useState(1);
@@ -283,15 +283,44 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             </article>
 
             <article className="card plannerPanel">
-              <h2>{messages.plannerResult.costBreakdownTitle}</h2>
+              <div className="plannerPanelHeader">
+                <h2>{messages.plannerResult.costBreakdownTitle}</h2>
+                <span
+                  className={
+                    persistedCostBreakdown.withinBudget
+                      ? "plannerBadge plannerBadgeSuccess"
+                      : "plannerBadge plannerBadgeAlert"
+                  }
+                >
+                  {persistedCostBreakdown.withinBudget
+                    ? messages.plannerResult.withinBudgetYes
+                    : messages.plannerResult.withinBudgetNo}
+                </span>
+              </div>
               <div className="plannerInfoStack">
                 <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costFuel}</span>
+                  <strong>{formatTicketCost(persistedCostBreakdown.fuelCostOmr, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costTickets}</span>
+                  <strong>{formatTicketCost(persistedCostBreakdown.ticketsCostOmr, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costFood}</span>
+                  <strong>{formatTicketCost(persistedCostBreakdown.foodCostOmr, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costHotel}</span>
+                  <strong>{formatTicketCost(persistedCostBreakdown.hotelCostOmr, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
                   <span>{messages.plannerResult.costTotal}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.totalTicketCostOmr, locale)}</strong>
+                  <strong>{formatTicketCost(persistedCostBreakdown.totalCostOmr, locale)}</strong>
                 </div>
                 <div className="plannerInfoRow">
                   <span>{messages.plannerResult.costAverage}</span>
-                  <strong>{formatTicketCost(persistedCostBreakdown.averageTicketCostPerDayOmr, locale)}</strong>
+                  <strong>{formatTicketCost(persistedCostBreakdown.averageCostPerDayOmr, locale)}</strong>
                 </div>
                 <div className="plannerInfoRow">
                   <span>{messages.plannerResult.costPaidStops}</span>
@@ -300,6 +329,22 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                 <div className="plannerInfoRow">
                   <span>{messages.plannerResult.costFreeStops}</span>
                   <strong>{formatNumber(persistedCostBreakdown.freeStopCount, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costBudgetTier}</span>
+                  <strong>{getBudgetLabel(persistedCostBreakdown.budgetTier, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costThreshold}</span>
+                  <strong>{formatTicketCost(persistedCostBreakdown.budgetThresholdOmr, locale)}</strong>
+                </div>
+                <div className="plannerInfoRow">
+                  <span>{messages.plannerResult.costWithinBudget}</span>
+                  <strong>
+                    {persistedCostBreakdown.withinBudget
+                      ? messages.plannerResult.withinBudgetYes
+                      : messages.plannerResult.withinBudgetNo}
+                  </strong>
                 </div>
               </div>
             </article>

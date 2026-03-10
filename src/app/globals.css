@@ -334,6 +334,14 @@ a {
   margin: 0;
 }
 
+.plannerPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .plannerInfoStack {
   gap: 0.75rem;
 }
@@ -413,6 +421,11 @@ a {
 .plannerBadgeAlert {
   background: rgba(189, 122, 45, 0.14);
   color: #955813;
+}
+
+.plannerBadgeSuccess {
+  background: rgba(11, 111, 91, 0.14);
+  color: var(--brand);
 }
 
 .plannerExplanationList,

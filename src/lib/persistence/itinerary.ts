@@ -1,19 +1,36 @@
 /**
  * Browser persistence helpers for final itinerary and derived cost totals.
  */
-import type { Destination } from "@/types/domain";
+import type { BudgetLevel } from "@/types/domain";
 import type { Locale } from "@/types/dataset";
 
 import type { PlannerPhase5CFinalItinerary } from "@/lib/planner/final-itinerary";
+import { calculateTripCostBreakdown } from "@/lib/planner/cost-model";
 import { readJsonStorage, removeStorageKey, writeJsonStorage } from "@/lib/persistence/browser-storage";
 import { storageKeys } from "@/lib/persistence/keys";
 
-export interface PersistedCostBreakdown {
+interface PersistedCostBreakdownV1 {
   totalTicketCostOmr: number;
   averageTicketCostPerDayOmr: number;
   paidStopCount: number;
   freeStopCount: number;
   totalStopCount: number;
+}
+
+export interface PersistedCostBreakdownV2 {
+  schemaVersion: 2;
+  fuelCostOmr: number;
+  ticketsCostOmr: number;
+  foodCostOmr: number;
+  hotelCostOmr: number;
+  totalCostOmr: number;
+  averageCostPerDayOmr: number;
+  paidStopCount: number;
+  freeStopCount: number;
+  totalStopCount: number;
+  budgetTier: BudgetLevel;
+  budgetThresholdOmr: number;
+  withinBudget: boolean;
 }
 
 export interface PersistedItineraryEnvelope {
@@ -23,38 +40,16 @@ export interface PersistedItineraryEnvelope {
   itinerary: PlannerPhase5CFinalItinerary;
 }
 
-function roundCurrency(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
 export function deriveCostBreakdown(
   itinerary: PlannerPhase5CFinalItinerary,
-  destinations: Destination[]
-): PersistedCostBreakdown {
-  const destinationMap = new Map(destinations.map((destination) => [destination.slug, destination]));
-  let totalTicketCostOmr = 0;
-  let paidStopCount = 0;
-  let freeStopCount = 0;
-
-  itinerary.days.forEach((day) => {
-    day.stops.forEach((stop) => {
-      const ticketCost = destinationMap.get(stop.slug)?.ticket_cost_omr ?? 0;
-      totalTicketCostOmr += ticketCost;
-      if (ticketCost > 0) {
-        paidStopCount += 1;
-      } else {
-        freeStopCount += 1;
-      }
-    });
-  });
-
+  budgetTier: BudgetLevel
+): PersistedCostBreakdownV2 {
   return {
-    totalTicketCostOmr: roundCurrency(totalTicketCostOmr),
-    averageTicketCostPerDayOmr:
-      itinerary.tripDays > 0 ? roundCurrency(totalTicketCostOmr / itinerary.tripDays) : 0,
-    paidStopCount,
-    freeStopCount,
-    totalStopCount: itinerary.totals.stopCount
+    schemaVersion: 2,
+    ...calculateTripCostBreakdown({
+      itinerary,
+      budgetTier
+    })
   };
 }
 
@@ -86,26 +81,74 @@ export function writePersistedItinerary(value: PersistedItineraryEnvelope): void
   writeJsonStorage(storageKeys.itinerary, value);
 }
 
-export function readPersistedCostBreakdown(): PersistedCostBreakdown | null {
-  const persisted = readJsonStorage<PersistedCostBreakdown | null>(storageKeys.costBreakdown, null);
+function isBudgetLevel(value: unknown): value is BudgetLevel {
+  return value === "low" || value === "medium" || value === "luxury";
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function migrateLegacyCostBreakdown(
+  persisted: PersistedCostBreakdownV1
+): PersistedCostBreakdownV2 {
+  return {
+    schemaVersion: 2,
+    fuelCostOmr: 0,
+    ticketsCostOmr: persisted.totalTicketCostOmr,
+    foodCostOmr: 0,
+    hotelCostOmr: 0,
+    totalCostOmr: persisted.totalTicketCostOmr,
+    averageCostPerDayOmr: persisted.averageTicketCostPerDayOmr,
+    paidStopCount: persisted.paidStopCount,
+    freeStopCount: persisted.freeStopCount,
+    totalStopCount: persisted.totalStopCount,
+    budgetTier: "medium",
+    budgetThresholdOmr: 0,
+    withinBudget: false
+  };
+}
+
+export function readPersistedCostBreakdown(): PersistedCostBreakdownV2 | null {
+  const persisted = readJsonStorage<unknown>(storageKeys.costBreakdown, null);
   if (!persisted || typeof persisted !== "object") {
     return null;
   }
 
+  const record = persisted as Record<string, unknown>;
+
   if (
-    typeof persisted.totalTicketCostOmr !== "number" ||
-    typeof persisted.averageTicketCostPerDayOmr !== "number" ||
-    typeof persisted.paidStopCount !== "number" ||
-    typeof persisted.freeStopCount !== "number" ||
-    typeof persisted.totalStopCount !== "number"
+    record.schemaVersion === 2 &&
+    isFiniteNumber(record.fuelCostOmr) &&
+    isFiniteNumber(record.ticketsCostOmr) &&
+    isFiniteNumber(record.foodCostOmr) &&
+    isFiniteNumber(record.hotelCostOmr) &&
+    isFiniteNumber(record.totalCostOmr) &&
+    isFiniteNumber(record.averageCostPerDayOmr) &&
+    isFiniteNumber(record.paidStopCount) &&
+    isFiniteNumber(record.freeStopCount) &&
+    isFiniteNumber(record.totalStopCount) &&
+    isBudgetLevel(record.budgetTier) &&
+    isFiniteNumber(record.budgetThresholdOmr) &&
+    typeof record.withinBudget === "boolean"
   ) {
-    return null;
+    return record as unknown as PersistedCostBreakdownV2;
   }
 
-  return persisted;
+  if (
+    isFiniteNumber(record.totalTicketCostOmr) &&
+    isFiniteNumber(record.averageTicketCostPerDayOmr) &&
+    isFiniteNumber(record.paidStopCount) &&
+    isFiniteNumber(record.freeStopCount) &&
+    isFiniteNumber(record.totalStopCount)
+  ) {
+    return migrateLegacyCostBreakdown(record as unknown as PersistedCostBreakdownV1);
+  }
+
+  return null;
 }
 
-export function writePersistedCostBreakdown(value: PersistedCostBreakdown): void {
+export function writePersistedCostBreakdown(value: PersistedCostBreakdownV2): void {
   writeJsonStorage(storageKeys.costBreakdown, value);
 }
 
