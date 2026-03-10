@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 
 import { DestinationImage } from "@/components/destination-image";
 import { DestinationPreviewHydrated } from "@/components/maps/destination-preview-hydrated.client";
-import { StaticDestinationPreview } from "@/components/maps/static-destination-preview";
 import { SaveInterestButton } from "@/components/save-interest-button";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
@@ -215,13 +214,7 @@ export default async function DestinationPage({
                 </strong>
               </div>
             </div>
-            <div className="detailMapStack">
-              <StaticDestinationPreview
-                lat={destination.coordinates.lat}
-                lng={destination.coordinates.lng}
-                title={destination.name[locale]}
-                subtitle={messages.detail.mapPreviewAlt.replace("{name}", destination.name[locale])}
-              />
+            <div>
               <DestinationPreviewHydrated
                 lat={destination.coordinates.lat}
                 lng={destination.coordinates.lng}

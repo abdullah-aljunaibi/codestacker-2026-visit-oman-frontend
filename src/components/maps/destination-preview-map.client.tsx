@@ -17,13 +17,8 @@ export default function DestinationPreviewMapClient({
     <div className="leafletMapShell destinationLeafletMap">
       <MapContainer
         center={[lat, lng]}
-        zoom={9}
-        scrollWheelZoom={false}
-        dragging={false}
-        doubleClickZoom={false}
-        touchZoom={false}
-        zoomControl={false}
-        attributionControl={false}
+        zoom={13}
+        scrollWheelZoom
         className="leafletCanvas"
       >
         <TileLayer
