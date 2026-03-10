@@ -159,36 +159,36 @@ function getIntensityCap(travelIntensity: PlannerDraft["travelIntensity"]): numb
 function getRepairCopy(locale: Locale) {
   if (locale === "ar") {
     return {
-      statusTitle: "حالة الإصلاح",
+      statusTitle: "حالة التعديلات",
       statusNotNeeded: "لم يلزم",
       statusRecovered: "تمت المعالجة",
       statusUnresolved: "ما زالت فوق الميزانية",
-      noteTriggered: "تم تشغيل إصلاح الميزانية بعد أن تجاوز البرنامج الأولي حد تكلفة الرحلة الكاملة.",
+      noteTriggered: "بدأت تعديلات الميزانية بعد أن تجاوز البرنامج الأولي حد تكلفة الرحلة الكاملة.",
       noteNoReplacement: "لم يتبق بديل أفضل في المنطقة نفسها دون إضعاف تغطية الفئات.",
       noteRoutePreserved: "تم تجاوز تبديل محتمل لأنه كان سيكسر قيود مسار اليوم.",
-      noteCategoryCoverage: "حافظت التبديلات على تغطية الفئات مع خفض التكلفة.",
-      noteCompleted: "أعادت خطوات الإصلاح البرنامج إلى داخل حد الميزانية المختار.",
+      noteCategoryCoverage: "حافظت التعديلات على تغطية الفئات مع خفض التكلفة.",
+      noteCompleted: "أعادت التعديلات البرنامج إلى داخل حد الميزانية المختار.",
       noteGapRemaining: "استنفد المخطط التبديلات الصالحة قبل العودة الكاملة إلى داخل الميزانية.",
       noteNotNeeded: "كان البرنامج الأولي ضمن حد الميزانية المختار بالفعل.",
       attempted:
-        "تم تشغيل إصلاح الميزانية، لكن لم تتبق تبديلات صالحة في المنطقة نفسها لتحسين الرحلة أكثر. الرحلة الحالية ما زالت {status}."
+        "تمت محاولة تعديل الميزانية، لكن لم تتبق تعديلات صالحة في المنطقة نفسها لتحسين الرحلة أكثر. الرحلة الحالية ما زالت {status}."
     };
   }
 
   return {
-    statusTitle: "Repair status",
+    statusTitle: "Adjustment status",
     statusNotNeeded: "Not needed",
     statusRecovered: "Recovered",
     statusUnresolved: "Still over budget",
-    noteTriggered: "Budget repair triggered after the initial itinerary exceeded the full-trip threshold.",
+    noteTriggered: "Budget adjustments started after the initial itinerary exceeded the full-trip threshold.",
     noteNoReplacement: "No better same-region replacement remained without weakening category coverage.",
     noteRoutePreserved: "A possible swap was skipped because it would have broken day routing constraints.",
-    noteCategoryCoverage: "Swaps preserved the itinerary's category coverage while lowering cost.",
-    noteCompleted: "Repairs brought the itinerary back within the selected budget threshold.",
+    noteCategoryCoverage: "The adjustments preserved the itinerary's category coverage while lowering cost.",
+    noteCompleted: "The adjustments brought the itinerary back within the selected budget threshold.",
     noteGapRemaining: "The planner exhausted valid swaps before the trip could return within budget.",
     noteNotNeeded: "The initial itinerary already satisfied the selected budget threshold.",
     attempted:
-      "Budget repair ran, but no valid same-region swaps could improve the trip further. The current trip remains {status}."
+      "Budget adjustments ran, but no valid same-region changes could improve the trip further. The current trip remains {status}."
   };
 }
 
@@ -698,9 +698,6 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
               <span>{card.label}</span>
               <strong>{card.value}</strong>
               <p>{card.meta}</p>
-              {card.label === messages.plannerResult.overviewBudgetStatus ? (
-                <span className={getBudgetStatusClass(budgetStatusTone)}>{budgetStatusLabel}</span>
-              ) : null}
             </article>
           ))}
         </section>
