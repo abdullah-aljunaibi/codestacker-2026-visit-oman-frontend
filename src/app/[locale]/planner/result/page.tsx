@@ -121,6 +121,56 @@ function getIntensityCap(travelIntensity: PlannerDraft["travelIntensity"]): numb
   return 5;
 }
 
+function getRepairCopy(locale: Locale) {
+  if (locale === "ar") {
+    return {
+      statusTitle: "حالة الإصلاح",
+      statusNotNeeded: "لم يلزم",
+      statusRecovered: "تمت المعالجة",
+      statusUnresolved: "ما زالت فوق الميزانية",
+      noteTriggered: "تم تشغيل إصلاح الميزانية بعد أن تجاوز البرنامج الأولي حد تكلفة الرحلة الكاملة.",
+      noteNoReplacement: "لم يتبق بديل أفضل في المنطقة نفسها دون إضعاف تغطية الفئات.",
+      noteRoutePreserved: "تم تجاوز تبديل محتمل لأنه كان سيكسر قيود مسار اليوم.",
+      noteCategoryCoverage: "حافظت التبديلات على تغطية الفئات مع خفض التكلفة.",
+      noteCompleted: "أعادت خطوات الإصلاح البرنامج إلى داخل حد الميزانية المختار.",
+      noteGapRemaining: "استنفد المخطط التبديلات الصالحة قبل العودة الكاملة إلى داخل الميزانية.",
+      noteNotNeeded: "كان البرنامج الأولي ضمن حد الميزانية المختار بالفعل.",
+      attempted:
+        "تم تشغيل إصلاح الميزانية، لكن لم تتبق تبديلات صالحة في المنطقة نفسها لتحسين الرحلة أكثر. الرحلة الحالية ما زالت {status}."
+    };
+  }
+
+  return {
+    statusTitle: "Repair status",
+    statusNotNeeded: "Not needed",
+    statusRecovered: "Recovered",
+    statusUnresolved: "Still over budget",
+    noteTriggered: "Budget repair triggered after the initial itinerary exceeded the full-trip threshold.",
+    noteNoReplacement: "No better same-region replacement remained without weakening category coverage.",
+    noteRoutePreserved: "A possible swap was skipped because it would have broken day routing constraints.",
+    noteCategoryCoverage: "Swaps preserved the itinerary's category coverage while lowering cost.",
+    noteCompleted: "Repairs brought the itinerary back within the selected budget threshold.",
+    noteGapRemaining: "The planner exhausted valid swaps before the trip could return within budget.",
+    noteNotNeeded: "The initial itinerary already satisfied the selected budget threshold.",
+    attempted:
+      "Budget repair ran, but no valid same-region swaps could improve the trip further. The current trip remains {status}."
+  };
+}
+
+function getRepairNoteLabel(note: string, locale: Locale): string {
+  const repairCopy = getRepairCopy(locale);
+
+  if (note === "budget_repair_triggered") return repairCopy.noteTriggered;
+  if (note === "budget_repair_no_better_replacement") return repairCopy.noteNoReplacement;
+  if (note === "budget_repair_route_preserved") return repairCopy.noteRoutePreserved;
+  if (note === "budget_repair_preserved_category_coverage") return repairCopy.noteCategoryCoverage;
+  if (note === "budget_repair_completed_within_budget") return repairCopy.noteCompleted;
+  if (note === "budget_repair_budget_gap_remaining") return repairCopy.noteGapRemaining;
+  if (note === "budget_repair_not_needed") return repairCopy.noteNotNeeded;
+
+  return getMessages(locale).plannerResult.reasonFallbackLabel;
+}
+
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = use(params);
   const locale = resolveLocale(localeParam);
@@ -484,6 +534,39 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     0,
     finalItinerary.repairSummary.initialTotalCostOmr - finalItinerary.repairSummary.finalTotalCostOmr
   );
+  const repairCopy = getRepairCopy(locale);
+  const repairStatusLabel = !finalItinerary.repairSummary.repairTriggered
+    ? repairCopy.statusNotNeeded
+    : persistedCostBreakdown.withinBudget
+      ? repairCopy.statusRecovered
+      : repairCopy.statusUnresolved;
+  const repairStatusTone = !finalItinerary.repairSummary.repairTriggered
+    ? "plannerBadge plannerBadgeNeutral"
+    : persistedCostBreakdown.withinBudget
+      ? "plannerBadge plannerBadgeSuccess"
+      : "plannerBadge plannerBadgeAlert";
+  const repairNoteLabels = finalItinerary.repairSummary.repairNotes.map((note) =>
+    getRepairNoteLabel(note, locale)
+  );
+  const repairStatusMessage = !finalItinerary.repairSummary.repairTriggered
+    ? formatMessage(messages.plannerResult.whyBudgetNoRepair, {
+        status: persistedCostBreakdown.withinBudget
+          ? messages.plannerResult.withinBudgetYes
+          : messages.plannerResult.withinBudgetNo
+      })
+    : finalItinerary.repairSummary.actions.length > 0
+      ? formatMessage(messages.plannerResult.whyBudgetWithRepair, {
+          count: formatNumber(finalItinerary.repairSummary.actions.length, locale),
+          savings: formatTicketCost(repairSavings, locale),
+          status: persistedCostBreakdown.withinBudget
+            ? messages.plannerResult.withinBudgetYes
+            : messages.plannerResult.withinBudgetNo
+        })
+      : formatMessage(repairCopy.attempted, {
+          status: persistedCostBreakdown.withinBudget
+            ? messages.plannerResult.withinBudgetYes
+            : messages.plannerResult.withinBudgetNo
+        });
 
   return (
     <main className="page">
@@ -752,21 +835,17 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
 
                     <div className="plannerWhyBlock">
                       <h3>{messages.plannerResult.whyBudgetTitle}</h3>
-                      <p>
-                        {finalItinerary.repairSummary.actions.length > 0
-                          ? formatMessage(messages.plannerResult.whyBudgetWithRepair, {
-                              count: formatNumber(finalItinerary.repairSummary.actions.length, locale),
-                              savings: formatTicketCost(repairSavings, locale),
-                              status: persistedCostBreakdown.withinBudget
-                                ? messages.plannerResult.withinBudgetYes
-                                : messages.plannerResult.withinBudgetNo
-                            })
-                          : formatMessage(messages.plannerResult.whyBudgetNoRepair, {
-                              status: persistedCostBreakdown.withinBudget
-                                ? messages.plannerResult.withinBudgetYes
-                                : messages.plannerResult.withinBudgetNo
-                            })}
-                      </p>
+                      <div className="plannerChipRow">
+                        <span className={repairStatusTone}>{repairStatusLabel}</span>
+                      </div>
+                      <p>{repairStatusMessage}</p>
+                      {repairNoteLabels.length > 0 ? (
+                        <ul className="plannerSelectionFactors" aria-label={repairCopy.statusTitle}>
+                          {repairNoteLabels.map((note) => (
+                            <li key={note}>{note}</li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
 
                     <div className="plannerWhyBlock">

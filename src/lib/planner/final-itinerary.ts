@@ -59,6 +59,8 @@ export interface ItineraryRepairAction {
 }
 
 export interface ItineraryRepairSummary {
+  repairTriggered: boolean;
+  repairNotes: string[];
   budgetTargetOmr: number;
   initialTotalCostOmr: number;
   finalTotalCostOmr: number;

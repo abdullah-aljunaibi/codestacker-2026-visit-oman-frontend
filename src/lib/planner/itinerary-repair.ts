@@ -5,6 +5,7 @@ import type { Destination } from "@/types/domain";
 
 import type { PlannerPhase4CHandoff } from "@/lib/planner/candidate-ranking";
 import { buildTimedRouteSummary, type PlannerPhase5BIntraRegionRouting } from "@/lib/planner/intra-region-routing";
+import { tripCostConfig } from "@/lib/planner/cost-model";
 import { haversineDistanceKm } from "@/lib/planner/scoring-utils";
 import type { WeightedScoreBreakdown } from "@/lib/planner/weighted-scoring-engine";
 import type {
@@ -13,7 +14,6 @@ import type {
   ItineraryStop,
   PlannerPhase5CItineraryDay
 } from "@/lib/planner/final-itinerary";
-import { budgetLevelToTargetCost } from "@/lib/planner/scoring-utils";
 
 interface ItineraryRepairInput {
   handoff: PlannerPhase4CHandoff;
@@ -35,6 +35,21 @@ interface RankedCandidateSignal {
   recommendedDurationHours: number;
   scoreBreakdown: WeightedScoreBreakdown;
   topContributors: WeightedScoreBreakdown["topContributors"];
+}
+
+interface ReplacementMove {
+  dayIndex: number;
+  stopIndex: number;
+  currentStop: ItineraryStop;
+  currentDestination: Destination;
+  replacement: Destination;
+  detourKm: number;
+}
+
+interface TripCostState {
+  ticketCostOmr: number;
+  totalCostOmr: number;
+  budgetThresholdOmr: number;
 }
 
 function deterministicRound(value: number, precision = 6): number {
@@ -118,6 +133,37 @@ function computeTotalTicketCost(
   );
 }
 
+function computeTripCostState(input: {
+  days: PlannerPhase5CItineraryDay[];
+  destinationMap: Map<string, Destination>;
+  budgetLevel: PlannerPhase4CHandoff["profile"]["budget"];
+  tripDays: number;
+}): TripCostState {
+  const ticketCostOmr = computeTotalTicketCost(input.days, input.destinationMap);
+  const totalKm = deterministicRound(
+    input.days.reduce((sum, day) => sum + day.estimatedTravelKm, 0),
+    2
+  );
+  const fuelCostOmr = deterministicRound(
+    (totalKm / tripCostConfig.vehicleKmPerLiter) * tripCostConfig.fuelPriceOmrPerLiter,
+    2
+  );
+  const foodCostOmr = deterministicRound(tripCostConfig.foodCostOmrPerDay * input.tripDays, 2);
+  const hotelCostOmr = deterministicRound(
+    tripCostConfig.hotelNightlyRateOmr[input.budgetLevel] * Math.max(input.tripDays - 1, 0),
+    2
+  );
+
+  return {
+    ticketCostOmr,
+    totalCostOmr: deterministicRound(ticketCostOmr + fuelCostOmr + foodCostOmr + hotelCostOmr, 2),
+    budgetThresholdOmr: deterministicRound(
+      tripCostConfig.budgetThresholdOmrPerDay[input.budgetLevel] * input.tripDays,
+      2
+    )
+  };
+}
+
 function updateDayMetrics(
   day: PlannerPhase5CItineraryDay,
   destinationMap: Map<string, Destination>,
@@ -177,16 +223,54 @@ function categoryOverlapForReplacement(current: Destination, alternative: Destin
   return overlapCount(current.categories, alternative.categories);
 }
 
+function buildCategoryCoverageCounts(
+  days: PlannerPhase5CItineraryDay[],
+  destinationMap: Map<string, Destination>
+): Map<string, number> {
+  const counts = new Map<string, number>();
+
+  days.forEach((day) => {
+    day.stops.forEach((stop) => {
+      const destination = destinationMap.get(stop.slug);
+      destination?.categories.forEach((category) => {
+        counts.set(category, (counts.get(category) ?? 0) + 1);
+      });
+    });
+  });
+
+  return counts;
+}
+
+function preservesCategoryCoverage(
+  currentDestination: Destination,
+  replacement: Destination,
+  categoryCoverageCounts: Map<string, number>
+): boolean {
+  const replacementCategories = new Set(replacement.categories);
+
+  return currentDestination.categories.every((category) => {
+    const currentCount = categoryCoverageCounts.get(category) ?? 0;
+    return currentCount > 1 || replacementCategories.has(category);
+  });
+}
+
 function minDistanceToDayStops(
   day: PlannerPhase5CItineraryDay,
   candidate: Destination,
-  destinationMap: Map<string, Destination>
+  destinationMap: Map<string, Destination>,
+  options?: {
+    excludeStopSlug?: string;
+  }
 ): number {
   if (day.stops.length === 0) {
     return 0;
   }
 
-  return day.stops.reduce((best, stop) => {
+  const bestDistance = day.stops.reduce((best, stop) => {
+    if (options?.excludeStopSlug && stop.slug === options.excludeStopSlug) {
+      return best;
+    }
+
     const destination = destinationMap.get(stop.slug);
     if (!destination) {
       return best;
@@ -194,6 +278,133 @@ function minDistanceToDayStops(
 
     return Math.min(best, haversineDistanceKm(destination.coordinates, candidate.coordinates));
   }, Number.POSITIVE_INFINITY);
+
+  return Number.isFinite(bestDistance) ? bestDistance : 0;
+}
+
+function stopValueForCost(stop: ItineraryStop, destinationMap: Map<string, Destination>): number {
+  const cost = destinationMap.get(stop.slug)?.ticket_cost_omr ?? stop.ticketCostOmr;
+  if (cost <= 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const score = stop.score ?? 0;
+  return deterministicRound(score / cost);
+}
+
+function sortStopsByRepairPriority(
+  a: { stop: ItineraryStop; dayIndex: number; stopIndex: number },
+  b: { stop: ItineraryStop; dayIndex: number; stopIndex: number },
+  destinationMap: Map<string, Destination>
+): number {
+  const valueDelta =
+    stopValueForCost(a.stop, destinationMap) - stopValueForCost(b.stop, destinationMap);
+  if (valueDelta !== 0) {
+    return valueDelta;
+  }
+
+  if (b.stop.ticketCostOmr !== a.stop.ticketCostOmr) {
+    return b.stop.ticketCostOmr - a.stop.ticketCostOmr;
+  }
+
+  if (b.stop.travelKmFromPrevious !== a.stop.travelKmFromPrevious) {
+    return b.stop.travelKmFromPrevious - a.stop.travelKmFromPrevious;
+  }
+
+  if (a.dayIndex !== b.dayIndex) {
+    return a.dayIndex - b.dayIndex;
+  }
+
+  if (a.stopIndex !== b.stopIndex) {
+    return a.stopIndex - b.stopIndex;
+  }
+
+  return a.stop.slug.localeCompare(b.stop.slug);
+}
+
+function findBestBudgetReplacement(input: {
+  days: PlannerPhase5CItineraryDay[];
+  destinations: Destination[];
+  destinationMap: Map<string, Destination>;
+  candidateSignals: Map<string, RankedCandidateSignal>;
+  scheduledSlugs: Set<string>;
+}): ReplacementMove | null {
+  const categoryCoverageCounts = buildCategoryCoverageCounts(input.days, input.destinationMap);
+  const rankedStops = input.days
+    .flatMap((day, dayIndex) =>
+      day.stops.map((stop, stopIndex) => ({
+        dayIndex,
+        stopIndex,
+        stop
+      }))
+    )
+    .filter((entry) => entry.stop.ticketCostOmr > 0)
+    .sort((a, b) => sortStopsByRepairPriority(a, b, input.destinationMap));
+
+  for (const entry of rankedStops) {
+    const day = input.days[entry.dayIndex];
+    const currentDestination = input.destinationMap.get(entry.stop.slug);
+    if (!currentDestination) {
+      continue;
+    }
+
+    const alternatives = input.destinations
+      .filter((destination) => destination.regionKey === day.region)
+      .filter((destination) => !input.scheduledSlugs.has(destination.slug))
+      .filter((destination) => destination.ticket_cost_omr < currentDestination.ticket_cost_omr)
+      .filter((destination) =>
+        preservesCategoryCoverage(currentDestination, destination, categoryCoverageCounts)
+      )
+      .map((destination) => ({
+        destination,
+        detourKm: minDistanceToDayStops(day, destination, input.destinationMap, {
+          excludeStopSlug: entry.stop.slug
+        }),
+        overlap: categoryOverlapForReplacement(currentDestination, destination),
+        score: input.candidateSignals.get(destination.slug)?.score ?? 0
+      }))
+      .sort((a, b) => {
+        const freeA = a.destination.ticket_cost_omr === 0 ? 1 : 0;
+        const freeB = b.destination.ticket_cost_omr === 0 ? 1 : 0;
+        if (freeB !== freeA) {
+          return freeB - freeA;
+        }
+
+        if (a.destination.ticket_cost_omr !== b.destination.ticket_cost_omr) {
+          return a.destination.ticket_cost_omr - b.destination.ticket_cost_omr;
+        }
+
+        if (b.overlap !== a.overlap) {
+          return b.overlap - a.overlap;
+        }
+
+        if (a.detourKm !== b.detourKm) {
+          return a.detourKm - b.detourKm;
+        }
+
+        if (b.score !== a.score) {
+          return b.score - a.score;
+        }
+
+        return a.destination.slug.localeCompare(b.destination.slug);
+      });
+
+    const replacement = alternatives[0];
+    if (!replacement) {
+      continue;
+    }
+
+    return {
+      dayIndex: entry.dayIndex,
+      stopIndex: entry.stopIndex,
+      currentStop: entry.stop,
+      currentDestination,
+      replacement: replacement.destination,
+      detourKm: replacement.detourKm
+    };
+  }
+
+  return null;
 }
 
 export function repairGeneratedItinerary(input: ItineraryRepairInput): ItineraryRepairResult {
@@ -203,10 +414,6 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
     travelIntensity: input.handoff.profile.travelIntensity,
     allowCategoryRepeatByPreference: input.handoff.profile.preferredCategories.length <= 1
   };
-  const tripBudgetTargetOmr = deterministicRound(
-    budgetLevelToTargetCost(input.handoff.profile.budget) * input.routing.tripDays,
-    2
-  );
   const hoursPerDayTarget = input.routing.routingPolicy.hoursPerDayTarget;
   const days = input.days.map((day) => ({
     ...day,
@@ -214,109 +421,83 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
     notes: day.notes.slice()
   }));
   const itineraryNotes: string[] = [];
+  const repairNotes: string[] = [];
   const actions: ItineraryRepairAction[] = [];
   const scheduledSlugs = new Set(days.flatMap((day) => day.stops.map((stop) => stop.slug)));
-  const initialTotalCostOmr = computeTotalTicketCost(days, destinationMap);
-  let runningTotalCostOmr = initialTotalCostOmr;
+  const initialCostState = computeTripCostState({
+    days,
+    destinationMap,
+    budgetLevel: input.handoff.profile.budget,
+    tripDays: input.routing.tripDays
+  });
+  let runningCostState = initialCostState;
+  let repairTriggered = false;
 
-  if (runningTotalCostOmr > tripBudgetTargetOmr) {
-    const expensiveStops = days
-      .flatMap((day, dayIndex) =>
-        day.stops.map((stop, stopIndex) => ({
-          dayIndex,
-          stopIndex,
-          stop,
-          cost: destinationMap.get(stop.slug)?.ticket_cost_omr ?? 0
-        }))
-      )
-      .sort((a, b) => {
-        if (b.cost !== a.cost) {
-          return b.cost - a.cost;
-        }
-        if (a.dayIndex !== b.dayIndex) {
-          return a.dayIndex - b.dayIndex;
-        }
-        return a.stop.slug.localeCompare(b.stop.slug);
+  if (runningCostState.totalCostOmr > runningCostState.budgetThresholdOmr) {
+    repairTriggered = true;
+    repairNotes.push("budget_repair_triggered");
+
+    while (runningCostState.totalCostOmr > runningCostState.budgetThresholdOmr) {
+      const move = findBestBudgetReplacement({
+        days,
+        destinations: input.destinations,
+        destinationMap,
+        candidateSignals,
+        scheduledSlugs
       });
 
-    expensiveStops.forEach((entry) => {
-      if (runningTotalCostOmr <= tripBudgetTargetOmr) {
-        return;
+      if (!move) {
+        repairNotes.push("budget_repair_no_better_replacement");
+        break;
       }
 
-      const currentDestination = destinationMap.get(entry.stop.slug);
-      const day = days[entry.dayIndex];
-      if (!currentDestination) {
-        return;
-      }
-
-      const alternatives = input.destinations
-        .filter((destination) => destination.regionKey === day.region)
-        .filter((destination) => !scheduledSlugs.has(destination.slug))
-        .filter((destination) => destination.ticket_cost_omr < currentDestination.ticket_cost_omr)
-        .filter((destination) => categoryOverlapForReplacement(currentDestination, destination) > 0)
-        .sort((a, b) => {
-          const savingsA = currentDestination.ticket_cost_omr - a.ticket_cost_omr;
-          const savingsB = currentDestination.ticket_cost_omr - b.ticket_cost_omr;
-          if (savingsB !== savingsA) {
-            return savingsB - savingsA;
-          }
-
-          const overlapA = categoryOverlapForReplacement(currentDestination, a);
-          const overlapB = categoryOverlapForReplacement(currentDestination, b);
-          if (overlapB !== overlapA) {
-            return overlapB - overlapA;
-          }
-
-          const scoreA = candidateSignals.get(a.slug)?.score ?? 0;
-          const scoreB = candidateSignals.get(b.slug)?.score ?? 0;
-          if (scoreB !== scoreA) {
-            return scoreB - scoreA;
-          }
-          return a.slug.localeCompare(b.slug);
-        });
-
-      const replacement = alternatives[0];
-      if (!replacement) {
-        return;
-      }
-
-      scheduledSlugs.delete(entry.stop.slug);
-      scheduledSlugs.add(replacement.slug);
-      day.stops[entry.stopIndex] = buildStop(replacement, day.region, candidateSignals);
+      const day = days[move.dayIndex];
+      scheduledSlugs.delete(move.currentStop.slug);
+      scheduledSlugs.add(move.replacement.slug);
+      day.stops[move.stopIndex] = buildStop(move.replacement, day.region, candidateSignals);
       day.notes.push("budget_repair_swap_applied");
+
       const updatedDay = updateDayMetrics(day, destinationMap, schedulingOptions);
       if (updatedDay.unresolvedReason) {
-        scheduledSlugs.delete(replacement.slug);
-        scheduledSlugs.add(entry.stop.slug);
-        day.stops[entry.stopIndex] = entry.stop;
-        return;
+        scheduledSlugs.delete(move.replacement.slug);
+        scheduledSlugs.add(move.currentStop.slug);
+        day.stops[move.stopIndex] = move.currentStop;
+        repairNotes.push("budget_repair_route_preserved");
+        continue;
       }
-      days[entry.dayIndex] = updatedDay;
 
-      const deltaCostOmr = deterministicRound(
-        replacement.ticket_cost_omr - currentDestination.ticket_cost_omr,
-        2
-      );
-      const deltaVisitHours = deterministicRound(
-        day.stops[entry.stopIndex].estimatedVisitHours - entry.stop.estimatedVisitHours
-      );
-      runningTotalCostOmr = deterministicRound(runningTotalCostOmr + deltaCostOmr, 2);
+      days[move.dayIndex] = updatedDay;
+      const previousCostState = runningCostState;
+      runningCostState = computeTripCostState({
+        days,
+        destinationMap,
+        budgetLevel: input.handoff.profile.budget,
+        tripDays: input.routing.tripDays
+      });
+
       actions.push({
         type: "budget_swap",
         dayNumber: day.dayNumber,
         region: day.region,
-        removedSlug: entry.stop.slug,
-        addedSlug: replacement.slug,
-        deltaCostOmr,
-        deltaVisitHours,
-        reason: "swap_expensive_stop_for_cheaper_same_region_category_option"
+        removedSlug: move.currentStop.slug,
+        addedSlug: move.replacement.slug,
+        deltaCostOmr: deterministicRound(
+          runningCostState.totalCostOmr - previousCostState.totalCostOmr,
+          2
+        ),
+        deltaVisitHours: deterministicRound(
+          updatedDay.stops[move.stopIndex].estimatedVisitHours - move.currentStop.estimatedVisitHours
+        ),
+        reason: "swap_worst_value_stop_for_lower_cost_same_region_option"
       });
-    });
+    }
 
     if (actions.some((action) => action.type === "budget_swap")) {
       itineraryNotes.push("budget_repair_applied");
+      repairNotes.push("budget_repair_preserved_category_coverage");
     }
+  } else {
+    repairNotes.push("budget_repair_not_needed");
   }
 
   days.forEach((day, dayIndex) => {
@@ -348,6 +529,23 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
         break;
       }
 
+      const projectedDay = updateDayMetrics({
+        ...day,
+        stops: [...day.stops, buildStop(addition, day.region, candidateSignals)]
+      }, destinationMap, schedulingOptions);
+      const projectedDays = days.map((existingDay, index) =>
+        index === dayIndex ? projectedDay : existingDay
+      );
+      const projectedCostState = computeTripCostState({
+        days: projectedDays,
+        destinationMap,
+        budgetLevel: input.handoff.profile.budget,
+        tripDays: input.routing.tripDays
+      });
+      if (projectedCostState.totalCostOmr > projectedCostState.budgetThresholdOmr) {
+        break;
+      }
+
       const addedStop = buildStop(addition, day.region, candidateSignals);
       day.stops.push(addedStop);
       day.notes.push("underutilized_day_fill_added");
@@ -359,7 +557,12 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
         break;
       }
       days[dayIndex] = updatedDay;
-      runningTotalCostOmr = deterministicRound(runningTotalCostOmr + addition.ticket_cost_omr, 2);
+      runningCostState = computeTripCostState({
+        days,
+        destinationMap,
+        budgetLevel: input.handoff.profile.budget,
+        tripDays: input.routing.tripDays
+      });
       actions.push({
         type: "underutilized_fill",
         dayNumber: day.dayNumber,
@@ -376,6 +579,14 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
     itineraryNotes.push("underutilized_day_fill_applied");
   }
 
+  if (repairTriggered) {
+    if (runningCostState.totalCostOmr <= runningCostState.budgetThresholdOmr) {
+      repairNotes.push("budget_repair_completed_within_budget");
+    } else {
+      repairNotes.push("budget_repair_budget_gap_remaining");
+    }
+  }
+
   return {
     days: days.map((day) => ({
       ...updateDayMetrics(day, destinationMap, schedulingOptions),
@@ -383,9 +594,11 @@ export function repairGeneratedItinerary(input: ItineraryRepairInput): Itinerary
     })),
     itineraryNotes,
     repairSummary: {
-      budgetTargetOmr: tripBudgetTargetOmr,
-      initialTotalCostOmr,
-      finalTotalCostOmr: runningTotalCostOmr,
+      repairTriggered,
+      repairNotes: Array.from(new Set(repairNotes)),
+      budgetTargetOmr: runningCostState.budgetThresholdOmr,
+      initialTotalCostOmr: initialCostState.totalCostOmr,
+      finalTotalCostOmr: runningCostState.totalCostOmr,
       actions
     }
   };
