@@ -1,9 +1,16 @@
+/**
+ * Deterministic final itinerary assembly with post-generation repair integration.
+ */
 import type { Destination } from "@/types/domain";
 
-import type { PlannerPhase4CHandoff, PlannerHandoffRouteCandidate } from "@/lib/planner/candidate-ranking";
+import type {
+  PlannerHandoffRouteCandidate,
+  PlannerPhase4CHandoff
+} from "@/lib/planner/candidate-ranking";
 import type { PlannerPhase5BIntraRegionRouting } from "@/lib/planner/intra-region-routing";
+import { repairGeneratedItinerary } from "@/lib/planner/itinerary-repair";
 
-interface ItineraryStop {
+export interface ItineraryStop {
   slug: string;
   name: Destination["name"];
   region: string;
@@ -24,6 +31,24 @@ export interface PlannerPhase5CItineraryDay {
   notes: string[];
 }
 
+export interface ItineraryRepairAction {
+  type: "budget_swap" | "underutilized_fill";
+  dayNumber: number;
+  region: string;
+  removedSlug?: string;
+  addedSlug: string;
+  deltaCostOmr: number;
+  deltaVisitHours: number;
+  reason: string;
+}
+
+export interface ItineraryRepairSummary {
+  budgetTargetOmr: number;
+  initialTotalCostOmr: number;
+  finalTotalCostOmr: number;
+  actions: ItineraryRepairAction[];
+}
+
 export interface PlannerPhase5CFinalItinerary {
   itineraryVersion: string;
   planningContextId: string;
@@ -41,9 +66,10 @@ export interface PlannerPhase5CFinalItinerary {
   };
   days: PlannerPhase5CItineraryDay[];
   itineraryNotes: string[];
+  repairSummary: ItineraryRepairSummary;
 }
 
-const itineraryVersion = "phase-5c-v1";
+const itineraryVersion = "phase-5c-v2";
 
 function deterministicRound(value: number, precision = 6): number {
   const factor = 10 ** precision;
@@ -71,6 +97,26 @@ function toDestinationMap(destinations: Destination[]): Map<string, Destination>
   return map;
 }
 
+function buildStop(
+  slug: string,
+  region: string,
+  candidateMap: Map<string, PlannerHandoffRouteCandidate>,
+  destinationMap: Map<string, Destination>
+): ItineraryStop {
+  const candidate = candidateMap.get(slug);
+  const destination = destinationMap.get(slug);
+
+  return {
+    slug,
+    name: destination?.name ?? { en: slug, ar: slug },
+    region: destination?.regionKey ?? candidate?.region ?? region,
+    estimatedVisitHours: candidate?.recommendedDurationHours ?? destination?.recommendedDurationHours ?? 0,
+    rank: candidate?.rank ?? null,
+    score: candidate?.score ?? null,
+    reasonCodes: candidate?.reasonCodes ?? []
+  };
+}
+
 export function assembleFinalItinerary(input: {
   handoff: PlannerPhase4CHandoff;
   routing: PlannerPhase5BIntraRegionRouting;
@@ -79,24 +125,13 @@ export function assembleFinalItinerary(input: {
   const candidateMap = toCandidateMap(input.handoff);
   const destinationMap = toDestinationMap(input.destinations);
 
-  const days: PlannerPhase5CItineraryDay[] = input.routing.dayPlans
+  const initialDays: PlannerPhase5CItineraryDay[] = input.routing.dayPlans
     .slice()
     .sort((a, b) => a.dayNumber - b.dayNumber)
     .map((day) => {
-      const stops: ItineraryStop[] = day.destinationSlugs.map((slug) => {
-        const candidate = candidateMap.get(slug);
-        const destination = destinationMap.get(slug);
-
-        return {
-          slug,
-          name: destination?.name ?? { en: slug, ar: slug },
-          region: destination?.regionKey ?? candidate?.region ?? day.region,
-          estimatedVisitHours: candidate?.recommendedDurationHours ?? 0,
-          rank: candidate?.rank ?? null,
-          score: candidate?.score ?? null,
-          reasonCodes: candidate?.reasonCodes ?? []
-        };
-      });
+      const stops: ItineraryStop[] = day.destinationSlugs.map((slug) =>
+        buildStop(slug, day.region, candidateMap, destinationMap)
+      );
 
       return {
         dayNumber: day.dayNumber,
@@ -106,21 +141,30 @@ export function assembleFinalItinerary(input: {
         stopCount: stops.length,
         estimatedVisitHours: day.estimatedVisitHours,
         estimatedTravelKm: day.estimatedTravelKm,
-        notes: day.notes
+        notes: day.notes.slice()
       };
     });
 
-  const unresolvedDayCount = days.filter((day) => day.notes.includes("unresolved_region_day_slot")).length;
-  const stopCount = days.reduce((sum, day) => sum + day.stopCount, 0);
+  const repaired = repairGeneratedItinerary({
+    handoff: input.handoff,
+    routing: input.routing,
+    destinations: input.destinations,
+    days: initialDays
+  });
 
-  const itineraryNotes: string[] = [];
+  const unresolvedDayCount = repaired.days.filter((day) =>
+    day.notes.includes("unresolved_region_day_slot")
+  ).length;
+  const stopCount = repaired.days.reduce((sum, day) => sum + day.stopCount, 0);
+
+  const itineraryNotes = repaired.itineraryNotes.slice();
   if (unresolvedDayCount > 0) {
     itineraryNotes.push("contains_unresolved_day_slots");
   }
   if (stopCount === 0) {
     itineraryNotes.push("no_planned_stops");
   } else {
-    itineraryNotes.push("deterministic_itinerary_assembled_from_phase_5b");
+    itineraryNotes.push("deterministic_itinerary_assembled_with_repair");
   }
 
   return {
@@ -132,13 +176,18 @@ export function assembleFinalItinerary(input: {
     datasetVersion: input.routing.datasetVersion,
     tripDays: input.routing.tripDays,
     totals: {
-      dayCount: days.length,
+      dayCount: repaired.days.length,
       stopCount,
       unresolvedDayCount,
-      estimatedVisitHours: deterministicRound(input.routing.totalPlannedVisitHours),
-      estimatedTravelKm: deterministicRound(input.routing.totalEstimatedTravelKm)
+      estimatedVisitHours: deterministicRound(
+        repaired.days.reduce((sum, day) => sum + day.estimatedVisitHours, 0)
+      ),
+      estimatedTravelKm: deterministicRound(
+        repaired.days.reduce((sum, day) => sum + day.estimatedTravelKm, 0)
+      )
     },
-    days,
-    itineraryNotes
+    days: repaired.days,
+    itineraryNotes: Array.from(new Set(itineraryNotes)),
+    repairSummary: repaired.repairSummary
   };
 }
