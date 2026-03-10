@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
+import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import {
   getCategorySpotlights,
   getFeaturedDestinations,
@@ -25,10 +26,14 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
   const locale = resolveLocale(localeParam);
   const messages = getMessages(locale);
   const destinations = loadDestinations();
+  const normalizedDestinations = normalizeDestinations(destinations, locale);
+  const normalizedBySlug = new Map(
+    normalizedDestinations.map((destination) => [destination.slug, destination])
+  );
   const regions = getRegionOptions(destinations, locale);
   const featuredDestinations = getFeaturedDestinations(destinations).map((destination) => ({
-    ...destination,
-    regionLabel: destination.region[locale]
+    ...normalizedBySlug.get(destination.slug)!,
+    ...destination
   }));
   const categorySpotlights = getCategorySpotlights(destinations, locale);
   const regionHighlights = getRegionHighlights(destinations, locale);
@@ -91,7 +96,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
                   <p>{destination.description[locale]}</p>
                   <div className="metaList">
                     <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
-                    <span className="meta">{getSeasonCopy(destination.idealVisitMonths, locale)}</span>
+                    <span className="meta">{getSeasonCopy(destination.recommended_months, locale)}</span>
                   </div>
                 </article>
               ))}
@@ -126,7 +131,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
                       className="spotlightLink"
                     >
                       <strong>{destination.name[locale]}</strong>
-                      <span>{destination.region[locale]}</span>
+                      <span>{normalizedBySlug.get(destination.slug)?.regionLabel ?? destination.region.ar}</span>
                     </Link>
                   ))}
                 </div>
@@ -159,7 +164,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
                   <span className="meta">{messages.common.crowdLevel}: {destination.crowd_level}/5</span>
                   <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
                   <span className="meta">
-                    {getMonthLabel(destination.idealVisitMonths[0] ?? 1, locale)}
+                    {getMonthLabel(destination.recommended_months[0] ?? 1, locale)}
                   </span>
                 </div>
               </article>
@@ -188,7 +193,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
                 </div>
                 {region.sample ? (
                   <>
-                    <p>{region.sample.description[locale]}</p>
+                    <p>{normalizedBySlug.get(region.sample.slug)?.description[locale] ?? region.sample.name[locale]}</p>
                     <Link className="textLink" href={`/${locale}/discover/${region.sample.slug}`}>
                       {region.sample.name[locale]}
                     </Link>

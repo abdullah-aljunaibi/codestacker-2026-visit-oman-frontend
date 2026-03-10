@@ -1,6 +1,6 @@
-import type { DatasetDestination, Locale } from "@/types/dataset";
+import type { DatasetDestination, Locale, LocalizedText } from "@/types/dataset";
 
-export type BudgetLevel = "budget" | "moderate" | "luxury";
+export type BudgetLevel = "low" | "medium" | "luxury";
 export type TripDayCount = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type TravelIntensity = "relaxed" | "balanced" | "packed";
 
@@ -32,9 +32,14 @@ export interface ItineraryPlan {
 }
 
 export interface Destination extends DatasetDestination {
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  description: LocalizedText;
   budgetLevel: BudgetLevel;
   recommendedDurationHours: number;
-  regionKey: string;
+  regionKey: DatasetDestination["region"]["en"];
   regionLabel: string;
   locale: Locale;
 }

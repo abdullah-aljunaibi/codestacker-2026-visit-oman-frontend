@@ -5,22 +5,24 @@ export interface LocalizedText {
   ar: string;
 }
 
-export interface DatasetCoordinates {
-  lat: number;
-  lng: number;
-}
+export type DatasetRegionKey = "muscat" | "dakhiliya" | "sharqiya" | "dhofar" | "batinah" | "dhahira";
+export type DatasetCategory = "mountain" | "beach" | "culture" | "desert" | "nature" | "food";
+export type DatasetCrowdLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface DatasetDestination {
   id: string;
   slug: string;
   name: LocalizedText;
-  description: LocalizedText;
-  region: LocalizedText;
-  coordinates: DatasetCoordinates;
-  categories: string[];
-  idealVisitMonths: number[];
+  lat: number;
+  lng: number;
+  region: {
+    en: DatasetRegionKey;
+    ar: string;
+  };
+  categories: DatasetCategory[];
+  recommended_months: number[];
+  company: LocalizedText;
   ticket_cost_omr: number;
   avg_visit_duration_minutes: number;
-  crowd_level: 1 | 2 | 3 | 4 | 5;
-  company: string;
+  crowd_level: DatasetCrowdLevel;
 }

@@ -82,7 +82,7 @@ export default async function DestinationPage({
 
             <div className="detailStat">
               <span>{messages.common.recommendedMonths}</span>
-              <strong>{destination.idealVisitMonths.map((month) => getMonthLabel(month, locale)).join(" / ")}</strong>
+              <strong>{destination.recommended_months.map((month) => getMonthLabel(month, locale)).join(" / ")}</strong>
             </div>
 
             <div className="detailStat">

@@ -88,7 +88,7 @@ export function PlannerForm({
     draft.tripDurationDays <= 7 &&
     draft.travelMonth >= 1 &&
     draft.travelMonth <= 12 &&
-    (draft.budget === "budget" || draft.budget === "moderate" || draft.budget === "luxury") &&
+    (draft.budget === "low" || draft.budget === "medium" || draft.budget === "luxury") &&
     (draft.travelIntensity === "relaxed" ||
       draft.travelIntensity === "balanced" ||
       draft.travelIntensity === "packed") &&
@@ -153,8 +153,8 @@ export function PlannerForm({
               }))
             }
           >
-            <option value="budget">{getBudgetLabel("budget", normalizedLocale)}</option>
-            <option value="moderate">{getBudgetLabel("moderate", normalizedLocale)}</option>
+            <option value="low">{getBudgetLabel("low", normalizedLocale)}</option>
+            <option value="medium">{getBudgetLabel("medium", normalizedLocale)}</option>
             <option value="luxury">{getBudgetLabel("luxury", normalizedLocale)}</option>
           </select>
         </label>

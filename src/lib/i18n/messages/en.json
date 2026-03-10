@@ -74,8 +74,8 @@
     "December"
   ],
   "budget": {
-    "budget": "Budget",
-    "moderate": "Moderate",
+    "low": "Low",
+    "medium": "Medium",
     "luxury": "Luxury"
   },
   "pace": {

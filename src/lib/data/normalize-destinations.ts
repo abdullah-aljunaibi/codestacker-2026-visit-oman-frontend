@@ -2,9 +2,27 @@
  * Dataset-to-domain normalization helpers for planner-ready destinations.
  */
 import type { BudgetLevel, Destination } from "@/types/domain";
-import type { DatasetDestination, Locale } from "@/types/dataset";
+import type { DatasetDestination, Locale, LocalizedText } from "@/types/dataset";
 
-export function getRegionKey(destination: Pick<DatasetDestination, "region">): string {
+const regionLabelsEn: Record<DatasetDestination["region"]["en"], string> = {
+  muscat: "Muscat",
+  dakhiliya: "Dakhiliya",
+  sharqiya: "Sharqiya",
+  dhofar: "Dhofar",
+  batinah: "Batinah",
+  dhahira: "Dhahira"
+};
+
+export function buildPlaceholderDescription(destination: DatasetDestination): LocalizedText {
+  return {
+    en: `${destination.name.en} is a ${destination.categories.join(", ")} destination in ${regionLabelsEn[destination.region.en]}.`,
+    ar: `${destination.name.ar} وجهة ضمن ${destination.region.ar} تناسب أنماط ${destination.categories.join("، ")}.`
+  };
+}
+
+export function getRegionKey(
+  destination: Pick<DatasetDestination, "region">
+): DatasetDestination["region"]["en"] {
   return destination.region.en;
 }
 
@@ -12,7 +30,7 @@ export function getLocalizedRegionLabel(
   destination: Pick<DatasetDestination, "region">,
   locale: Locale
 ): string {
-  return destination.region[locale];
+  return locale === "ar" ? destination.region.ar : regionLabelsEn[destination.region.en];
 }
 
 export function minutesToHours(minutes: number): number {
@@ -21,10 +39,10 @@ export function minutesToHours(minutes: number): number {
 
 export function deriveBudgetLevel(ticketCostOmr: number): BudgetLevel {
   if (ticketCostOmr <= 5) {
-    return "budget";
+    return "low";
   }
   if (ticketCostOmr < 15) {
-    return "moderate";
+    return "medium";
   }
   return "luxury";
 }
@@ -35,6 +53,11 @@ export function normalizeDestination(
 ): Destination {
   return {
     ...destination,
+    coordinates: {
+      lat: destination.lat,
+      lng: destination.lng
+    },
+    description: buildPlaceholderDescription(destination),
     budgetLevel: deriveBudgetLevel(destination.ticket_cost_omr),
     recommendedDurationHours: minutesToHours(destination.avg_visit_duration_minutes),
     regionKey: getRegionKey(destination),

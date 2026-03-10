@@ -11,7 +11,9 @@ export function getByCategory(destinations: DatasetDestination[], category?: str
   if (!category) {
     return destinations;
   }
-  return destinations.filter((destination) => destination.categories.includes(category));
+  return destinations.filter((destination) =>
+    destination.categories.includes(category as DatasetDestination["categories"][number])
+  );
 }
 
 export function getByRegion(destinations: DatasetDestination[], region?: string): DatasetDestination[] {
@@ -25,7 +27,7 @@ export function getBySeason(destinations: DatasetDestination[], month?: number):
   if (!month) {
     return destinations;
   }
-  return destinations.filter((destination) => destination.idealVisitMonths.includes(month));
+  return destinations.filter((destination) => destination.recommended_months.includes(month));
 }
 
 export function sortByCrowd(destinations: DatasetDestination[], direction: "asc" | "desc" = "asc") {
@@ -132,8 +134,8 @@ export function getRegionHighlights(destinations: DatasetDestination[], locale: 
     .slice(0, limit);
 }
 
-export function filterDestinationsBySavedSlugs(
-  destinations: DatasetDestination[],
+export function filterDestinationsBySavedSlugs<T extends { slug: string }>(
+  destinations: T[],
   savedSlugs: string[]
 ) {
   const savedSlugSet = new Set(savedSlugs);

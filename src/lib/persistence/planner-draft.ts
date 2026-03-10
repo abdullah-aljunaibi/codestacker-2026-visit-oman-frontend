@@ -29,7 +29,7 @@ export const defaultPlannerDraft: PlannerDraft = {
   preferredCategories: [],
   tripDurationDays: 4,
   travelIntensity: "balanced",
-  budget: "moderate",
+  budget: "medium",
   travelMonth: getDefaultTravelMonth(),
   updatedAt: ""
 };
@@ -67,12 +67,12 @@ export function readPlannerDraft(): PlannerDraft {
           ? raw.pace
           : defaultPlannerDraft.travelIntensity,
     budget:
-      raw.budget === "budget" || raw.budget === "moderate" || raw.budget === "luxury"
+      raw.budget === "low" || raw.budget === "medium" || raw.budget === "luxury"
         ? raw.budget
-        : raw.budget === "low"
-          ? "budget"
-          : raw.budget === "medium"
-            ? "moderate"
+        : raw.budget === "budget"
+          ? "low"
+          : raw.budget === "moderate"
+            ? "medium"
             : defaultPlannerDraft.budget,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : ""
   };

@@ -2,12 +2,11 @@
  * Shared deterministic numeric utilities for planner scoring and routing.
  */
 import type { Destination, InterestProfile } from "@/types/domain";
-import type { DatasetCoordinates } from "@/types/dataset";
 
 import { haversineDistance } from "@/lib/geo/haversine";
 
 export type BudgetLevel = InterestProfile["budget"];
-export type Coordinates = DatasetCoordinates;
+export type Coordinates = Destination["coordinates"];
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -29,10 +28,10 @@ export function monthDistance(a: number, b: number): number {
 }
 
 export function budgetLevelToTargetCost(level: BudgetLevel): number {
-  if (level === "budget") {
+  if (level === "low") {
     return 5;
   }
-  if (level === "moderate") {
+  if (level === "medium") {
     return 15;
   }
   return 30;

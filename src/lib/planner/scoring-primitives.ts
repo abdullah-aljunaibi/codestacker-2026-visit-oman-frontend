@@ -118,7 +118,7 @@ export function buildPrimitiveScores(
 ): MultiObjectivePrimitiveScores {
   return {
     categoryMatch: scoreCategoryMatch(destination.categories, profile.preferredCategories),
-    seasonMatch: scoreSeasonMatch(destination.idealVisitMonths, profile.travelMonth),
+    seasonMatch: scoreSeasonMatch(destination.recommended_months, profile.travelMonth),
     budgetMatch: scoreBudgetMatch(destination.ticket_cost_omr, profile.budget),
     crowdPreference: scoreCrowdPreference(destination.crowd_level, profile.travelIntensity),
     durationFit: scoreDurationFit(
