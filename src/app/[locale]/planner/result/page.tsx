@@ -148,7 +148,9 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
   const router = useRouter();
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
   const [savedInterestSlugs, setSavedInterestSlugs] = useState<string[]>([]);
+  const [hasHydratedPersistence, setHasHydratedPersistence] = useState(false);
   const [persistedAt, setPersistedAt] = useState("");
+  const [selectedDayNumber, setSelectedDayNumber] = useState(1);
   const { datasetVersion, destinations } = useMemo(() => loadDestinationsWithVersion(), []);
   const normalizedDestinations = useMemo(
     () => normalizeDestinations(destinations, locale),
@@ -160,11 +162,13 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     setDraft(readPlannerDraft());
     setSavedInterestSlugs(readSavedInterestSlugs());
 
-    const persistedItinerary = readPersistedItinerary();
-    if (persistedItinerary?.locale === locale) {
+    const persistedItinerary = readPersistedItinerary({ datasetVersion, locale });
+    if (persistedItinerary) {
       setPersistedAt(persistedItinerary.savedAt);
+      setSelectedDayNumber(persistedItinerary.selectedDayNumber);
     }
-  }, [locale]);
+    setHasHydratedPersistence(true);
+  }, [datasetVersion, locale]);
 
   const ranking = useMemo(
     () =>
@@ -208,28 +212,41 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     [draft.budget, finalItinerary]
   );
   const [persistedCostBreakdown, setPersistedCostBreakdown] = useState(currentCostBreakdown);
-  const [selectedDayNumber, setSelectedDayNumber] = useState(1);
   const [activeStopSlug, setActiveStopSlug] = useState<string | null>(null);
 
   useEffect(() => {
-    const now = new Date().toISOString();
+    if (!hasHydratedPersistence) {
+      return;
+    }
+
+    const persisted = readPersistedItinerary({ datasetVersion, locale });
+    const savedAt = persisted?.savedAt ?? new Date().toISOString();
+    const costBreakdown = {
+      ...currentCostBreakdown,
+      datasetVersion,
+      savedAt
+    };
+
     writePersistedItinerary({
+      schemaVersion: 2,
       locale,
       datasetVersion,
-      savedAt: now,
+      savedAt,
+      selectedDayNumber,
+      costBreakdown,
       itinerary: finalItinerary
     });
-    writePersistedCostBreakdown(currentCostBreakdown);
-    setPersistedAt(now);
-    setPersistedCostBreakdown(currentCostBreakdown);
-  }, [currentCostBreakdown, datasetVersion, finalItinerary, locale]);
+    writePersistedCostBreakdown(costBreakdown);
+    setPersistedAt(savedAt);
+    setPersistedCostBreakdown(costBreakdown);
+  }, [currentCostBreakdown, datasetVersion, finalItinerary, hasHydratedPersistence, locale, selectedDayNumber]);
 
   useEffect(() => {
-    const savedBreakdown = readPersistedCostBreakdown();
+    const savedBreakdown = readPersistedCostBreakdown({ datasetVersion });
     if (savedBreakdown) {
       setPersistedCostBreakdown(savedBreakdown);
     }
-  }, []);
+  }, [datasetVersion]);
 
   useEffect(() => {
     const firstDay = finalItinerary.days[0];
@@ -877,7 +894,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             onClick={() => {
               clearPersistedItinerary();
               setPersistedAt("");
-              setPersistedCostBreakdown(readPersistedCostBreakdown() ?? currentCostBreakdown);
+              setPersistedCostBreakdown(readPersistedCostBreakdown({ datasetVersion }) ?? currentCostBreakdown);
             }}
           >
             {messages.plannerResult.clearStored}

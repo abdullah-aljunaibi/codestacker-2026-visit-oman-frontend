@@ -6,8 +6,12 @@ import type { Locale } from "@/types/dataset";
 
 import type { PlannerPhase5CFinalItinerary } from "@/lib/planner/final-itinerary";
 import { calculateTripCostBreakdown } from "@/lib/planner/cost-model";
-import { readJsonStorage, removeStorageKey, writeJsonStorage } from "@/lib/persistence/browser-storage";
-import { storageKeys } from "@/lib/persistence/keys";
+import {
+  readJsonStorageFromKeys,
+  removeStorageKeys,
+  writeJsonStorage
+} from "@/lib/persistence/browser-storage";
+import { legacyStorageKeys, storageKeys } from "@/lib/persistence/keys";
 
 interface PersistedCostBreakdownV1 {
   totalTicketCostOmr: number;
@@ -19,6 +23,8 @@ interface PersistedCostBreakdownV1 {
 
 export interface PersistedCostBreakdownV2 {
   schemaVersion: 2;
+  datasetVersion: string;
+  savedAt: string;
   fuelCostOmr: number;
   ticketsCostOmr: number;
   foodCostOmr: number;
@@ -34,9 +40,12 @@ export interface PersistedCostBreakdownV2 {
 }
 
 export interface PersistedItineraryEnvelope {
+  schemaVersion: 2;
   locale: Locale;
   datasetVersion: string;
   savedAt: string;
+  selectedDayNumber: number;
+  costBreakdown: PersistedCostBreakdownV2;
   itinerary: PlannerPhase5CFinalItinerary;
 }
 
@@ -46,35 +55,13 @@ export function deriveCostBreakdown(
 ): PersistedCostBreakdownV2 {
   return {
     schemaVersion: 2,
+    datasetVersion: itinerary.datasetVersion,
+    savedAt: new Date().toISOString(),
     ...calculateTripCostBreakdown({
       itinerary,
       budgetTier
     })
   };
-}
-
-export function readPersistedItinerary(): PersistedItineraryEnvelope | null {
-  const persisted = readJsonStorage<PersistedItineraryEnvelope | null>(storageKeys.itinerary, null);
-  if (!persisted || typeof persisted !== "object") {
-    return null;
-  }
-
-  if (
-    persisted.locale !== "en" &&
-    persisted.locale !== "ar"
-  ) {
-    return null;
-  }
-
-  if (
-    typeof persisted.datasetVersion !== "string" ||
-    typeof persisted.savedAt !== "string" ||
-    !persisted.itinerary
-  ) {
-    return null;
-  }
-
-  return persisted;
 }
 
 export function writePersistedItinerary(value: PersistedItineraryEnvelope): void {
@@ -90,10 +77,13 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 function migrateLegacyCostBreakdown(
-  persisted: PersistedCostBreakdownV1
+  persisted: PersistedCostBreakdownV1,
+  datasetVersion: string
 ): PersistedCostBreakdownV2 {
   return {
     schemaVersion: 2,
+    datasetVersion,
+    savedAt: "",
     fuelCostOmr: 0,
     ticketsCostOmr: persisted.totalTicketCostOmr,
     foodCostOmr: 0,
@@ -109,16 +99,24 @@ function migrateLegacyCostBreakdown(
   };
 }
 
-export function readPersistedCostBreakdown(): PersistedCostBreakdownV2 | null {
-  const persisted = readJsonStorage<unknown>(storageKeys.costBreakdown, null);
-  if (!persisted || typeof persisted !== "object") {
-    return null;
+function isLocale(value: unknown): value is Locale {
+  return value === "en" || value === "ar";
+}
+
+function isValidCostBreakdownV2(
+  value: unknown,
+  options?: { datasetVersion?: string }
+): value is PersistedCostBreakdownV2 {
+  if (!value || typeof value !== "object") {
+    return false;
   }
 
-  const record = persisted as Record<string, unknown>;
+  const record = value as Record<string, unknown>;
 
   if (
     record.schemaVersion === 2 &&
+    typeof record.datasetVersion === "string" &&
+    typeof record.savedAt === "string" &&
     isFiniteNumber(record.fuelCostOmr) &&
     isFiniteNumber(record.ticketsCostOmr) &&
     isFiniteNumber(record.foodCostOmr) &&
@@ -132,8 +130,25 @@ export function readPersistedCostBreakdown(): PersistedCostBreakdownV2 | null {
     isFiniteNumber(record.budgetThresholdOmr) &&
     typeof record.withinBudget === "boolean"
   ) {
-    return record as unknown as PersistedCostBreakdownV2;
+    if (
+      options?.datasetVersion &&
+      record.datasetVersion !== options.datasetVersion
+    ) {
+      return false;
+    }
+
+    return true;
   }
+
+  return false;
+}
+
+function isLegacyCostBreakdownV1(value: unknown): value is PersistedCostBreakdownV1 {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
 
   if (
     isFiniteNumber(record.totalTicketCostOmr) &&
@@ -142,8 +157,82 @@ export function readPersistedCostBreakdown(): PersistedCostBreakdownV2 | null {
     isFiniteNumber(record.freeStopCount) &&
     isFiniteNumber(record.totalStopCount)
   ) {
-    const migrated = migrateLegacyCostBreakdown(record as unknown as PersistedCostBreakdownV1);
-    writeJsonStorage(storageKeys.costBreakdown, migrated);
+    return true;
+  }
+
+  return false;
+}
+
+function isValidItineraryEnvelope(
+  value: unknown,
+  options?: { datasetVersion?: string; locale?: Locale }
+): value is PersistedItineraryEnvelope {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  if (
+    record.schemaVersion !== 2 ||
+    !isLocale(record.locale) ||
+    typeof record.datasetVersion !== "string" ||
+    typeof record.savedAt !== "string" ||
+    !isFiniteNumber(record.selectedDayNumber) ||
+    !record.itinerary ||
+    !isValidCostBreakdownV2(record.costBreakdown)
+  ) {
+    return false;
+  }
+
+  if (options?.locale && record.locale !== options.locale) {
+    return false;
+  }
+
+  if (options?.datasetVersion && record.datasetVersion !== options.datasetVersion) {
+    return false;
+  }
+
+  if (
+    (record.costBreakdown as PersistedCostBreakdownV2).datasetVersion !== record.datasetVersion
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function readPersistedItinerary(options?: {
+  datasetVersion?: string;
+  locale?: Locale;
+}): PersistedItineraryEnvelope | null {
+  const persisted = readJsonStorageFromKeys<unknown>(
+    [storageKeys.itinerary, ...legacyStorageKeys.itinerary],
+    null
+  );
+
+  if (isValidItineraryEnvelope(persisted, options)) {
+    return persisted;
+  }
+
+  return null;
+}
+
+export function readPersistedCostBreakdown(options?: {
+  datasetVersion?: string;
+}): PersistedCostBreakdownV2 | null {
+  const persisted = readJsonStorageFromKeys<unknown>(
+    [storageKeys.costBreakdown, ...legacyStorageKeys.costBreakdown],
+    null
+  );
+
+  if (isValidCostBreakdownV2(persisted, options)) {
+    return persisted;
+  }
+
+  if (isLegacyCostBreakdownV1(persisted) && options?.datasetVersion) {
+    const migrated = migrateLegacyCostBreakdown(persisted, options.datasetVersion);
+    writePersistedCostBreakdown(migrated);
     return migrated;
   }
 
@@ -155,6 +244,10 @@ export function writePersistedCostBreakdown(value: PersistedCostBreakdownV2): vo
 }
 
 export function clearPersistedItinerary(): void {
-  removeStorageKey(storageKeys.itinerary);
-  removeStorageKey(storageKeys.costBreakdown);
+  removeStorageKeys([
+    storageKeys.itinerary,
+    ...legacyStorageKeys.itinerary,
+    storageKeys.costBreakdown,
+    ...legacyStorageKeys.costBreakdown
+  ]);
 }

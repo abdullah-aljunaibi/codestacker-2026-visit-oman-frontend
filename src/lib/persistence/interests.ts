@@ -1,21 +1,54 @@
-import { storageKeys } from "@/lib/persistence/keys";
-import { readJsonStorage, writeJsonStorage } from "@/lib/persistence/browser-storage";
+import { legacyStorageKeys, storageKeys } from "@/lib/persistence/keys";
+import {
+  readJsonStorageFromKeys,
+  removeStorageKeys,
+  writeJsonStorage
+} from "@/lib/persistence/browser-storage";
 
 function unique(values: string[]): string[] {
   return Array.from(new Set(values));
 }
 
-export function readSavedInterestSlugs(): string[] {
-  const slugs = readJsonStorage<string[]>(storageKeys.interests, []);
-  if (!Array.isArray(slugs)) {
+interface PersistedSavedInterestsEnvelope {
+  schemaVersion: 2;
+  slugs: string[];
+}
+
+function normalizeSavedInterestSlugs(value: unknown): string[] {
+  if (!Array.isArray(value)) {
     return [];
   }
 
-  return unique(slugs.filter((value) => typeof value === "string" && value.length > 0));
+  return unique(value.filter((item): item is string => typeof item === "string" && item.length > 0));
+}
+
+export function readSavedInterestSlugs(): string[] {
+  const persisted = readJsonStorageFromKeys<unknown>(
+    [storageKeys.interests, ...legacyStorageKeys.interests],
+    null
+  );
+  const isCurrentEnvelope =
+    persisted &&
+    typeof persisted === "object" &&
+    (persisted as Record<string, unknown>).schemaVersion === 2;
+
+  const slugs =
+    isCurrentEnvelope
+      ? normalizeSavedInterestSlugs((persisted as PersistedSavedInterestsEnvelope).slugs)
+      : normalizeSavedInterestSlugs(persisted);
+
+  if (!isCurrentEnvelope && persisted !== null) {
+    saveInterestSlugs(slugs);
+  }
+
+  return slugs;
 }
 
 export function saveInterestSlugs(slugs: string[]): void {
-  writeJsonStorage(storageKeys.interests, unique(slugs));
+  writeJsonStorage(storageKeys.interests, {
+    schemaVersion: 2,
+    slugs: unique(slugs)
+  } satisfies PersistedSavedInterestsEnvelope);
 }
 
 export function addSavedInterest(slug: string): string[] {
@@ -41,5 +74,5 @@ export function toggleSavedInterest(slug: string): string[] {
 }
 
 export function clearSavedInterests(): void {
-  saveInterestSlugs([]);
+  removeStorageKeys([storageKeys.interests, ...legacyStorageKeys.interests]);
 }

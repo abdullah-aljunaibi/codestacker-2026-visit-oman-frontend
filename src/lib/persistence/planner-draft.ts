@@ -1,6 +1,10 @@
 import type { InterestProfile } from "@/types/domain";
-import { readJsonStorage, removeStorageKey, writeJsonStorage } from "@/lib/persistence/browser-storage";
-import { storageKeys } from "@/lib/persistence/keys";
+import {
+  readJsonStorageFromKeys,
+  removeStorageKeys,
+  writeJsonStorage
+} from "@/lib/persistence/browser-storage";
+import { legacyStorageKeys, storageKeys } from "@/lib/persistence/keys";
 
 type LegacyPlannerDraft = Partial<InterestProfile> & {
   preferredCategories?: unknown;
@@ -12,6 +16,11 @@ type LegacyPlannerDraft = Partial<InterestProfile> & {
   selectedDestinationSlugs?: unknown;
   updatedAt?: unknown;
 };
+
+interface PersistedPlannerDraftEnvelope {
+  schemaVersion: 2;
+  draft: LegacyPlannerDraft;
+}
 
 export interface PlannerDraft extends InterestProfile {
   updatedAt: string;
@@ -34,8 +43,7 @@ export const defaultPlannerDraft: PlannerDraft = {
   updatedAt: ""
 };
 
-export function readPlannerDraft(): PlannerDraft {
-  const raw = readJsonStorage<LegacyPlannerDraft>(storageKeys.plannerDraft, {});
+function normalizePlannerDraft(raw: LegacyPlannerDraft): PlannerDraft {
   const preferredCategorySource = Array.isArray(raw.preferredCategories)
     ? raw.preferredCategories
     : Array.isArray(raw.themes)
@@ -78,8 +86,37 @@ export function readPlannerDraft(): PlannerDraft {
   };
 }
 
+function isPlannerDraftEnvelope(value: unknown): value is PersistedPlannerDraftEnvelope {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  return record.schemaVersion === 2 && !!record.draft && typeof record.draft === "object";
+}
+
+export function readPlannerDraft(): PlannerDraft {
+  const persisted = readJsonStorageFromKeys<unknown>(
+    [storageKeys.plannerDraft, ...legacyStorageKeys.plannerDraft],
+    null
+  );
+
+  const isCurrentEnvelope = isPlannerDraftEnvelope(persisted);
+  const normalized = isCurrentEnvelope
+    ? normalizePlannerDraft(persisted.draft)
+    : persisted && typeof persisted === "object"
+      ? normalizePlannerDraft(persisted as LegacyPlannerDraft)
+      : defaultPlannerDraft;
+
+  if (!isCurrentEnvelope && persisted !== null) {
+    writePlannerDraft(normalized);
+  }
+
+  return normalized;
+}
+
 export function writePlannerDraft(draft: PlannerDraft): void {
-  writeJsonStorage(storageKeys.plannerDraft, {
+  const normalizedDraft = {
     ...draft,
     preferredCategories: draft.preferredCategories.filter(
       (category) => typeof category === "string" && category.length > 0
@@ -89,9 +126,14 @@ export function writePlannerDraft(draft: PlannerDraft): void {
     budget: draft.budget,
     travelMonth: Math.max(1, Math.min(12, Math.floor(draft.travelMonth))),
     updatedAt: new Date().toISOString()
-  });
+  };
+
+  writeJsonStorage(storageKeys.plannerDraft, {
+    schemaVersion: 2,
+    draft: normalizedDraft
+  } satisfies PersistedPlannerDraftEnvelope);
 }
 
 export function clearPlannerDraft(): void {
-  removeStorageKey(storageKeys.plannerDraft);
+  removeStorageKeys([storageKeys.plannerDraft, ...legacyStorageKeys.plannerDraft]);
 }

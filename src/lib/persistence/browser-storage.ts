@@ -1,10 +1,26 @@
+function isBrowser(): boolean {
+  return typeof window !== "undefined";
+}
+
+export function readStorageItem(key: string): string | null {
+  if (!isBrowser()) {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
 export function readJsonStorage<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") {
+  if (!isBrowser()) {
     return fallback;
   }
 
   try {
-    const rawValue = window.localStorage.getItem(key);
+    const rawValue = readStorageItem(key);
     if (!rawValue) {
       return fallback;
     }
@@ -15,8 +31,19 @@ export function readJsonStorage<T>(key: string, fallback: T): T {
   }
 }
 
+export function readJsonStorageFromKeys<T>(keys: readonly string[], fallback: T): T {
+  for (const key of keys) {
+    const value = readJsonStorage<T | undefined>(key, undefined);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  return fallback;
+}
+
 export function writeJsonStorage<T>(key: string, value: T): void {
-  if (typeof window === "undefined") {
+  if (!isBrowser()) {
     return;
   }
 
@@ -28,7 +55,7 @@ export function writeJsonStorage<T>(key: string, value: T): void {
 }
 
 export function removeStorageKey(key: string): void {
-  if (typeof window === "undefined") {
+  if (!isBrowser()) {
     return;
   }
 
@@ -37,4 +64,10 @@ export function removeStorageKey(key: string): void {
   } catch {
     // Ignore storage removal failures so reset actions do not crash the page.
   }
+}
+
+export function removeStorageKeys(keys: readonly string[]): void {
+  keys.forEach((key) => {
+    removeStorageKey(key);
+  });
 }
