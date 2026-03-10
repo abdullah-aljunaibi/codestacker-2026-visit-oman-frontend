@@ -1,56 +1,86 @@
-# Planning Algorithm
+# Planner Algorithm
 
-## Input
+## End-to-End Flow
 
-The planner consumes:
-- preferred categories
-- trip duration in days
-- travel intensity
-- budget level
-- travel month
-- saved-interest seed slugs
+The planner converts a traveler profile into a final itinerary through five deterministic stages:
 
-## Pipeline
+1. score destinations
+2. choose selected and waitlist candidates
+3. allocate trip days across regions
+4. route stops inside each region
+5. repair the itinerary for budget and underused days
 
-### 1. Destination Normalization
-Raw dataset entries are normalized into planner-ready destinations with derived region keys, duration hours, and budget bands.
+## Scoring Model
 
-### 2. Candidate Scoring
-Each destination receives primitive scores for:
+Weighted ranking combines five normalized signals:
+
 - category match
 - season match
 - budget match
 - crowd preference
 - duration fit
 
-Those primitives are normalized across the candidate pool to the `0..1` range before weighted combination. Default weights are configurable and normalized before use.
+Each destination receives primitive scores first, then normalized weighted contributions. Stable sorting is applied by total score and slug, so identical inputs produce the same ranked order.
 
-### 3. Candidate Ranking
-Candidates are sorted by total score descending with slug as the deterministic tie-breaker. A target candidate count is derived from trip duration and travel intensity, producing selected, waitlist, and excluded sets.
+## Region Allocation
 
-### 4. Region Allocation
-Selected candidates are grouped by governorate, then by destination clusters inside each governorate. Each region receives an allocation weight driven by:
-- average match score
-- destination density
-- diversity bonus
+Selected candidates are grouped by region. Each region receives an allocation weight based on:
 
-Trip days are distributed with a minimum of one day per allocated region and diminishing returns for additional days so a single high-density region does not monopolize the itinerary.
+- average candidate score
+- destination density inside the candidate pool
+- a diversity bonus derived from clustered match signatures
 
-### 5. Intra-Region Routing
-Within each allocated region, candidates are ordered by stable priority and then refined with a nearest-neighbor pass. Stops are distributed across region-days with a minimum-stop guarantee when feasible and an hours-per-day target.
+Trip days are distributed across regions deterministically, then expanded into a day-by-day region sequence.
 
-### 6. Itinerary Repair
-After the initial itinerary is assembled:
-- if total ticket cost exceeds the trip budget target, expensive stops are swapped for cheaper alternatives in the same region with overlapping categories
-- if a day is under-utilized, nearby unscheduled attractions from the same region are added
+## Intra-Region Routing
 
-Every repair action is recorded in the final itinerary contract.
+### Beam search
 
-## Output
+Inside a region, candidate stops are first priority-sorted, then routed with bounded beam search.
 
-The final contract contains:
-- day-by-day itinerary
-- stop metadata and totals
-- deterministic notes
-- repair summary and repair actions
-- source contract versions for traceability
+- beam width: `4`
+- distance metric: haversine distance matrix
+- tie breaking: route signature by slug order
+
+The beam keeps only the best partial routes by cumulative travel distance. This improves on plain nearest-neighbor while staying bounded and deterministic.
+
+### 2-opt refinement
+
+After beam search produces a full candidate order, 2-opt local optimization is applied to reduce path crossings and shorten the open route further. Improvements are accepted deterministically until no better reversal remains.
+
+## Daily Planning
+
+The region route is split into day plans using two constraints:
+
+- soft target from region allocation hours-per-day
+- hard operating window from `08:00` to `20:00`
+
+Routing also estimates inter-stop travel time from haversine distance and a fixed average overland speed. Every day keeps at least one remaining stop when feasible so later days do not become empty by accident.
+
+Each planned stop receives:
+
+- start time
+- end time
+- travel minutes from the previous stop
+- scheduled visit duration
+
+## Repair
+
+Repair is intentionally deterministic and limited in scope.
+
+### Budget repair
+
+If the planned itinerary exceeds the trip budget target, the repair step looks for cheaper same-region replacements with overlapping categories.
+
+### Underutilized day fill
+
+If a day remains too light, the repair step adds the nearest unscheduled stop from the same region, preferring short-distance additions and stronger scores.
+
+## Why This Fits The Challenge
+
+The algorithm balances explainability, predictability, and decent route quality:
+
+- score-based selection stays interpretable
+- allocation preserves regional variety
+- beam search plus 2-opt improves route quality without introducing external dependencies
+- repair keeps the itinerary usable when budget or day utilization drift

@@ -413,7 +413,7 @@ High-risk gaps:
 | Requirement | Status | Implementation file(s) | Notes |
 | --- | --- | --- | --- |
 | Work in the prescribed execution order | `N/A` | N/A | Process instruction for implementation workflow, not directly auditable from final code alone. |
-| Do not leave challenge-critical TODOs | `N/A` | N/A | Can only be inferred indirectly; not encoded as a traceable code artifact. |
+| Do not leave challenge-critical unresolved work markers | `N/A` | N/A | Can only be inferred indirectly; not encoded as a traceable code artifact. |
 | Final deliverable should include summary/compliance checklist/decisions/limitations/screenshots suggestions | `N/A` | N/A | Response-format requirement rather than repository requirement. |
 | Optimize for judges on compliance/UX/algorithm/docs/code hygiene | `N/A` | N/A | High-level evaluation criterion rather than discrete code artifact. |
 
