@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { DestinationImage } from "@/components/destination-image";
+import { DestinationCard } from "@/components/destination-card";
 import { SaveInterestButton } from "@/components/save-interest-button";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
@@ -15,15 +15,10 @@ import { applyDiscoveryQuery, parseDiscoveryFilters } from "@/lib/discovery/quer
 import { resolveLocale } from "@/lib/i18n/config";
 import {
   formatMessage,
-  formatTicketCost,
   getMessages,
   getMonthLabel,
   getSortLabel
 } from "@/lib/i18n/messages";
-
-function crowdDots(level: number) {
-  return Array.from({ length: 5 }, (_, index) => index < level);
-}
 
 export default async function DiscoverPage({
   params,
@@ -181,56 +176,22 @@ export default async function DiscoverPage({
         ) : (
           <section className="destinationGrid">
             {results.map((destination) => (
-              <article key={destination.id} className="card destinationCard">
-                <DestinationImage destination={destination} locale={locale} />
-                <div className="destinationCardTop">
-                  <p className="eyebrow">{destination.regionLabel}</p>
-                  <div className="crowdMeter" aria-label={`${messages.common.crowdLevel} ${destination.crowd_level}/5`}>
-                    {crowdDots(destination.crowd_level).map((active, index) => (
-                      <span
-                        key={`${destination.slug}-crowd-${index + 1}`}
-                        className={active ? "crowdDot crowdDotActive" : "crowdDot"}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <h2>
-                  <Link href={`/${locale}/discover/${destination.slug}`}>{destination.name[locale]}</Link>
-                </h2>
-                <p>{destination.description[locale]}</p>
-
-                <div className="metaList">
-                  <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
-                  <span className="meta">
-                    {destination.recommendedDurationHours}
-                    {messages.common.hourUnitShort}
-                  </span>
-                  <span className="meta">{getMonthLabel(destination.recommended_months[0] ?? 1, locale)}</span>
-                </div>
-
-                <div className="tagRow">
-                  {destination.categories.map((category) => (
-                    <Link
-                      key={`${destination.slug}-${category}`}
-                      href={`/${locale}/discover?category=${category}`}
-                      className="meta tagLink"
-                    >
-                      {categories.find((option) => option.value === category)?.label ?? category}
+              <DestinationCard
+                key={destination.id}
+                destination={destination}
+                locale={locale}
+                action={
+                  <div className="ctaRow destinationActions">
+                    <SaveInterestButton slug={destination.slug} locale={locale} />
+                    <Link className="pill pillPrimary" href={`/${locale}/discover/${destination.slug}`}>
+                      {messages.home.ctaPrimary}
                     </Link>
-                  ))}
-                </div>
-
-                <div className="ctaRow destinationActions">
-                  <SaveInterestButton slug={destination.slug} locale={locale} />
-                  <Link className="pill pillPrimary" href={`/${locale}/discover/${destination.slug}`}>
-                    {messages.home.ctaPrimary}
-                  </Link>
-                  <Link className="pill" href={`/${locale}/planner?focus=${destination.slug}`}>
-                    {messages.discover.planWithThis}
-                  </Link>
-                </div>
-              </article>
+                    <Link className="pill" href={`/${locale}/planner?focus=${destination.slug}`}>
+                      {messages.discover.planWithThis}
+                    </Link>
+                  </div>
+                }
+              />
             ))}
           </section>
         )}

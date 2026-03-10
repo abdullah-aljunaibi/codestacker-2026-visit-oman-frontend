@@ -109,6 +109,7 @@
     "quickFactsLabel": "{count} destinations in the current dataset.",
     "featuredTitle": "Featured destinations",
     "featuredBody": "A premium shortlist of lower-crowd, high-value places to start your trip planning.",
+    "destinationBadge": "{count} destinations",
     "plannerTitle": "Build the trip after discovery",
     "plannerBody": "Save standout places while browsing, then open the planner to generate a deterministic itinerary and cost view.",
     "plannerPrimary": "Start planning",

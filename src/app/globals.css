@@ -933,6 +933,11 @@ a {
   .plannerWorkbench {
     grid-template-columns: 1fr;
   }
+
+  .categoryExplorationGrid,
+  .featureDeck {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -956,6 +961,20 @@ a {
   .card,
   .filterBar {
     padding: 0.9rem;
+  }
+
+  .categoryExplorationGrid,
+  .featureDeck,
+  .destinationGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .categoryExplorationCard {
+    min-height: 16rem;
+  }
+
+  .destinationCard {
+    padding: 0;
   }
 }
 
@@ -1106,12 +1125,74 @@ pre {
 }
 
 .spotlightCard,
-.destinationCard,
-.destinationCardWide,
 .regionCard {
   display: grid;
   gap: 0.9rem;
   align-content: start;
+}
+
+.categoryExplorationGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.categoryExplorationCard {
+  position: relative;
+  min-height: 18rem;
+  border-radius: 22px;
+  overflow: hidden;
+  text-decoration: none;
+  box-shadow: 0 22px 55px rgba(26, 26, 46, 0.16);
+  transform: scale(1);
+  transition:
+    transform 180ms ease,
+    filter 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.categoryExplorationCard:hover {
+  transform: scale(1.02);
+  filter: brightness(1.05);
+  box-shadow: 0 26px 68px rgba(26, 26, 46, 0.22);
+}
+
+.categoryExplorationImage {
+  object-fit: cover;
+}
+
+.categoryExplorationOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 18, 28, 0.08) 0%, rgba(6, 18, 28, 0.72) 100%);
+}
+
+.categoryExplorationContent {
+  position: absolute;
+  inset-inline: 1.1rem;
+  inset-block-end: 1.1rem;
+  display: grid;
+  gap: 0.6rem;
+  z-index: 1;
+}
+
+.categoryExplorationContent h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+
+.categoryCountBadge {
+  display: inline-flex;
+  justify-self: start;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  backdrop-filter: blur(12px);
 }
 
 .destinationImage {
@@ -1129,6 +1210,12 @@ pre {
 .destinationImageHero {
   min-height: 260px;
   margin-bottom: 0.5rem;
+}
+
+.destinationImageCard {
+  border-radius: 12px 12px 0 0;
+  min-height: 0;
+  aspect-ratio: 16 / 9;
 }
 
 .destinationImageMedia {
@@ -1174,7 +1261,7 @@ pre {
 }
 
 .featureDeck {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .destinationGrid {
@@ -1182,8 +1269,95 @@ pre {
   margin-top: 1rem;
 }
 
-.destinationCardWide {
+.destinationCard {
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
+  padding: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 251, 247, 0.96);
+  box-shadow: 0 14px 32px rgba(26, 26, 46, 0.09);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.destinationCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 46px rgba(26, 26, 46, 0.14);
+}
+
+.destinationCardImageLink {
+  display: block;
+}
+
+.destinationCardBody {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.destinationCardHeader,
+.destinationCardContent,
+.destinationCrowd {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.destinationCardContent {
+  align-items: flex-end;
+}
+
+.destinationRegionBadge,
+.destinationPriceBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.38rem 0.78rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.destinationRegionBadge {
+  background: color-mix(in srgb, var(--region-accent) 16%, white);
+  color: var(--region-accent);
+}
+
+.destinationPriceBadge {
+  background: rgba(212, 165, 116, 0.16);
+  color: #8b6238;
+}
+
+.destinationCardTitle {
+  margin: 0;
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.destinationCardTitle a {
+  text-decoration: none;
+}
+
+.destinationCrowd {
+  justify-content: flex-start;
+}
+
+.destinationCrowdLabel {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.destinationCardAction {
+  margin-top: auto;
+}
+
+.destinationCardFeatured {
+  height: 100%;
 }
 
 .destinationActions {
@@ -1474,6 +1648,11 @@ pre {
     display: grid;
     align-items: start;
   }
+
+  .categoryExplorationGrid,
+  .featureDeck {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -1493,7 +1672,10 @@ pre {
 
   .heroStatsGrid,
   .heroMiniGrid,
-  .immersiveHeroStatsBar {
+  .immersiveHeroStatsBar,
+  .categoryExplorationGrid,
+  .featureDeck,
+  .destinationGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1503,5 +1685,9 @@ pre {
 
   .immersiveHeroCopy h1 {
     max-width: 100%;
+  }
+
+  .categoryExplorationCard {
+    min-height: 16rem;
   }
 }

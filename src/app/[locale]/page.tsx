@@ -1,27 +1,20 @@
 import Link from "next/link";
 
+import { CategoryExplorationCard } from "@/components/category-exploration-card";
+import { DestinationCard } from "@/components/destination-card";
 import { DestinationImage } from "@/components/destination-image";
 import { ImmersiveHero } from "@/components/immersive-hero";
 import { SiteHeader } from "@/components/site-header";
+import { getImmersiveCategoryCards } from "@/lib/data/immersive-showcase";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import {
-  getCategorySpotlights,
   getFeaturedDestinations,
   getRegionHighlights,
   getRegionOptions
 } from "@/lib/data/selectors";
 import { resolveLocale } from "@/lib/i18n/config";
-import {
-  formatMessage,
-  formatTicketCost,
-  getMessages,
-  getMonthLabel
-} from "@/lib/i18n/messages";
-
-function getSeasonCopy(months: number[], locale: "en" | "ar") {
-  return months.slice(0, 3).map((month) => getMonthLabel(month, locale)).join(" • ");
-}
+import { formatMessage, getMessages } from "@/lib/i18n/messages";
 
 export default async function LocaleHomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = await params;
@@ -33,11 +26,11 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
     normalizedDestinations.map((destination) => [destination.slug, destination])
   );
   const regions = getRegionOptions(destinations, locale);
-  const featuredDestinations = getFeaturedDestinations(destinations).map((destination) => ({
+  const featuredDestinations = getFeaturedDestinations(destinations, 6).map((destination) => ({
     ...normalizedBySlug.get(destination.slug)!,
     ...destination
   }));
-  const categorySpotlights = getCategorySpotlights(destinations, locale);
+  const categoryCards = getImmersiveCategoryCards(destinations, locale);
   const regionHighlights = getRegionHighlights(destinations, locale);
 
   return (
@@ -60,32 +53,16 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
             <p>{messages.home.sectionsBody}</p>
           </div>
 
-          <div className="infoGrid spotlightGrid">
-            {categorySpotlights.map((category) => (
-              <article key={category.value} className="card spotlightCard">
-                <div className="spotlightHeader">
-                  <div>
-                    <h3>{category.label}</h3>
-                    <p>{formatMessage(messages.home.quickFactsLabel, { count: category.count })}</p>
-                  </div>
-                  <span className="meta">{category.count}</span>
-                </div>
-                <div className="spotlightLinks">
-                  {category.featured.map((destination) => (
-                    <Link
-                      key={destination.slug}
-                      href={`/${locale}/discover/${destination.slug}`}
-                      className="spotlightLink"
-                    >
-                      <strong>{destination.name[locale]}</strong>
-                      <span>{normalizedBySlug.get(destination.slug)?.regionLabel ?? destination.region.ar}</span>
-                    </Link>
-                  ))}
-                </div>
-                <Link className="pill" href={`/${locale}/discover?category=${category.value}`}>
-                  {messages.home.categoryCta}
-                </Link>
-              </article>
+          <div className="categoryExplorationGrid">
+            {categoryCards.map((category) => (
+              <CategoryExplorationCard
+                key={category.id}
+                locale={locale}
+                title={category.title}
+                href={category.href}
+                count={category.count}
+                image={category.image}
+              />
             ))}
           </div>
         </section>
@@ -100,22 +77,14 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
           </div>
 
           <div className="featureDeck">
-            {featuredDestinations.map((destination) => (
-              <article key={destination.slug} className="card destinationCard destinationCardWide">
-                <DestinationImage destination={destination} locale={locale} className="destinationImage" />
-                <p className="eyebrow">{destination.regionLabel}</p>
-                <h3>
-                  <Link href={`/${locale}/discover/${destination.slug}`}>{destination.name[locale]}</Link>
-                </h3>
-                <p>{destination.description[locale]}</p>
-                <div className="metaList">
-                  <span className="meta">{messages.common.crowdLevel}: {destination.crowd_level}/5</span>
-                  <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
-                  <span className="meta">
-                    {getMonthLabel(destination.recommended_months[0] ?? 1, locale)}
-                  </span>
-                </div>
-              </article>
+            {featuredDestinations.map((destination, index) => (
+              <DestinationCard
+                key={destination.slug}
+                destination={destination}
+                locale={locale}
+                className="destinationCardFeatured"
+                priority={index < 2}
+              />
             ))}
           </div>
         </section>
