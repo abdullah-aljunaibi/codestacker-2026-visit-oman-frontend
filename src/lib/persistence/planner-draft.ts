@@ -1,4 +1,4 @@
-import type { InterestProfile } from "@/types/domain";
+import type { InterestProfile } from "@/types/planner";
 import { storageKeys } from "@/lib/persistence/keys";
 import { readJsonStorage, writeJsonStorage } from "@/lib/persistence/browser-storage";
 

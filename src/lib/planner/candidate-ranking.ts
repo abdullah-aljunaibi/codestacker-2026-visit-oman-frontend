@@ -1,4 +1,7 @@
-import type { Destination, InterestProfile } from "@/types/domain";
+import type { DatasetDestination } from "@/types/dataset";
+import type { InterestProfile } from "@/types/planner";
+
+import { getRegionKey, minutesToHours } from "@/lib/data/normalize-destinations";
 
 import {
   defaultWeightedScoringConfig,
@@ -10,7 +13,7 @@ export type CandidateDecision = "selected" | "waitlist" | "excluded";
 
 export interface RankedCandidate {
   rank: number;
-  destination: Destination;
+  destination: DatasetDestination;
   totalScore: number;
   scoreBreakdown: WeightedScoreBreakdown;
   decision: CandidateDecision;
@@ -23,7 +26,7 @@ export interface PlannerHandoffRouteCandidate {
   rank: number;
   score: number;
   region: string;
-  coordinates: Destination["coordinates"];
+  coordinates: DatasetDestination["coordinates"];
   recommendedDurationHours: number;
   strengths: string[];
   tradeoffs: string[];
@@ -68,7 +71,7 @@ export interface CandidateRankingResult {
 
 export interface CandidateRankingInput {
   profile: InterestProfile;
-  destinations: Destination[];
+  destinations: DatasetDestination[];
   seedDestinationSlugs?: string[];
   datasetVersion: string;
 }
@@ -126,9 +129,9 @@ function buildRouteCandidate(candidate: RankedCandidate): PlannerHandoffRouteCan
     slug: candidate.destination.slug,
     rank: candidate.rank,
     score: candidate.totalScore,
-    region: candidate.destination.region,
+    region: getRegionKey(candidate.destination),
     coordinates: candidate.destination.coordinates,
-    recommendedDurationHours: candidate.destination.recommendedDurationHours,
+    recommendedDurationHours: minutesToHours(candidate.destination.avg_visit_duration_minutes),
     strengths: candidate.scoreBreakdown.signals.strengths,
     tradeoffs: candidate.scoreBreakdown.signals.tradeoffs,
     reasonCodes: reasonCodesFromBreakdown(candidate.scoreBreakdown)

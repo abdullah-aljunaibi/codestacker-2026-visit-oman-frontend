@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
 
-import { destinationsSample } from "@/data/destinations.sample";
+import { loadDestinationsWithVersion } from "@/lib/data/load-destinations";
 import { localeDirection, resolveLocale } from "@/lib/i18n/config";
 import { rankCandidatesForPlanner } from "@/lib/planner/candidate-ranking";
 import { assembleFinalItinerary } from "@/lib/planner/final-itinerary";
@@ -12,11 +12,10 @@ import { allocateTripDaysAcrossRegions } from "@/lib/planner/region-allocation";
 import type { PlannerDraft } from "@/lib/persistence/planner-draft";
 import { defaultPlannerDraft, readPlannerDraft } from "@/lib/persistence/planner-draft";
 
-const plannerDatasetVersion = "destinations.sample.v1";
-
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = use(params);
   const locale = resolveLocale(localeParam);
+  const { datasetVersion, destinations } = loadDestinationsWithVersion();
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
 
   useEffect(() => {
@@ -33,11 +32,11 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
           budget: draft.budget,
           travelMonth: draft.travelMonth
         },
-        destinations: destinationsSample,
+        destinations,
         seedDestinationSlugs: draft.selectedDestinationSlugs,
-        datasetVersion: plannerDatasetVersion
+        datasetVersion
       }),
-    [draft]
+    [datasetVersion, destinations, draft]
   );
 
   const regionAllocation = useMemo(() => allocateTripDaysAcrossRegions(ranking.handoff), [ranking]);
@@ -55,9 +54,9 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
       assembleFinalItinerary({
         handoff: ranking.handoff,
         routing: routingDayPlan,
-        destinations: destinationsSample
+        destinations
       }),
-    [ranking.handoff, routingDayPlan]
+    [destinations, ranking.handoff, routingDayPlan]
   );
 
   return (

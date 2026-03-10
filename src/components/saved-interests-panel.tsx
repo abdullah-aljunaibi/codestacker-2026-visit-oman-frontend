@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { destinationsSample } from "@/data/destinations.sample";
+import { loadDestinations } from "@/lib/data/load-destinations";
+import { filterDestinationsBySavedSlugs } from "@/lib/data/selectors";
 import {
   clearSavedInterests,
   readSavedInterestSlugs,
@@ -13,15 +14,16 @@ import { resolveLocale } from "@/lib/i18n/config";
 
 export function SavedInterestsPanel({ locale }: { locale: string }) {
   const normalizedLocale = resolveLocale(locale);
+  const destinations = loadDestinations();
   const [savedSlugs, setSavedSlugs] = useState<string[]>([]);
 
   useEffect(() => {
     setSavedSlugs(readSavedInterestSlugs());
   }, []);
 
-  const destinations = useMemo(
-    () => destinationsSample.filter((destination) => savedSlugs.includes(destination.slug)),
-    [savedSlugs]
+  const savedDestinations = useMemo(
+    () => filterDestinationsBySavedSlugs(destinations, savedSlugs),
+    [destinations, savedSlugs]
   );
 
   if (savedSlugs.length === 0) {
@@ -54,7 +56,7 @@ export function SavedInterestsPanel({ locale }: { locale: string }) {
       </p>
 
       <div className="listStack">
-        {destinations.map((destination) => (
+        {savedDestinations.map((destination) => (
           <article key={destination.id} className="card cardSubtle">
             <h3>
               <Link href={`/${normalizedLocale}/discover/${destination.slug}`}>

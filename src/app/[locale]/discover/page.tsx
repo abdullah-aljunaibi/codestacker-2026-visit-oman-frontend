@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import { SaveInterestButton } from "@/components/save-interest-button";
-import { destinationsSample } from "@/data/destinations.sample";
+import { loadDestinations } from "@/lib/data/load-destinations";
+import { getRegionOptions } from "@/lib/data/selectors";
+import { getLocalizedRegionLabel, minutesToHours } from "@/lib/data/normalize-destinations";
 import { getDiscoveryCopy } from "@/lib/discovery/content";
 import {
   applyDiscoveryQuery,
@@ -23,10 +25,11 @@ export default async function DiscoverPage({
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const copy = getDiscoveryCopy(locale);
   const filters = parseDiscoveryFilters(resolvedSearchParams);
+  const destinations = loadDestinations();
 
-  const regions = getRegions(destinationsSample);
-  const tags = getTags(destinationsSample);
-  const results = applyDiscoveryQuery([...destinationsSample], filters);
+  const regions = getRegionOptions(destinations, locale);
+  const tags = getTags(destinations);
+  const results = applyDiscoveryQuery([...destinations], filters);
 
   return (
     <main dir={localeDirection[locale]} className={locale === "ar" ? "ar" : undefined}>
@@ -65,8 +68,8 @@ export default async function DiscoverPage({
             <select id="region" name="region" defaultValue={filters.region ?? ""}>
               <option value="">{copy.allRegions}</option>
               {regions.map((region) => (
-                <option key={region} value={region}>
-                  {region}
+                <option key={region.value} value={region.value}>
+                  {region.label}
                 </option>
               ))}
             </select>
@@ -85,21 +88,13 @@ export default async function DiscoverPage({
           </div>
 
           <div>
-            <label htmlFor="budget">{copy.filterBudget}</label>
-            <select id="budget" name="budget" defaultValue={filters.budget ?? ""}>
-              <option value="">{copy.allBudgets}</option>
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
-          </div>
-
-          <div>
             <label htmlFor="sort">{copy.sortLabel}</label>
-            <select id="sort" name="sort" defaultValue={filters.sort ?? "popularity_desc"}>
-              <option value="popularity_desc">Popularity</option>
-              <option value="cost_asc">Cost (Low to High)</option>
-              <option value="duration_asc">Duration (Short to Long)</option>
+            <select id="sort" name="sort" defaultValue={filters.sort ?? "crowd_asc"}>
+              <option value="crowd_asc">{locale === "ar" ? "الأقل ازدحاماً" : "Crowd (Low to High)"}</option>
+              <option value="cost_asc">{locale === "ar" ? "التكلفة (الأقل أولاً)" : "Cost (Low to High)"}</option>
+              <option value="duration_asc">
+                {locale === "ar" ? "المدة (الأقصر أولاً)" : "Duration (Short to Long)"}
+              </option>
             </select>
           </div>
 
@@ -130,9 +125,9 @@ export default async function DiscoverPage({
                 </h3>
                 <p>{destination.description[locale]}</p>
                 <div className="metaList">
-                  <span className="meta">{destination.region}</span>
-                  <span className="meta">{destination.costLevel}</span>
-                  <span className="meta">{destination.recommendedDurationHours}h</span>
+                  <span className="meta">{getLocalizedRegionLabel(destination, locale)}</span>
+                  <span className="meta">{destination.ticket_cost_omr} OMR</span>
+                  <span className="meta">{minutesToHours(destination.avg_visit_duration_minutes)}h</span>
                 </div>
                 <div className="ctaRow" style={{ marginTop: "0.85rem" }}>
                   <SaveInterestButton slug={destination.slug} locale={locale} />

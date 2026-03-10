@@ -1,14 +1,15 @@
 import { PlannerForm } from "@/components/planner-form";
-import { destinationsSample } from "@/data/destinations.sample";
+import { loadDestinations } from "@/lib/data/load-destinations";
 import { getTags } from "@/lib/discovery/query";
 import { localeDirection, resolveLocale } from "@/lib/i18n/config";
 
 export default async function PlannerPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
-  const allTags = getTags(destinationsSample);
+  const destinations = loadDestinations();
+  const allTags = getTags(destinations);
 
-  const destinationOptions = destinationsSample.map((destination) => ({
+  const destinationOptions = destinations.map((destination) => ({
     slug: destination.slug,
     name: destination.name[locale]
   }));

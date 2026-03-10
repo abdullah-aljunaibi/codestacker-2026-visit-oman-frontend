@@ -1,17 +1,18 @@
-import type { Destination, InterestProfile } from "@/types/domain";
+import type { DatasetDestination } from "@/types/dataset";
+import type { InterestProfile } from "@/types/planner";
 
 import {
+  budgetLevelToTargetCost,
   centroid,
   clamp01,
-  costLevelToOrdinal,
   haversineDistanceKm,
   monthDistance,
-  normalizePopularity,
+  normalizeCrowdLevel,
   toUniqueNormalized
 } from "@/lib/planner/scoring-utils";
 
-export function scoreCategoryInterestMatch(destinationTags: string[], preferredThemes: string[]): number {
-  const destinationSet = new Set(toUniqueNormalized(destinationTags));
+export function scoreCategoryInterestMatch(destinationCategories: string[], preferredThemes: string[]): number {
+  const destinationSet = new Set(toUniqueNormalized(destinationCategories));
   const themeSet = new Set(toUniqueNormalized(preferredThemes));
 
   if (themeSet.size === 0) {
@@ -25,15 +26,17 @@ export function scoreCategoryInterestMatch(destinationTags: string[], preferredT
   return clamp01(overlapCount / themeSet.size);
 }
 
-export function scoreSeasonFit(idealVisitMonths: number[], travelMonth?: number): number {
+export function scoreSeasonFit(recommendedMonths: number[], travelMonth?: number): number {
   if (!travelMonth) {
     return 0.5;
   }
-  if (idealVisitMonths.length === 0) {
+  if (recommendedMonths.length === 0) {
     return 0.5;
   }
 
-  const validMonths = idealVisitMonths.filter((month) => Number.isInteger(month) && month >= 1 && month <= 12);
+  const validMonths = recommendedMonths.filter(
+    (month) => Number.isInteger(month) && month >= 1 && month <= 12
+  );
   if (validMonths.length === 0) {
     return 0.5;
   }
@@ -46,48 +49,47 @@ export function scoreSeasonFit(idealVisitMonths: number[], travelMonth?: number)
   return clamp01(1 - nearestDistance / 6);
 }
 
-export function normalizeCrowdPressure(popularityScore: number): number {
-  return normalizePopularity(popularityScore);
+export function normalizeCrowdPressure(crowdLevel: number): number {
+  return normalizeCrowdLevel(crowdLevel);
 }
 
 export function normalizeCostAgainstBudget(
-  destinationCostLevel: Destination["costLevel"],
+  destinationTicketCostOmr: number,
   budgetLevel: InterestProfile["budget"]
 ): number {
-  const destinationCost = costLevelToOrdinal(destinationCostLevel);
-  const budget = costLevelToOrdinal(budgetLevel);
+  const budgetTargetCost = budgetLevelToTargetCost(budgetLevel);
 
-  if (destinationCost <= budget) {
-    return clamp01(1 - (budget - destinationCost) * 0.1);
+  if (destinationTicketCostOmr <= budgetTargetCost) {
+    return clamp01(1 - (budgetTargetCost - destinationTicketCostOmr) / Math.max(budgetTargetCost, 1) * 0.1);
   }
 
-  return clamp01(1 - (destinationCost - budget) * 0.45);
+  return clamp01(1 - (destinationTicketCostOmr - budgetTargetCost) / Math.max(budgetTargetCost, 1));
 }
 
 export function scoreDiversityGain(
-  candidate: Pick<Destination, "region" | "tags">,
-  selected: Array<Pick<Destination, "region" | "tags">>
+  candidate: Pick<DatasetDestination, "region" | "categories">,
+  selected: Array<Pick<DatasetDestination, "region" | "categories">>
 ): number {
   if (selected.length === 0) {
     return 1;
   }
 
-  const seenRegions = new Set(selected.map((destination) => destination.region));
+  const seenRegions = new Set(selected.map((destination) => destination.region.en));
   const seenTags = new Set(
-    selected.flatMap((destination) => toUniqueNormalized(destination.tags))
+    selected.flatMap((destination) => toUniqueNormalized(destination.categories))
   );
 
-  const normalizedCandidateTags = toUniqueNormalized(candidate.tags);
+  const normalizedCandidateTags = toUniqueNormalized(candidate.categories);
   const newTagCount = normalizedCandidateTags.filter((tag) => !seenTags.has(tag)).length;
   const tagNovelty = normalizedCandidateTags.length === 0 ? 0 : newTagCount / normalizedCandidateTags.length;
-  const regionNovelty = seenRegions.has(candidate.region) ? 0 : 1;
+  const regionNovelty = seenRegions.has(candidate.region.en) ? 0 : 1;
 
   return clamp01(tagNovelty * 0.7 + regionNovelty * 0.3);
 }
 
 export function scoreDetourPenalty(
-  candidateCoordinates: Destination["coordinates"],
-  selected: Array<Pick<Destination, "coordinates">>,
+  candidateCoordinates: DatasetDestination["coordinates"],
+  selected: Array<Pick<DatasetDestination, "coordinates">>,
   softLimitKm = 120
 ): number {
   if (selected.length === 0) {

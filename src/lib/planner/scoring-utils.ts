@@ -1,12 +1,8 @@
-import type { Destination, InterestProfile } from "@/types/domain";
+import type { DatasetCoordinates, DatasetDestination } from "@/types/dataset";
+import type { InterestProfile } from "@/types/planner";
 
 export type BudgetLevel = InterestProfile["budget"];
-export type CostLevel = Destination["costLevel"];
-
-export interface Coordinates {
-  lat: number;
-  lng: number;
-}
+export type Coordinates = DatasetCoordinates;
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -27,18 +23,25 @@ export function monthDistance(a: number, b: number): number {
   return Math.min(directDistance, 12 - directDistance);
 }
 
-export function costLevelToOrdinal(level: CostLevel | BudgetLevel): number {
+export function budgetLevelToTargetCost(level: BudgetLevel): number {
   if (level === "low") {
-    return 1;
+    return 5;
   }
   if (level === "medium") {
-    return 2;
+    return 15;
   }
-  return 3;
+  return 30;
 }
 
-export function normalizePopularity(popularityScore: number): number {
-  return clamp01(popularityScore / 100);
+export function normalizeCrowdLevel(crowdLevel: number): number {
+  return clamp01((crowdLevel - 1) / 4);
+}
+
+export function normalizeTicketCost(ticketCostOmr: number, minCost: number, maxCost: number): number {
+  if (maxCost <= minCost) {
+    return 0;
+  }
+  return clamp01((ticketCostOmr - minCost) / (maxCost - minCost));
 }
 
 export function haversineDistanceKm(from: Coordinates, to: Coordinates): number {
@@ -59,7 +62,7 @@ export function haversineDistanceKm(from: Coordinates, to: Coordinates): number 
   return earthRadiusKm * c;
 }
 
-export function centroid(destinations: Array<Pick<Destination, "coordinates">>): Coordinates | null {
+export function centroid(destinations: Array<Pick<DatasetDestination, "coordinates">>): Coordinates | null {
   if (destinations.length === 0) {
     return null;
   }

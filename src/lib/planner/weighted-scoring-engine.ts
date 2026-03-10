@@ -1,4 +1,5 @@
-import type { Destination, InterestProfile } from "@/types/domain";
+import type { DatasetDestination } from "@/types/dataset";
+import type { InterestProfile } from "@/types/planner";
 
 import {
   normalizeCostAgainstBudget,
@@ -71,9 +72,9 @@ export interface WeightedScoreBreakdown {
 }
 
 export interface WeightedScoringInput {
-  destination: Destination;
+  destination: DatasetDestination;
   profile: InterestProfile;
-  selectedDestinations?: Array<Pick<Destination, "region" | "tags" | "coordinates">>;
+  selectedDestinations?: Array<Pick<DatasetDestination, "region" | "categories" | "coordinates">>;
   config?: Partial<WeightedScoringConfig>;
 }
 
@@ -172,10 +173,12 @@ export function scoreDestinationWeighted(input: WeightedScoringInput): WeightedS
   const selected = input.selectedDestinations ?? [];
 
   const primitives: WeightedScorePrimitives = {
-    interestMatch: clamp01(scoreCategoryInterestMatch(input.destination.tags, input.profile.themes)),
-    seasonFit: clamp01(scoreSeasonFit(input.destination.idealVisitMonths, input.profile.travelMonth)),
-    crowdPressure: clamp01(normalizeCrowdPressure(input.destination.popularityScore)),
-    budgetFit: clamp01(normalizeCostAgainstBudget(input.destination.costLevel, input.profile.budget)),
+    interestMatch: clamp01(
+      scoreCategoryInterestMatch(input.destination.categories, input.profile.themes)
+    ),
+    seasonFit: clamp01(scoreSeasonFit(input.destination.recommended_months, input.profile.travelMonth)),
+    crowdPressure: clamp01(normalizeCrowdPressure(input.destination.crowd_level)),
+    budgetFit: clamp01(normalizeCostAgainstBudget(input.destination.ticket_cost_omr, input.profile.budget)),
     diversityGain: clamp01(scoreDiversityGain(input.destination, selected)),
     detourPenalty: clamp01(
       scoreDetourPenalty(input.destination.coordinates, selected, config.detourSoftLimitKm)

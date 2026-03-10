@@ -1,60 +1,51 @@
-import type { Destination } from "@/types/domain";
+import type { DatasetDestination } from "@/types/dataset";
 
-export type DiscoverySort = "popularity_desc" | "cost_asc" | "duration_asc";
+import { getRegionKey, minutesToHours } from "@/lib/data/normalize-destinations";
+
+export type DiscoverySort = "crowd_asc" | "cost_asc" | "duration_asc";
 
 export interface DiscoveryFilters {
   region?: string;
   tag?: string;
-  budget?: Destination["costLevel"];
   sort?: DiscoverySort;
 }
 
-const COST_WEIGHT: Record<Destination["costLevel"], number> = {
-  low: 1,
-  medium: 2,
-  high: 3
-};
-
-export function getRegions(destinations: Destination[]): string[] {
-  return Array.from(new Set(destinations.map((d) => d.region))).sort();
+export function getRegions(destinations: DatasetDestination[]): string[] {
+  return Array.from(new Set(destinations.map((destination) => getRegionKey(destination)))).sort();
 }
 
-export function getTags(destinations: Destination[]): string[] {
-  return Array.from(new Set(destinations.flatMap((d) => d.tags))).sort();
+export function getTags(destinations: DatasetDestination[]): string[] {
+  return Array.from(new Set(destinations.flatMap((destination) => destination.categories))).sort();
 }
 
 export function applyDiscoveryQuery(
-  destinations: Destination[],
+  destinations: DatasetDestination[],
   filters: DiscoveryFilters
-): Destination[] {
+): DatasetDestination[] {
   const filtered = destinations.filter((destination) => {
-    if (filters.region && destination.region !== filters.region) {
+    if (filters.region && getRegionKey(destination) !== filters.region) {
       return false;
     }
 
-    if (filters.tag && !destination.tags.includes(filters.tag)) {
-      return false;
-    }
-
-    if (filters.budget && destination.costLevel !== filters.budget) {
+    if (filters.tag && !destination.categories.includes(filters.tag)) {
       return false;
     }
 
     return true;
   });
 
-  const sort = filters.sort ?? "popularity_desc";
+  const sort = filters.sort ?? "crowd_asc";
 
   return filtered.sort((a, b) => {
     if (sort === "duration_asc") {
-      return a.recommendedDurationHours - b.recommendedDurationHours;
+      return a.avg_visit_duration_minutes - b.avg_visit_duration_minutes;
     }
 
     if (sort === "cost_asc") {
-      return COST_WEIGHT[a.costLevel] - COST_WEIGHT[b.costLevel];
+      return a.ticket_cost_omr - b.ticket_cost_omr;
     }
 
-    return b.popularityScore - a.popularityScore;
+    return a.crowd_level - b.crowd_level;
   });
 }
 
@@ -63,22 +54,16 @@ export function parseDiscoveryFilters(
 ): DiscoveryFilters {
   const region = pickOne(searchParams?.region);
   const tag = pickOne(searchParams?.tag);
-  const budgetRaw = pickOne(searchParams?.budget);
   const sortRaw = pickOne(searchParams?.sort);
-
-  const budget =
-    budgetRaw === "low" || budgetRaw === "medium" || budgetRaw === "high"
-      ? budgetRaw
-      : undefined;
 
   const sort =
     sortRaw === "duration_asc" ||
     sortRaw === "cost_asc" ||
-    sortRaw === "popularity_desc"
+    sortRaw === "crowd_asc"
       ? sortRaw
       : undefined;
 
-  return { region, tag, budget, sort };
+  return { region, tag, sort };
 }
 
 function pickOne(value?: string | string[]): string | undefined {

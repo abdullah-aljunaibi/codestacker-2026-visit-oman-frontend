@@ -1,4 +1,4 @@
-import type { Locale } from "@/types/domain";
+import type { Locale } from "@/types/dataset";
 
 export const locales = ["en", "ar"] as const;
 export const defaultLocale: Locale = "en";

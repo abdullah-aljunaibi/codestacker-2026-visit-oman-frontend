@@ -1,15 +1,16 @@
 import Link from "next/link";
 
-import { destinationsSample } from "@/data/destinations.sample";
+import { loadDestinations } from "@/lib/data/load-destinations";
+import { getRegionOptions } from "@/lib/data/selectors";
 import { getDiscoveryCopy } from "@/lib/discovery/content";
-import { getRegions } from "@/lib/discovery/query";
 import { localeDirection, resolveLocale } from "@/lib/i18n/config";
 
 export default async function LocaleHomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
   const copy = getDiscoveryCopy(locale);
-  const regions = getRegions(destinationsSample);
+  const destinations = loadDestinations();
+  const regions = getRegionOptions(destinations, locale).map((option) => option.label);
 
   return (
     <main dir={localeDirection[locale]} className={locale === "ar" ? "ar" : undefined}>
@@ -49,8 +50,8 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
             <h3>{copy.quickFactsTitle}</h3>
             <p>
               {locale === "ar"
-                ? `${destinationsSample.length} وجهات مبدئية في بيانات المرحلة الثانية.`
-                : `${destinationsSample.length} seeded destinations in the Phase 2 scaffold.`}
+                ? `${destinations.length} وجهة في مجموعة البيانات الحالية.`
+                : `${destinations.length} destinations in the current dataset.`}
             </p>
           </article>
         </section>

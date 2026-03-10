@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { SaveInterestButton } from "@/components/save-interest-button";
-import { destinationsSample } from "@/data/destinations.sample";
+import { loadDestinations } from "@/lib/data/load-destinations";
+import { getLocalizedRegionLabel, getRegionKey, minutesToHours } from "@/lib/data/normalize-destinations";
+import { findDestinationBySlug } from "@/lib/data/selectors";
 import { getDiscoveryCopy } from "@/lib/discovery/content";
 import { localeDirection, resolveLocale } from "@/lib/i18n/config";
 
@@ -14,15 +16,16 @@ export default async function DestinationPage({
   const { locale: localeParam, slug } = await params;
   const locale = resolveLocale(localeParam);
   const copy = getDiscoveryCopy(locale);
+  const destinations = loadDestinations();
 
-  const destination = destinationsSample.find((item) => item.slug === slug);
+  const destination = findDestinationBySlug(destinations, slug);
 
   if (!destination) {
     notFound();
   }
 
-  const related = destinationsSample.filter(
-    (item) => item.region === destination.region && item.slug !== destination.slug
+  const related = destinations.filter(
+    (item) => getRegionKey(item) === getRegionKey(destination) && item.slug !== destination.slug
   );
 
   return (
@@ -37,9 +40,9 @@ export default async function DestinationPage({
             <h1>{destination.name[locale]}</h1>
             <p>{destination.description[locale]}</p>
             <div className="metaList">
-              <span className="meta">{destination.region}</span>
-              <span className="meta">{destination.costLevel}</span>
-              <span className="meta">{destination.tags.join(" • ")}</span>
+              <span className="meta">{getLocalizedRegionLabel(destination, locale)}</span>
+              <span className="meta">{destination.ticket_cost_omr} OMR</span>
+              <span className="meta">{destination.categories.join(" • ")}</span>
             </div>
             <div className="ctaRow" style={{ marginTop: "1rem" }}>
               <SaveInterestButton slug={destination.slug} locale={locale} />
@@ -54,9 +57,9 @@ export default async function DestinationPage({
 
           <aside className="card">
             <h3>{copy.detailBestMonths}</h3>
-            <p>{destination.idealVisitMonths.join(" / ")}</p>
+            <p>{destination.recommended_months.join(" / ")}</p>
             <h3>{copy.detailDuration}</h3>
-            <p>{destination.recommendedDurationHours}h</p>
+            <p>{minutesToHours(destination.avg_visit_duration_minutes)}h</p>
           </aside>
         </section>
 

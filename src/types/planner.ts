@@ -1,23 +1,4 @@
-export type Locale = "en" | "ar";
-
-export interface LocalizedText {
-  en: string;
-  ar: string;
-}
-
-export interface Destination {
-  id: string;
-  slug: string;
-  name: LocalizedText;
-  description: LocalizedText;
-  region: string;
-  coordinates: { lat: number; lng: number };
-  tags: string[];
-  idealVisitMonths: number[];
-  costLevel: "low" | "medium" | "high";
-  recommendedDurationHours: number;
-  popularityScore: number;
-}
+import type { DatasetDestination } from "@/types/dataset";
 
 export interface InterestProfile {
   themes: string[];
@@ -44,4 +25,13 @@ export interface ItineraryPlan {
   days: ItineraryDay[];
   score: number;
   explanation: PlannerExplanation;
+}
+
+export interface PlannerContext {
+  datasetVersion: string;
+  destinations: DatasetDestination[];
+}
+
+export interface PlannerEngine {
+  generate(profile: InterestProfile, context: PlannerContext): ItineraryPlan;
 }
