@@ -27,6 +27,7 @@ export interface PlannerHandoffRouteCandidate {
   rank: number;
   score: number;
   region: string;
+  categories: Destination["categories"];
   coordinates: Destination["coordinates"];
   recommendedDurationHours: number;
   strengths: string[];
@@ -134,6 +135,7 @@ function buildRouteCandidate(candidate: RankedCandidate): PlannerHandoffRouteCan
     rank: candidate.rank,
     score: candidate.totalScore,
     region: candidate.destination.regionKey,
+    categories: candidate.destination.categories,
     coordinates: candidate.destination.coordinates,
     recommendedDurationHours: candidate.destination.recommendedDurationHours,
     strengths: candidate.scoreBreakdown.signals.strengths,
