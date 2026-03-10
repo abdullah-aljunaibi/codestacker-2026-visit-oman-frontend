@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { readSavedInterestSlugs } from "@/lib/persistence/interests";
@@ -12,75 +12,28 @@ import {
   writePlannerDraft
 } from "@/lib/persistence/planner-draft";
 import { resolveLocale } from "@/lib/i18n/config";
-
-type PlannerFormCopy = {
-  title: string;
-  body: string;
-  days: string;
-  budget: string;
-  pace: string;
-  month: string;
-  themes: string;
-  picks: string;
-  submit: string;
-  saved: string;
-};
-
-const months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December"
-];
+import {
+  getBudgetLabel,
+  getCategoryLabel,
+  getMessages,
+  getMonthLabel,
+  getPaceLabel
+} from "@/lib/i18n/messages";
 
 export function PlannerForm({
   locale,
   allTags,
-  destinationOptions
+  destinationOptions,
+  focusSlug
 }: {
   locale: string;
   allTags: string[];
   destinationOptions: Array<{ slug: string; name: string }>;
+  focusSlug?: string;
 }) {
   const normalizedLocale = resolveLocale(locale);
+  const messages = getMessages(normalizedLocale);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const focus = searchParams.get("focus");
-
-  const copy: PlannerFormCopy =
-    normalizedLocale === "ar"
-      ? {
-          title: "إدخال المخطط",
-          body: "حدد تفضيلاتك أولاً. سيتم استخدام هذه المدخلات في المرحلة التالية لتوليد الرحلة.",
-          days: "عدد الأيام",
-          budget: "الميزانية",
-          pace: "الوتيرة",
-          month: "شهر السفر",
-          themes: "الأنماط المفضلة",
-          picks: "الوجهات المهتم بها",
-          submit: "حفظ المدخلات والمتابعة",
-          saved: "تم حفظ المدخلات محلياً."
-        }
-      : {
-          title: "Planner input",
-          body: "Set your preferences now. These inputs will feed itinerary generation in Phase 4.",
-          days: "Trip days",
-          budget: "Budget",
-          pace: "Pace",
-          month: "Travel month",
-          themes: "Preferred themes",
-          picks: "Saved destinations to include",
-          submit: "Save inputs and continue",
-          saved: "Inputs saved locally."
-        };
 
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
   const [savedNotice, setSavedNotice] = useState("");
@@ -93,7 +46,7 @@ export function PlannerForm({
       new Set([
         ...persisted.selectedDestinationSlugs,
         ...savedSlugs,
-        ...(focus ? [focus] : [])
+        ...(focusSlug ? [focusSlug] : [])
       ])
     );
 
@@ -101,26 +54,26 @@ export function PlannerForm({
       ...persisted,
       selectedDestinationSlugs: nextSelected
     });
-  }, [focus]);
+  }, [focusSlug]);
 
   const savedCount = useMemo(() => draft.selectedDestinationSlugs.length, [draft]);
 
   return (
     <section className="card">
-      <h1>{copy.title}</h1>
-      <p>{copy.body}</p>
+      <h1>{messages.plannerForm.title}</h1>
+      <p>{messages.plannerForm.body}</p>
 
       <form
         className="plannerForm"
         onSubmit={(event) => {
           event.preventDefault();
           writePlannerDraft(draft);
-          setSavedNotice(copy.saved);
+          setSavedNotice(messages.plannerForm.savedNotice);
           router.push(`/${normalizedLocale}/planner/result`);
         }}
       >
         <label>
-          {copy.days}
+          {messages.plannerForm.days}
           <input
             type="number"
             min={1}
@@ -136,7 +89,7 @@ export function PlannerForm({
         </label>
 
         <label>
-          {copy.budget}
+          {messages.plannerForm.budget}
           <select
             value={draft.budget}
             onChange={(event) =>
@@ -146,14 +99,14 @@ export function PlannerForm({
               }))
             }
           >
-            <option value="budget">{normalizedLocale === "ar" ? "اقتصادية" : "Budget"}</option>
-            <option value="moderate">{normalizedLocale === "ar" ? "متوسطة" : "Moderate"}</option>
-            <option value="luxury">{normalizedLocale === "ar" ? "فاخرة" : "Luxury"}</option>
+            <option value="budget">{getBudgetLabel("budget", normalizedLocale)}</option>
+            <option value="moderate">{getBudgetLabel("moderate", normalizedLocale)}</option>
+            <option value="luxury">{getBudgetLabel("luxury", normalizedLocale)}</option>
           </select>
         </label>
 
         <label>
-          {copy.pace}
+          {messages.plannerForm.pace}
           <select
             value={draft.pace}
             onChange={(event) =>
@@ -163,14 +116,14 @@ export function PlannerForm({
               }))
             }
           >
-            <option value="relaxed">{normalizedLocale === "ar" ? "هادئة" : "Relaxed"}</option>
-            <option value="balanced">{normalizedLocale === "ar" ? "متوازنة" : "Balanced"}</option>
-            <option value="packed">{normalizedLocale === "ar" ? "مكثفة" : "Packed"}</option>
+            <option value="relaxed">{getPaceLabel("relaxed", normalizedLocale)}</option>
+            <option value="balanced">{getPaceLabel("balanced", normalizedLocale)}</option>
+            <option value="packed">{getPaceLabel("packed", normalizedLocale)}</option>
           </select>
         </label>
 
         <label>
-          {copy.month}
+          {messages.plannerForm.month}
           <select
             value={draft.travelMonth ?? ""}
             onChange={(event) =>
@@ -180,17 +133,17 @@ export function PlannerForm({
               }))
             }
           >
-            <option value="">{normalizedLocale === "ar" ? "غير محدد" : "Not specified"}</option>
-            {months.map((month, index) => (
-              <option key={month} value={index + 1}>
-                {normalizedLocale === "ar" ? `${index + 1}` : month}
+            <option value="">{messages.common.notSpecified}</option>
+            {Array.from({ length: 12 }, (_, index) => index + 1).map((month) => (
+              <option key={month} value={month}>
+                {getMonthLabel(month, normalizedLocale)}
               </option>
             ))}
           </select>
         </label>
 
         <fieldset>
-          <legend>{copy.themes}</legend>
+          <legend>{messages.plannerForm.themes}</legend>
           <div className="checkGrid">
             {allTags.map((tag) => (
               <label key={tag} className="checkItem">
@@ -206,7 +159,7 @@ export function PlannerForm({
                     }))
                   }
                 />
-                <span>{tag}</span>
+                <span>{getCategoryLabel(tag, normalizedLocale)}</span>
               </label>
             ))}
           </div>
@@ -214,7 +167,7 @@ export function PlannerForm({
 
         <fieldset>
           <legend>
-            {copy.picks} ({savedCount})
+            {messages.plannerForm.picks} ({savedCount})
           </legend>
           <div className="checkGrid">
             {destinationOptions.map((destination) => (
@@ -239,13 +192,13 @@ export function PlannerForm({
 
         <div className="ctaRow">
           <button className="pill pillPrimary" type="submit">
-            {copy.submit}
+            {messages.plannerForm.submit}
           </button>
           <Link className="pill" href={`/${normalizedLocale}/saved`}>
-            {normalizedLocale === "ar" ? "إدارة الاهتمامات" : "Manage saved interests"}
+            {messages.plannerForm.manageSaved}
           </Link>
           <Link className="pill" href={`/${normalizedLocale}/discover`}>
-            {normalizedLocale === "ar" ? "عودة إلى الاكتشاف" : "Back to discovery"}
+            {messages.common.backToDiscovery}
           </Link>
         </div>
       </form>

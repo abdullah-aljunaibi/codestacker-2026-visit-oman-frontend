@@ -6,15 +6,17 @@ import { useEffect, useMemo, useState } from "react";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import { filterDestinationsBySavedSlugs } from "@/lib/data/selectors";
+import { resolveLocale } from "@/lib/i18n/config";
+import { getMessages } from "@/lib/i18n/messages";
 import {
   clearSavedInterests,
   readSavedInterestSlugs,
   removeSavedInterest
 } from "@/lib/persistence/interests";
-import { resolveLocale } from "@/lib/i18n/config";
 
 export function SavedInterestsPanel({ locale }: { locale: string }) {
   const normalizedLocale = resolveLocale(locale);
+  const messages = getMessages(normalizedLocale);
   const [savedSlugs, setSavedSlugs] = useState<string[]>([]);
   const destinations = useMemo(
     () => normalizeDestinations(loadDestinations(), normalizedLocale),
@@ -33,15 +35,11 @@ export function SavedInterestsPanel({ locale }: { locale: string }) {
   if (savedSlugs.length === 0) {
     return (
       <section className="card">
-        <h2>{normalizedLocale === "ar" ? "الاهتمامات المحفوظة" : "Saved interests"}</h2>
-        <p>
-          {normalizedLocale === "ar"
-            ? "ابدأ من صفحة الاكتشاف وأضف وجهات لتجهيز المخطط."
-            : "Start in discovery and save destinations here before opening the planner."}
-        </p>
+        <h2>{messages.saved.title}</h2>
+        <p>{messages.saved.emptyBody}</p>
         <div className="ctaRow">
           <Link className="pill pillPrimary" href={`/${normalizedLocale}/discover`}>
-            {normalizedLocale === "ar" ? "اذهب للاكتشاف" : "Go to discovery"}
+            {messages.saved.goToDiscovery}
           </Link>
         </div>
       </section>
@@ -51,13 +49,9 @@ export function SavedInterestsPanel({ locale }: { locale: string }) {
   return (
     <section className="card">
       <h2>
-        {normalizedLocale === "ar" ? "الاهتمامات المحفوظة" : "Saved interests"} ({savedSlugs.length})
+        {messages.saved.title} ({savedSlugs.length})
       </h2>
-      <p>
-        {normalizedLocale === "ar"
-          ? "تم حفظ هذه الوجهات محلياً في المتصفح لاستخدامها في إدخال المخطط."
-          : "These destinations are saved in local browser storage and can prefill planner inputs."}
-      </p>
+      <p>{messages.saved.body}</p>
 
       <div className="listStack">
         {savedDestinations.map((destination) => (
@@ -74,7 +68,7 @@ export function SavedInterestsPanel({ locale }: { locale: string }) {
                 type="button"
                 onClick={() => setSavedSlugs(removeSavedInterest(destination.slug))}
               >
-                {normalizedLocale === "ar" ? "إزالة" : "Remove"}
+                {messages.saved.remove}
               </button>
             </div>
           </article>
@@ -83,7 +77,7 @@ export function SavedInterestsPanel({ locale }: { locale: string }) {
 
       <div className="ctaRow" style={{ marginTop: "1rem" }}>
         <Link className="pill pillPrimary" href={`/${normalizedLocale}/planner`}>
-          {normalizedLocale === "ar" ? "انتقل إلى المخطط" : "Continue to planner"}
+          {messages.saved.continueToPlanner}
         </Link>
         <button
           type="button"
@@ -93,7 +87,7 @@ export function SavedInterestsPanel({ locale }: { locale: string }) {
             setSavedSlugs([]);
           }}
         >
-          {normalizedLocale === "ar" ? "مسح الكل" : "Clear all"}
+          {messages.saved.clearAll}
         </button>
       </div>
     </section>

@@ -6,16 +6,22 @@
   --line: #d8cfbf;
   --brand: #0d6e57;
   --brand-2: #c27b2e;
+  --shell-width: 1120px;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
+  min-height: 100vh;
   color: var(--ink);
-  font-family: Manrope, "Segoe UI", sans-serif;
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at 20% 0%, #efe4ce 0%, transparent 34%),
     radial-gradient(circle at 85% 10%, #dce9e3 0%, transparent 30%),
@@ -26,29 +32,61 @@ a {
   color: inherit;
 }
 
+.pageRoot {
+  min-height: 100vh;
+}
+
+.page {
+  padding-block: 1.5rem 3rem;
+}
+
 .shell {
-  width: min(1120px, 92vw);
+  width: min(var(--shell-width), calc(100vw - 2rem));
   margin: 0 auto;
-  padding: 2rem 0 3rem;
+}
+
+.pageIntro,
+.backLink,
+.sectionCard {
+  margin-top: 1rem;
 }
 
 .topnav {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.topnavMain {
+  display: grid;
+  gap: 0.65rem;
 }
 
 .brand {
+  display: inline-flex;
+  text-decoration: none;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
 .navlinks {
   display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
   font-weight: 600;
+}
+
+.localeSwitch {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.localePill {
+  min-width: 6rem;
+  justify-content: center;
 }
 
 .hero {
@@ -85,6 +123,9 @@ a {
 }
 
 .pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
   border-radius: 999px;
   padding: 0.65rem 1rem;
@@ -105,11 +146,11 @@ a {
   border-color: #b3dcca;
 }
 
-.grid3 {
+.infoGrid {
   display: grid;
   gap: 1rem;
   margin-top: 1.2rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
 }
 
 .card {
@@ -134,12 +175,13 @@ a {
 
 .filterBar {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   gap: 0.75rem;
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 14px;
   padding: 0.8rem;
+  margin-top: 1rem;
 }
 
 .filterBar label {
@@ -165,6 +207,10 @@ a {
   background: linear-gradient(120deg, var(--brand-2), #dda46a);
   border: none;
   font-weight: 700;
+}
+
+.filterAction {
+  align-self: end;
 }
 
 .plannerForm {
@@ -236,22 +282,58 @@ a {
   font-size: 0.8rem;
 }
 
-.split {
+.split,
+.detailGrid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: 2fr 1fr;
 }
 
-.ar {
-  font-family: "Noto Kufi Arabic", Tahoma, sans-serif;
+.split,
+.detailGrid {
+  grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr);
+}
+
+[dir="rtl"] body,
+[dir="rtl"] .pageRoot {
+  font-family: var(--font-arabic), Tahoma, sans-serif;
+}
+
+[dir="rtl"] .topnav,
+[dir="rtl"] .metaList,
+[dir="rtl"] .ctaRow,
+[dir="rtl"] .navlinks {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .checkItem {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .localeSwitch {
+  justify-content: flex-start;
 }
 
 @media (max-width: 920px) {
-  .grid3,
-  .filterBar,
   .split,
+  .detailGrid,
   .checkGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    padding-block: 1rem 2rem;
+  }
+
+  .topnav {
+    margin-bottom: 1.25rem;
+  }
+
+  .hero,
+  .card,
+  .filterBar {
+    padding: 0.9rem;
   }
 }
 

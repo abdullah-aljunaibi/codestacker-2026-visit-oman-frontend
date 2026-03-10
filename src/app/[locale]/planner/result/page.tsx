@@ -3,9 +3,19 @@
 import Link from "next/link";
 import { use, useEffect, useMemo, useState } from "react";
 
+import { SiteHeader } from "@/components/site-header";
 import { loadDestinationsWithVersion } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
-import { localeDirection, resolveLocale } from "@/lib/i18n/config";
+import { resolveLocale } from "@/lib/i18n/config";
+import {
+  formatDecimal,
+  formatMessage,
+  formatNumber,
+  getBudgetLabel,
+  getMessages,
+  getMonthLabel,
+  getPaceLabel
+} from "@/lib/i18n/messages";
 import { rankCandidatesForPlanner } from "@/lib/planner/candidate-ranking";
 import { assembleFinalItinerary } from "@/lib/planner/final-itinerary";
 import { generateIntraRegionDayPlans } from "@/lib/planner/intra-region-routing";
@@ -16,6 +26,7 @@ import { defaultPlannerDraft, readPlannerDraft } from "@/lib/persistence/planner
 export default function PlannerResultPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = use(params);
   const locale = resolveLocale(localeParam);
+  const messages = getMessages(locale);
   const [draft, setDraft] = useState<PlannerDraft>(defaultPlannerDraft);
   const { datasetVersion, destinations } = useMemo(() => loadDestinationsWithVersion(), []);
   const normalizedDestinations = useMemo(
@@ -65,64 +76,70 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
   );
 
   return (
-    <main dir={localeDirection[locale]} className={locale === "ar" ? "ar" : undefined}>
+    <main className="page">
       <div className="shell">
-        <section className="card">
-          <h1>{locale === "ar" ? "برنامج الرحلة النهائي" : "Final itinerary"}</h1>
-          <p>
-            {locale === "ar"
-              ? "تم تجميع برنامج الرحلة في المرحلة 5C بشكل حتمي من عقود 4C و5A و5B، مع عرض يومي واضح للوجهات وخلاصة عملية للمستخدم."
-              : "Phase 5C now assembles a deterministic final itinerary from the Phase 4C, 5A, and 5B contracts with a clear day-by-day user-facing presentation."}
-          </p>
+        <SiteHeader locale={locale} />
 
-          <h2>{locale === "ar" ? "ملخص الإدخال" : "Input summary"}</h2>
+        <section className="card">
+          <h1>{messages.plannerResult.title}</h1>
+          <p>{messages.plannerResult.body}</p>
+
+          <h2>{messages.plannerResult.inputSummary}</h2>
           <ul>
-            <li>{locale === "ar" ? `الأيام: ${draft.tripDays}` : `Days: ${draft.tripDays}`}</li>
-            <li>{locale === "ar" ? `الميزانية: ${draft.budget}` : `Budget: ${draft.budget}`}</li>
-            <li>{locale === "ar" ? `الوتيرة: ${draft.pace}` : `Pace: ${draft.pace}`}</li>
+            <li>{formatMessage(messages.plannerResult.days, { value: formatNumber(draft.tripDays, locale) })}</li>
             <li>
-              {locale === "ar"
-                ? `شهر السفر: ${draft.travelMonth ?? "غير محدد"}`
-                : `Travel month: ${draft.travelMonth ?? "Not specified"}`}
+              {formatMessage(messages.plannerResult.budget, {
+                value: getBudgetLabel(draft.budget, locale)
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `الأنماط: ${draft.themes.length}`
-                : `Themes selected: ${draft.themes.length}`}
+              {formatMessage(messages.plannerResult.pace, {
+                value: getPaceLabel(draft.pace, locale)
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `الوجهات المحفوظة: ${draft.selectedDestinationSlugs.length}`
-                : `Saved destination seeds: ${draft.selectedDestinationSlugs.length}`}
+              {formatMessage(messages.plannerResult.travelMonth, {
+                value: draft.travelMonth ? getMonthLabel(draft.travelMonth, locale) : messages.common.notSpecified
+              })}
+            </li>
+            <li>
+              {formatMessage(messages.plannerResult.themesSelected, {
+                value: formatNumber(draft.themes.length, locale)
+              })}
+            </li>
+            <li>
+              {formatMessage(messages.plannerResult.savedSeeds, {
+                value: formatNumber(draft.selectedDestinationSlugs.length, locale)
+              })}
             </li>
           </ul>
 
-          <h2>{locale === "ar" ? "مخرجات المرحلة 5C" : "Phase 5C output"}</h2>
+          <h2>{messages.plannerResult.outputTitle}</h2>
           <ul>
             <li>
-              {locale === "ar"
-                ? `أيام البرنامج: ${finalItinerary.totals.dayCount}/${finalItinerary.tripDays}`
-                : `Itinerary days: ${finalItinerary.totals.dayCount}/${finalItinerary.tripDays}`}
+              {formatMessage(messages.plannerResult.itineraryDays, {
+                value: `${formatNumber(finalItinerary.totals.dayCount, locale)}/${formatNumber(finalItinerary.tripDays, locale)}`
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `إجمالي المحطات: ${finalItinerary.totals.stopCount}`
-                : `Total stops: ${finalItinerary.totals.stopCount}`}
+              {formatMessage(messages.plannerResult.totalStops, {
+                value: formatNumber(finalItinerary.totals.stopCount, locale)
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `إجمالي ساعات الزيارة: ${finalItinerary.totals.estimatedVisitHours.toFixed(1)}`
-                : `Total visit hours: ${finalItinerary.totals.estimatedVisitHours.toFixed(1)}`}
+              {formatMessage(messages.plannerResult.totalVisitHours, {
+                value: formatDecimal(finalItinerary.totals.estimatedVisitHours, locale, 1)
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `إجمالي مسافة التنقل (كم): ${finalItinerary.totals.estimatedTravelKm.toFixed(1)}`
-                : `Total travel km: ${finalItinerary.totals.estimatedTravelKm.toFixed(1)}`}
+              {formatMessage(messages.plannerResult.totalTravelKm, {
+                value: formatDecimal(finalItinerary.totals.estimatedTravelKm, locale, 1)
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `أيام غير محلولة: ${finalItinerary.totals.unresolvedDayCount}`
-                : `Unresolved days: ${finalItinerary.totals.unresolvedDayCount}`}
+              {formatMessage(messages.plannerResult.unresolvedDays, {
+                value: formatNumber(finalItinerary.totals.unresolvedDayCount, locale)
+              })}
             </li>
           </ul>
 
@@ -130,36 +147,42 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             {finalItinerary.days.map((day) => (
               <article key={`phase5c-day-${day.dayNumber}`} className="card cardSubtle itineraryDay">
                 <h3>
-                  {locale === "ar"
-                    ? `اليوم ${day.dayNumber} - ${day.region} (${day.regionDayNumber})`
-                    : `Day ${day.dayNumber} - ${day.region} (${day.regionDayNumber})`}
+                  {formatMessage(messages.plannerResult.dayHeading, {
+                    dayNumber: formatNumber(day.dayNumber, locale),
+                    region: day.region,
+                    regionDayNumber: formatNumber(day.regionDayNumber, locale)
+                  })}
                 </h3>
                 <p>
-                  {locale === "ar"
-                    ? `محطات: ${day.stopCount} | ساعات: ${day.estimatedVisitHours.toFixed(1)} | كم: ${day.estimatedTravelKm.toFixed(1)}`
-                    : `Stops: ${day.stopCount} | Hours: ${day.estimatedVisitHours.toFixed(1)} | Km: ${day.estimatedTravelKm.toFixed(1)}`}
+                  {formatMessage(messages.plannerResult.dayStats, {
+                    stops: formatNumber(day.stopCount, locale),
+                    hours: formatDecimal(day.estimatedVisitHours, locale, 1),
+                    km: formatDecimal(day.estimatedTravelKm, locale, 1)
+                  })}
                 </p>
 
                 {day.stops.length > 0 ? (
                   <ol className="itineraryStops">
                     {day.stops.map((stop) => (
                       <li key={`${day.dayNumber}-${stop.slug}`} className="itineraryStop">
-                        <strong>{locale === "ar" ? stop.name.ar : stop.name.en}</strong>
+                        <strong>{stop.name[locale]}</strong>
                         <span>
-                          {locale === "ar"
-                            ? `${stop.slug} | ساعات تقديرية: ${stop.estimatedVisitHours.toFixed(1)}`
-                            : `${stop.slug} | Est. hours: ${stop.estimatedVisitHours.toFixed(1)}`}
+                          {formatMessage(messages.plannerResult.stopHours, {
+                            slug: stop.slug,
+                            hours: formatDecimal(stop.estimatedVisitHours, locale, 1)
+                          })}
                         </span>
                         <span>
-                          {locale === "ar"
-                            ? `رتبة: ${stop.rank ?? "-"} | درجة: ${stop.score?.toFixed(3) ?? "-"}`
-                            : `Rank: ${stop.rank ?? "-"} | Score: ${stop.score?.toFixed(3) ?? "-"}`}
+                          {formatMessage(messages.plannerResult.stopRank, {
+                            rank: stop.rank ?? "-",
+                            score: stop.score == null ? "-" : formatDecimal(stop.score, locale, 3)
+                          })}
                         </span>
                       </li>
                     ))}
                   </ol>
                 ) : (
-                  <p>{locale === "ar" ? "لا توجد محطات لهذا اليوم." : "No stops assigned for this day."}</p>
+                  <p>{messages.plannerResult.noStops}</p>
                 )}
 
                 <div className="metaList">
@@ -173,46 +196,48 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             ))}
           </div>
 
-          <h2>{locale === "ar" ? "تتبع العقود" : "Contract traceability"}</h2>
+          <h2>{messages.plannerResult.traceabilityTitle}</h2>
           <ul>
             <li>
-              {locale === "ar"
-                ? `سياق التخطيط: ${ranking.handoff.planningContextId}`
-                : `Planning context ID: ${ranking.handoff.planningContextId}`}
+              {formatMessage(messages.plannerResult.planningContext, {
+                value: ranking.handoff.planningContextId
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `إصدارات المصدر: 4C=${ranking.handoff.handoffVersion}, 5A=${regionAllocation.allocationVersion}, 5B=${routingDayPlan.routingVersion}`
-                : `Source versions: 4C=${ranking.handoff.handoffVersion}, 5A=${regionAllocation.allocationVersion}, 5B=${routingDayPlan.routingVersion}`}
+              {formatMessage(messages.plannerResult.sourceVersions, {
+                handoff: ranking.handoff.handoffVersion,
+                allocation: regionAllocation.allocationVersion,
+                routing: routingDayPlan.routingVersion
+              })}
             </li>
             <li>
-              {locale === "ar"
-                ? `إصدار البرنامج النهائي: ${finalItinerary.itineraryVersion}`
-                : `Final itinerary version: ${finalItinerary.itineraryVersion}`}
+              {formatMessage(messages.plannerResult.finalVersion, {
+                value: finalItinerary.itineraryVersion
+              })}
             </li>
           </ul>
 
-          <h3>{locale === "ar" ? "تسليم المرحلة 4C" : "Phase 4C handoff"}</h3>
+          <h3>{messages.plannerResult.handoffTitle}</h3>
           <pre>{JSON.stringify(ranking.handoff, null, 2)}</pre>
 
-          <h3>{locale === "ar" ? "عقد توزيع المناطق (5A)" : "Phase 5A region allocation contract"}</h3>
+          <h3>{messages.plannerResult.allocationTitle}</h3>
           <pre>{JSON.stringify(regionAllocation, null, 2)}</pre>
 
-          <h3>{locale === "ar" ? "عقد التوجيه/خطة الأيام (5B)" : "Phase 5B routing/day-plan contract"}</h3>
+          <h3>{messages.plannerResult.routingTitle}</h3>
           <pre>{JSON.stringify(routingDayPlan, null, 2)}</pre>
 
-          <h3>{locale === "ar" ? "عقد البرنامج النهائي (5C)" : "Phase 5C final itinerary contract"}</h3>
+          <h3>{messages.plannerResult.finalContractTitle}</h3>
           <pre>{JSON.stringify(finalItinerary, null, 2)}</pre>
 
           <div className="ctaRow">
             <Link className="pill" href={`/${locale}/planner`}>
-              {locale === "ar" ? "تعديل المدخلات" : "Edit inputs"}
+              {messages.common.editInputs}
             </Link>
             <Link className="pill" href={`/${locale}/saved`}>
-              {locale === "ar" ? "الاهتمامات المحفوظة" : "Saved interests"}
+              {messages.common.savedInterests}
             </Link>
             <Link className="pill" href={`/${locale}/discover`}>
-              {locale === "ar" ? "العودة للاكتشاف" : "Back to discovery"}
+              {messages.common.backToDiscovery}
             </Link>
           </div>
         </section>

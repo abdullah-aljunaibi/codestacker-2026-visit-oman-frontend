@@ -1,4 +1,166 @@
 {
-  "app.title": "Visit Oman",
-  "planner.title": "Plan Your Trip"
+  "app": {
+    "title": "Visit Oman",
+    "description": "Discover destinations across Oman and build a deterministic travel plan."
+  },
+  "locales": {
+    "en": "English",
+    "ar": "Arabic"
+  },
+  "nav": {
+    "home": "Home",
+    "discover": "Discover",
+    "planner": "Planner",
+    "saved": "Saved",
+    "mainLabel": "Main navigation",
+    "switchLabel": "Language"
+  },
+  "common": {
+    "omr": "OMR",
+    "notSpecified": "Not specified",
+    "applyFilters": "Apply filters",
+    "category": "Category",
+    "region": "Region",
+    "duration": "Duration",
+    "ticketCost": "Ticket cost",
+    "recommendedMonths": "Best months",
+    "relatedDestinations": "More in this region",
+    "savedInterests": "Saved interests",
+    "backToDiscovery": "Back to discovery",
+    "editInputs": "Edit inputs",
+    "viewSaved": "View saved interests",
+    "openPlanner": "Open planner input"
+  },
+  "categories": {
+    "adventure": "Adventure",
+    "architecture": "Architecture",
+    "beach": "Beach",
+    "culture": "Culture",
+    "desert": "Desert",
+    "family": "Family",
+    "hiking": "Hiking",
+    "history": "History",
+    "nature": "Nature",
+    "photography": "Photography",
+    "roadtrip": "Road trip",
+    "romantic": "Romantic",
+    "stargazing": "Stargazing",
+    "swimming": "Swimming",
+    "walking": "Walking",
+    "waterfront": "Waterfront",
+    "wildlife": "Wildlife"
+  },
+  "months": [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+  ],
+  "budget": {
+    "budget": "Budget",
+    "moderate": "Moderate",
+    "luxury": "Luxury"
+  },
+  "pace": {
+    "relaxed": "Relaxed",
+    "balanced": "Balanced",
+    "packed": "Packed"
+  },
+  "sort": {
+    "crowd_asc": "Crowd (Low to High)",
+    "cost_asc": "Cost (Low to High)",
+    "duration_asc": "Duration (Short to Long)"
+  },
+  "home": {
+    "heroKicker": "CodeStacker 2026",
+    "heroTitle": "Where mountains, wadis, and coastlines meet.",
+    "heroBody": "Build your trip from traveler-friendly destinations across Oman with a bilingual discovery flow and a deterministic planner.",
+    "ctaPrimary": "Explore destinations",
+    "ctaSecondary": "Start planning",
+    "sectionsTitle": "Travel styles",
+    "sectionsBody": "Culture, adventure, family, and nature-led routes.",
+    "regionsTitle": "Browse by region",
+    "quickFactsTitle": "Trip snapshot",
+    "quickFactsLabel": "{count} destinations in the current dataset."
+  },
+  "discover": {
+    "title": "Discover Oman",
+    "body": "Browse server-rendered destination listings with filters built for region, category, and traveler-friendly sorting.",
+    "plannerBridgeTitle": "Move from discovery to planning",
+    "plannerBridgeBody": "Save destinations while browsing, then open the planner to turn those interests into a deterministic itinerary.",
+    "filterTitle": "Refine your search",
+    "allRegions": "All regions",
+    "allCategories": "All categories",
+    "resultsLabel": "{count} destinations",
+    "emptyState": "No destinations match these filters yet.",
+    "planWithThis": "Plan with this"
+  },
+  "detail": {
+    "sendToPlanner": "Send to planner input",
+    "noRelated": "No related destinations yet."
+  },
+  "saved": {
+    "title": "Saved interests",
+    "emptyBody": "Start in discovery and save destinations here before opening the planner.",
+    "goToDiscovery": "Go to discovery",
+    "body": "These destinations are stored locally in the browser and can prefill planner inputs.",
+    "remove": "Remove",
+    "continueToPlanner": "Continue to planner",
+    "clearAll": "Clear all"
+  },
+  "saveInterest": {
+    "save": "Save as interest",
+    "saved": "Saved to interests"
+  },
+  "plannerForm": {
+    "title": "Planner input",
+    "body": "Set your preferences now. These inputs will feed itinerary generation in the next phase.",
+    "days": "Trip days",
+    "budget": "Budget",
+    "pace": "Pace",
+    "month": "Travel month",
+    "themes": "Preferred categories",
+    "picks": "Saved destinations to include",
+    "submit": "Save inputs and continue",
+    "savedNotice": "Inputs saved locally.",
+    "manageSaved": "Manage saved interests"
+  },
+  "plannerResult": {
+    "title": "Final itinerary",
+    "body": "This itinerary is assembled deterministically from the planner ranking, region allocation, and day routing outputs.",
+    "inputSummary": "Input summary",
+    "days": "Days: {value}",
+    "budget": "Budget: {value}",
+    "pace": "Pace: {value}",
+    "travelMonth": "Travel month: {value}",
+    "themesSelected": "Categories selected: {value}",
+    "savedSeeds": "Saved destination seeds: {value}",
+    "outputTitle": "Itinerary output",
+    "itineraryDays": "Itinerary days: {value}",
+    "totalStops": "Total stops: {value}",
+    "totalVisitHours": "Total visit hours: {value}",
+    "totalTravelKm": "Total travel km: {value}",
+    "unresolvedDays": "Unresolved days: {value}",
+    "dayHeading": "Day {dayNumber} - {region} ({regionDayNumber})",
+    "dayStats": "Stops: {stops} | Hours: {hours} | Km: {km}",
+    "stopHours": "{slug} | Est. hours: {hours}",
+    "stopRank": "Rank: {rank} | Score: {score}",
+    "noStops": "No stops assigned for this day.",
+    "traceabilityTitle": "Contract traceability",
+    "planningContext": "Planning context ID: {value}",
+    "sourceVersions": "Source versions: 4C={handoff}, 5A={allocation}, 5B={routing}",
+    "finalVersion": "Final itinerary version: {value}",
+    "handoffTitle": "Phase 4C handoff",
+    "allocationTitle": "Phase 5A region allocation contract",
+    "routingTitle": "Phase 5B routing/day-plan contract",
+    "finalContractTitle": "Phase 5C final itinerary contract"
+  }
 }

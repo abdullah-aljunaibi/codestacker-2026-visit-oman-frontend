@@ -1,57 +1,52 @@
 import Link from "next/link";
 
+import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { getRegionOptions } from "@/lib/data/selectors";
-import { getDiscoveryCopy } from "@/lib/discovery/content";
-import { localeDirection, resolveLocale } from "@/lib/i18n/config";
+import { resolveLocale } from "@/lib/i18n/config";
+import { formatMessage, getMessages } from "@/lib/i18n/messages";
 
 export default async function LocaleHomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
-  const copy = getDiscoveryCopy(locale);
+  const messages = getMessages(locale);
   const destinations = loadDestinations();
   const regions = getRegionOptions(destinations, locale).map((option) => option.label);
 
   return (
-    <main dir={localeDirection[locale]} className={locale === "ar" ? "ar" : undefined}>
+    <main className="page">
       <div className="shell">
-        <header className="topnav">
-          <div className="brand">{copy.siteTitle}</div>
-          <nav className="navlinks">
-            <Link href={`/${locale}/discover`}>{copy.navDiscover}</Link>
-            <Link href={`/${locale}/planner`}>{copy.navPlanner}</Link>
-          </nav>
-        </header>
+        <SiteHeader locale={locale} />
 
         <section className="hero">
-          <span className="kicker">{copy.heroKicker}</span>
-          <h1>{copy.heroTitle}</h1>
-          <p>{copy.heroBody}</p>
+          <span className="kicker">{messages.home.heroKicker}</span>
+          <h1>{messages.home.heroTitle}</h1>
+          <p>{messages.home.heroBody}</p>
           <div className="ctaRow">
             <Link className="pill pillPrimary" href={`/${locale}/discover`}>
-              {copy.ctaPrimary}
+              {messages.home.ctaPrimary}
             </Link>
             <Link className="pill" href={`/${locale}/planner`}>
-              {copy.ctaSecondary}
+              {messages.home.ctaSecondary}
             </Link>
           </div>
         </section>
 
-        <section className="grid3" style={{ marginTop: "1rem" }}>
+        <section className="infoGrid">
           <article className="card">
-            <h3>{copy.sectionsTitle}</h3>
-            <p>{locale === "ar" ? "ثقافة، مغامرات، عائلات، ورحلات طبيعية." : "Culture, adventure, family, and nature-led routes."}</p>
+            <h3>{messages.home.sectionsTitle}</h3>
+            <p>{messages.home.sectionsBody}</p>
           </article>
           <article className="card">
-            <h3>{copy.regionsTitle}</h3>
+            <h3>{messages.home.regionsTitle}</h3>
             <p>{regions.join(" • ")}</p>
           </article>
           <article className="card">
-            <h3>{copy.quickFactsTitle}</h3>
+            <h3>{messages.home.quickFactsTitle}</h3>
             <p>
-              {locale === "ar"
-                ? `${destinations.length} وجهة في مجموعة البيانات الحالية.`
-                : `${destinations.length} destinations in the current dataset.`}
+              {formatMessage(messages.home.quickFactsLabel, {
+                count: destinations.length
+              })}
             </p>
           </article>
         </section>

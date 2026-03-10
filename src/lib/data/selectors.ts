@@ -5,6 +5,7 @@ import {
   getRegionKey,
   normalizeDestinations
 } from "@/lib/data/normalize-destinations";
+import { getCategoryLabel } from "@/lib/i18n/messages";
 
 export function getByCategory(destinations: DatasetDestination[], category?: string): DatasetDestination[] {
   if (!category) {
@@ -59,8 +60,10 @@ export function getRegionOptions(destinations: DatasetDestination[], locale: Loc
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export function getCategoryOptions(destinations: DatasetDestination[]) {
-  return Array.from(new Set(destinations.flatMap((destination) => destination.categories))).sort();
+export function getCategoryOptions(destinations: DatasetDestination[], locale: Locale) {
+  return Array.from(new Set(destinations.flatMap((destination) => destination.categories)))
+    .map((value) => ({ value, label: getCategoryLabel(value, locale) }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 export function filterDestinationsBySavedSlugs(

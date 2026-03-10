@@ -1,4 +1,166 @@
 {
-  "app.title": "اكتشف عُمان",
-  "planner.title": "خطط رحلتك"
+  "app": {
+    "title": "اكتشف عُمان",
+    "description": "استكشف وجهات في عُمان وابنِ خطة سفر حتمية باللغة العربية أو الإنجليزية."
+  },
+  "locales": {
+    "en": "الإنجليزية",
+    "ar": "العربية"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "discover": "اكتشف",
+    "planner": "المخطط",
+    "saved": "المحفوظات",
+    "mainLabel": "التنقل الرئيسي",
+    "switchLabel": "اللغة"
+  },
+  "common": {
+    "omr": "ر.ع.",
+    "notSpecified": "غير محدد",
+    "applyFilters": "تطبيق التصفية",
+    "category": "الفئة",
+    "region": "المنطقة",
+    "duration": "المدة",
+    "ticketCost": "تكلفة التذكرة",
+    "recommendedMonths": "أفضل الأشهر",
+    "relatedDestinations": "وجهات أخرى في المنطقة",
+    "savedInterests": "الاهتمامات المحفوظة",
+    "backToDiscovery": "العودة إلى الاكتشاف",
+    "editInputs": "تعديل المدخلات",
+    "viewSaved": "عرض الاهتمامات المحفوظة",
+    "openPlanner": "فتح إدخال المخطط"
+  },
+  "categories": {
+    "adventure": "مغامرة",
+    "architecture": "عمارة",
+    "beach": "شاطئ",
+    "culture": "ثقافة",
+    "desert": "صحراء",
+    "family": "عائلي",
+    "hiking": "هايكنج",
+    "history": "تاريخ",
+    "nature": "طبيعة",
+    "photography": "تصوير",
+    "roadtrip": "رحلة برية",
+    "romantic": "رومانسي",
+    "stargazing": "رصد النجوم",
+    "swimming": "سباحة",
+    "walking": "مشي",
+    "waterfront": "واجهة بحرية",
+    "wildlife": "حياة برية"
+  },
+  "months": [
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر"
+  ],
+  "budget": {
+    "budget": "اقتصادي",
+    "moderate": "متوسط",
+    "luxury": "فاخر"
+  },
+  "pace": {
+    "relaxed": "هادئة",
+    "balanced": "متوازنة",
+    "packed": "مكثفة"
+  },
+  "sort": {
+    "crowd_asc": "الأقل ازدحاماً",
+    "cost_asc": "التكلفة من الأقل إلى الأعلى",
+    "duration_asc": "المدة من الأقصر إلى الأطول"
+  },
+  "home": {
+    "heroKicker": "كودستاكر 2026",
+    "heroTitle": "حيث تلتقي الجبال والأودية والسواحل.",
+    "heroBody": "ابنِ رحلتك من وجهات مناسبة للمسافرين في عُمان عبر تجربة ثنائية اللغة ومخطط حتمي.",
+    "ctaPrimary": "استكشف الوجهات",
+    "ctaSecondary": "ابدأ التخطيط",
+    "sectionsTitle": "أنماط السفر",
+    "sectionsBody": "مسارات ثقافية ومغامرات وتجارب عائلية ورحلات بطابع طبيعي.",
+    "regionsTitle": "تصفح حسب المنطقة",
+    "quickFactsTitle": "ملخص الرحلة",
+    "quickFactsLabel": "{count} وجهة في مجموعة البيانات الحالية."
+  },
+  "discover": {
+    "title": "اكتشف عُمان",
+    "body": "تصفح قوائم الوجهات الخادمية مع تصفية حسب المنطقة والفئة وترتيب مناسب للمسافر.",
+    "plannerBridgeTitle": "الانتقال من الاكتشاف إلى التخطيط",
+    "plannerBridgeBody": "احفظ الوجهات أثناء التصفح ثم افتح المخطط لتحويلها إلى برنامج رحلة حتمي.",
+    "filterTitle": "خصص نتائجك",
+    "allRegions": "كل المناطق",
+    "allCategories": "كل الفئات",
+    "resultsLabel": "{count} وجهات",
+    "emptyState": "لا توجد وجهات مطابقة لهذه التصفية حالياً.",
+    "planWithThis": "خطط بهذه الوجهة"
+  },
+  "detail": {
+    "sendToPlanner": "أضف إلى إدخال المخطط",
+    "noRelated": "لا توجد وجهات مرتبطة بعد."
+  },
+  "saved": {
+    "title": "الاهتمامات المحفوظة",
+    "emptyBody": "ابدأ من صفحة الاكتشاف وأضف وجهات قبل فتح المخطط.",
+    "goToDiscovery": "اذهب إلى الاكتشاف",
+    "body": "يتم حفظ هذه الوجهات محلياً في المتصفح ويمكن استخدامها لملء مدخلات المخطط.",
+    "remove": "إزالة",
+    "continueToPlanner": "انتقل إلى المخطط",
+    "clearAll": "مسح الكل"
+  },
+  "saveInterest": {
+    "save": "احفظ للاهتمام",
+    "saved": "محفوظة للاهتمام"
+  },
+  "plannerForm": {
+    "title": "إدخال المخطط",
+    "body": "حدد تفضيلاتك الآن. ستُستخدم هذه المدخلات في المرحلة التالية لتوليد برنامج الرحلة.",
+    "days": "عدد الأيام",
+    "budget": "الميزانية",
+    "pace": "الوتيرة",
+    "month": "شهر السفر",
+    "themes": "الفئات المفضلة",
+    "picks": "الوجهات المحفوظة للإدراج",
+    "submit": "حفظ المدخلات والمتابعة",
+    "savedNotice": "تم حفظ المدخلات محلياً.",
+    "manageSaved": "إدارة الاهتمامات"
+  },
+  "plannerResult": {
+    "title": "برنامج الرحلة النهائي",
+    "body": "يتم تجميع هذا البرنامج بشكل حتمي من نتائج ترتيب الوجهات وتوزيع المناطق وتخطيط الأيام.",
+    "inputSummary": "ملخص الإدخال",
+    "days": "الأيام: {value}",
+    "budget": "الميزانية: {value}",
+    "pace": "الوتيرة: {value}",
+    "travelMonth": "شهر السفر: {value}",
+    "themesSelected": "الفئات المختارة: {value}",
+    "savedSeeds": "الوجهات المحفوظة: {value}",
+    "outputTitle": "مخرجات البرنامج",
+    "itineraryDays": "أيام البرنامج: {value}",
+    "totalStops": "إجمالي المحطات: {value}",
+    "totalVisitHours": "إجمالي ساعات الزيارة: {value}",
+    "totalTravelKm": "إجمالي مسافة التنقل (كم): {value}",
+    "unresolvedDays": "الأيام غير المحلولة: {value}",
+    "dayHeading": "اليوم {dayNumber} - {region} ({regionDayNumber})",
+    "dayStats": "محطات: {stops} | ساعات: {hours} | كم: {km}",
+    "stopHours": "{slug} | ساعات تقديرية: {hours}",
+    "stopRank": "رتبة: {rank} | درجة: {score}",
+    "noStops": "لا توجد محطات لهذا اليوم.",
+    "traceabilityTitle": "تتبع العقود",
+    "planningContext": "معرف سياق التخطيط: {value}",
+    "sourceVersions": "إصدارات المصدر: 4C={handoff}، 5A={allocation}، 5B={routing}",
+    "finalVersion": "إصدار البرنامج النهائي: {value}",
+    "handoffTitle": "تسليم المرحلة 4C",
+    "allocationTitle": "عقد توزيع المناطق 5A",
+    "routingTitle": "عقد التوجيه وخطة الأيام 5B",
+    "finalContractTitle": "عقد البرنامج النهائي 5C"
+  }
 }

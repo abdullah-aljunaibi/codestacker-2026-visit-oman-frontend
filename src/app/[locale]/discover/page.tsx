@@ -1,12 +1,18 @@
 import Link from "next/link";
 
 import { SaveInterestButton } from "@/components/save-interest-button";
+import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import { getCategoryOptions, getRegionOptions } from "@/lib/data/selectors";
-import { getDiscoveryCopy } from "@/lib/discovery/content";
 import { applyDiscoveryQuery, parseDiscoveryFilters } from "@/lib/discovery/query";
-import { localeDirection, resolveLocale } from "@/lib/i18n/config";
+import { resolveLocale } from "@/lib/i18n/config";
+import {
+  formatMessage,
+  formatTicketCost,
+  getMessages,
+  getSortLabel
+} from "@/lib/i18n/messages";
 
 export default async function DiscoverPage({
   params,
@@ -18,54 +24,43 @@ export default async function DiscoverPage({
   const { locale: localeParam } = await params;
   const locale = resolveLocale(localeParam);
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const copy = getDiscoveryCopy(locale);
+  const messages = getMessages(locale);
   const filters = parseDiscoveryFilters(resolvedSearchParams);
   const destinations = loadDestinations();
   const normalizedDestinations = normalizeDestinations(destinations, locale);
   const normalizedBySlug = new Map(normalizedDestinations.map((destination) => [destination.slug, destination]));
 
   const regions = getRegionOptions(destinations, locale);
-  const categories = getCategoryOptions(destinations);
+  const categories = getCategoryOptions(destinations, locale);
   const results = applyDiscoveryQuery([...destinations], filters).map(
     (destination) => normalizedBySlug.get(destination.slug)!
   );
 
   return (
-    <main dir={localeDirection[locale]} className={locale === "ar" ? "ar" : undefined}>
+    <main className="page">
       <div className="shell">
-        <header className="topnav">
-          <div className="brand">{copy.discoverTitle}</div>
-          <nav className="navlinks">
-            <Link href={`/${locale}`}>{copy.siteTitle}</Link>
-            <Link href={`/${locale}/saved`}>{locale === "ar" ? "المحفوظات" : "Saved"}</Link>
-            <Link href={`/${locale}/planner`}>{copy.navPlanner}</Link>
-          </nav>
-        </header>
+        <SiteHeader locale={locale} title={messages.discover.title} />
 
-        <p>{copy.discoverBody}</p>
+        <p className="pageIntro">{messages.discover.body}</p>
 
-        <section className="card" style={{ marginBottom: "1rem" }}>
-          <h3>{locale === "ar" ? "الانتقال إلى التخطيط" : "Move from discovery to planning"}</h3>
-          <p>
-            {locale === "ar"
-              ? "احفظ وجهاتك المفضلة أثناء التصفح، ثم افتح صفحة المخطط لتعبئة التفضيلات قبل التوليد."
-              : "Save destinations while browsing, then open planner to submit trip preferences before itinerary generation."}
-          </p>
+        <section className="card sectionCard">
+          <h3>{messages.discover.plannerBridgeTitle}</h3>
+          <p>{messages.discover.plannerBridgeBody}</p>
           <div className="ctaRow">
             <Link className="pill" href={`/${locale}/saved`}>
-              {locale === "ar" ? "عرض الاهتمامات المحفوظة" : "View saved interests"}
+              {messages.common.viewSaved}
             </Link>
             <Link className="pill pillPrimary" href={`/${locale}/planner`}>
-              {locale === "ar" ? "فتح إدخال المخطط" : "Open planner input"}
+              {messages.common.openPlanner}
             </Link>
           </div>
         </section>
 
-        <form method="get" className="filterBar" style={{ marginTop: "1rem" }}>
+        <form method="get" className="filterBar">
           <div>
-            <label htmlFor="region">{copy.filterRegion}</label>
+            <label htmlFor="region">{messages.common.region}</label>
             <select id="region" name="region" defaultValue={filters.region ?? ""}>
-              <option value="">{copy.allRegions}</option>
+              <option value="">{messages.discover.allRegions}</option>
               {regions.map((region) => (
                 <option key={region.value} value={region.value}>
                   {region.label}
@@ -75,46 +70,46 @@ export default async function DiscoverPage({
           </div>
 
           <div>
-            <label htmlFor="category">{copy.filterTag}</label>
+            <label htmlFor="category">{messages.common.category}</label>
             <select id="category" name="category" defaultValue={filters.category ?? ""}>
-              <option value="">{copy.allTags}</option>
+              <option value="">{messages.discover.allCategories}</option>
               {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
+                <option key={category.value} value={category.value}>
+                  {category.label}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label htmlFor="sort">{copy.sortLabel}</label>
+            <label htmlFor="sort">{messages.discover.filterTitle}</label>
             <select id="sort" name="sort" defaultValue={filters.sort ?? "crowd_asc"}>
-              <option value="crowd_asc">{locale === "ar" ? "الأقل ازدحاماً" : "Crowd (Low to High)"}</option>
-              <option value="cost_asc">{locale === "ar" ? "التكلفة (الأقل أولاً)" : "Cost (Low to High)"}</option>
-              <option value="duration_asc">
-                {locale === "ar" ? "المدة (الأقصر أولاً)" : "Duration (Short to Long)"}
-              </option>
+              <option value="crowd_asc">{getSortLabel("crowd_asc", locale)}</option>
+              <option value="cost_asc">{getSortLabel("cost_asc", locale)}</option>
+              <option value="duration_asc">{getSortLabel("duration_asc", locale)}</option>
             </select>
           </div>
 
-          <div>
-            <label htmlFor="submit">{copy.filtersTitle}</label>
+          <div className="filterAction">
+            <label htmlFor="submit">{messages.discover.filterTitle}</label>
             <button id="submit" type="submit">
-              {copy.filtersTitle}
+              {messages.common.applyFilters}
             </button>
           </div>
         </form>
 
         <p className="listHeader">
-          {results.length} {copy.cardsLabel}
+          {formatMessage(messages.discover.resultsLabel, {
+            count: results.length
+          })}
         </p>
 
         {results.length === 0 ? (
           <article className="card">
-            <p>{copy.emptyState}</p>
+            <p>{messages.discover.emptyState}</p>
           </article>
         ) : (
-          <section className="grid3">
+          <section className="infoGrid">
             {results.map((destination) => (
               <article key={destination.id} className="card">
                 <h3>
@@ -125,13 +120,13 @@ export default async function DiscoverPage({
                 <p>{destination.description[locale]}</p>
                 <div className="metaList">
                   <span className="meta">{destination.regionLabel}</span>
-                  <span className="meta">{destination.budgetLevel}</span>
+                  <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
                   <span className="meta">{destination.recommendedDurationHours}h</span>
                 </div>
                 <div className="ctaRow" style={{ marginTop: "0.85rem" }}>
                   <SaveInterestButton slug={destination.slug} locale={locale} />
                   <Link className="pill" href={`/${locale}/planner?focus=${destination.slug}`}>
-                    {locale === "ar" ? "خطط بهذه الوجهة" : "Plan with this"}
+                    {messages.discover.planWithThis}
                   </Link>
                 </div>
               </article>

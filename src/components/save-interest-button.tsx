@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { readSavedInterestSlugs, toggleSavedInterest } from "@/lib/persistence/interests";
 import { resolveLocale } from "@/lib/i18n/config";
+import { getMessages } from "@/lib/i18n/messages";
 
 export function SaveInterestButton({
   slug,
@@ -13,6 +14,7 @@ export function SaveInterestButton({
   locale: string;
 }) {
   const normalizedLocale = resolveLocale(locale);
+  const messages = getMessages(normalizedLocale);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -28,13 +30,7 @@ export function SaveInterestButton({
         setSaved(next.includes(slug));
       }}
     >
-      {saved
-        ? normalizedLocale === "ar"
-          ? "محفوظة للاهتمام"
-          : "Saved to interests"
-        : normalizedLocale === "ar"
-          ? "احفظ للاهتمام"
-          : "Save as interest"}
+      {saved ? messages.saveInterest.saved : messages.saveInterest.save}
     </button>
   );
 }
