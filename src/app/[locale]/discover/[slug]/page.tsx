@@ -67,7 +67,8 @@ export default async function DestinationPage({
             <div className="metaList">
               <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
               <span className="meta">
-                {messages.common.duration}: {destination.recommendedDurationHours}h
+                {messages.common.duration}: {destination.recommendedDurationHours}
+                {messages.common.hourUnitShort}
               </span>
               <span className="meta">{messages.detail.crowdLabel.replace("{value}", String(destination.crowd_level))}</span>
             </div>

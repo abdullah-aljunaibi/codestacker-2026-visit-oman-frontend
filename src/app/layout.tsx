@@ -20,9 +20,21 @@ export const metadata: Metadata = {
   description: "CodeStacker 2026 Frontend challenge implementation"
 };
 
+const localeBootstrapScript = `
+  (function () {
+    var segment = window.location.pathname.split("/")[1];
+    var isArabic = segment === "ar";
+    document.documentElement.lang = isArabic ? "ar" : "en";
+    document.documentElement.dir = isArabic ? "rtl" : "ltr";
+  })();
+`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: localeBootstrapScript }} />
+      </head>
       <body className={`${manrope.variable} ${notoKufiArabic.variable}`}>{children}</body>
     </html>
   );

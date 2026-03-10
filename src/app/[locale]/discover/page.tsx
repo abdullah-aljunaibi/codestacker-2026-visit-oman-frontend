@@ -200,7 +200,10 @@ export default async function DiscoverPage({
 
                 <div className="metaList">
                   <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
-                  <span className="meta">{destination.recommendedDurationHours}h</span>
+                  <span className="meta">
+                    {destination.recommendedDurationHours}
+                    {messages.common.hourUnitShort}
+                  </span>
                   <span className="meta">{getMonthLabel(destination.recommended_months[0] ?? 1, locale)}</span>
                 </div>
 

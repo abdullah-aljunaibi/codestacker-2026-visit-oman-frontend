@@ -36,6 +36,18 @@ a {
   color: inherit;
 }
 
+:where(a, button, input, select, textarea):focus-visible,
+:where([role="tab"]):focus-visible {
+  outline: 3px solid rgba(189, 122, 45, 0.82);
+  outline-offset: 3px;
+}
+
+.checkItem:has(input:focus-visible),
+.plannerTimelineItem:has(.plannerTimelineMarker:focus-visible) .plannerTimelineCardInner {
+  border-color: rgba(189, 122, 45, 0.42);
+  box-shadow: 0 0 0 4px rgba(189, 122, 45, 0.14);
+}
+
 .pageRoot {
   min-height: 100vh;
 }
@@ -796,6 +808,10 @@ a {
 
 [dir="rtl"] .localeSwitch {
   justify-content: flex-start;
+}
+
+[dir="rtl"] .plannerDayTab {
+  text-align: right;
 }
 
 @media (max-width: 920px) {

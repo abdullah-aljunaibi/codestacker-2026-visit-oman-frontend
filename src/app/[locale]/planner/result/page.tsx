@@ -39,7 +39,7 @@ import {
   defaultPlannerDraft,
   readPlannerDraft
 } from "../../../../lib/persistence/planner-draft";
-import type { Locale } from "../../../../types/dataset";
+import type { DatasetRegionKey, Locale } from "../../../../types/dataset";
 
 const ItineraryMapClient = dynamic(
   () => import("../../../../components/maps/itinerary-map.client"),
@@ -314,6 +314,15 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     () => new Map(normalizedDestinations.map((destination) => [destination.slug, destination])),
     [normalizedDestinations]
   );
+  const regionLabelByKey = useMemo(
+    () =>
+      new Map(
+        normalizedDestinations.map((destination) => [destination.regionKey, destination.regionLabel])
+      ),
+    [normalizedDestinations]
+  );
+  const getRegionLabel = (regionKey: string) =>
+    regionLabelByKey.get(regionKey as DatasetRegionKey) ?? regionKey;
 
   const itineraryMapDays = useMemo(
     () =>
@@ -334,8 +343,8 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
   );
 
   const uniqueRegions = useMemo(
-    () => Array.from(new Set(finalItinerary.days.map((day) => day.region))),
-    [finalItinerary.days]
+    () => Array.from(new Set(finalItinerary.days.map((day) => getRegionLabel(day.region)))),
+    [finalItinerary.days, regionLabelByKey]
   );
 
   const tripSettings = [
@@ -496,11 +505,13 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
 
     const lastIndex = finalItinerary.days.length - 1;
     let nextIndex = currentIndex;
+    const moveForwardKey = locale === "ar" ? "ArrowLeft" : "ArrowRight";
+    const moveBackwardKey = locale === "ar" ? "ArrowRight" : "ArrowLeft";
 
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    if (event.key === moveForwardKey || event.key === "ArrowDown") {
       event.preventDefault();
       nextIndex = currentIndex === lastIndex ? 0 : currentIndex + 1;
-    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    } else if (event.key === moveBackwardKey || event.key === "ArrowUp") {
       event.preventDefault();
       nextIndex = currentIndex === 0 ? lastIndex : currentIndex - 1;
     } else if (event.key === "Home") {
@@ -630,7 +641,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                     <span>{formatMessage(messages.plannerResult.dayTabLabel, {
                       dayNumber: formatNumber(day.dayNumber, locale)
                     })}</span>
-                    <small>{day.region}</small>
+                    <small>{getRegionLabel(day.region)}</small>
                   </button>
                 ))}
               </div>
@@ -653,7 +664,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                           })}
                         </h2>
                         <p>{formatMessage(messages.plannerResult.daySubheading, {
-                          region: selectedDay.region,
+                          region: getRegionLabel(selectedDay.region),
                           regionDayNumber: formatNumber(selectedDay.regionDayNumber, locale)
                         })}</p>
                       </div>
@@ -675,11 +686,13 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                     <div className="plannerDaySummaryGrid">
                       <div className="plannerSummaryStat">
                         <span>{messages.plannerResult.daySummaryRegion}</span>
-                        <strong>{selectedDay.region}</strong>
+                        <strong>{getRegionLabel(selectedDay.region)}</strong>
                       </div>
                       <div className="plannerSummaryStat">
                         <span>{messages.plannerResult.daySummaryDistance}</span>
-                        <strong>{formatDecimal(selectedDay.estimatedTravelKm, locale, 1)} km</strong>
+                        <strong>
+                          {formatDecimal(selectedDay.estimatedTravelKm, locale, 1)} {messages.common.distanceUnitShort}
+                        </strong>
                       </div>
                       <div className="plannerSummaryStat">
                         <span>{messages.plannerResult.daySummaryDrive}</span>
@@ -824,7 +837,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                     <div className="plannerWhyBlock">
                       <h3>{messages.plannerResult.whyRegionTitle}</h3>
                       <p>{formatMessage(messages.plannerResult.whyRegionBody, {
-                        region: selectedDay.region,
+                        region: getRegionLabel(selectedDay.region),
                         count: formatNumber(selectedRegionCandidateCount, locale),
                         dayNumber: formatNumber(selectedDay.dayNumber, locale),
                         factors: selectedDayReasonLabels.length > 0

@@ -35,7 +35,9 @@
     "backToDiscovery": "Back to discovery",
     "editInputs": "Edit inputs",
     "viewSaved": "View saved interests",
-    "openPlanner": "Open planner input"
+    "openPlanner": "Open planner input",
+    "distanceUnitShort": "km",
+    "hourUnitShort": "h"
   },
   "categories": {
     "adventure": "Adventure",
@@ -47,6 +49,7 @@
     "family": "Family",
     "hiking": "Hiking",
     "history": "History",
+    "mountain": "Mountain",
     "nature": "Nature",
     "photography": "Photography",
     "roadtrip": "Road trip",

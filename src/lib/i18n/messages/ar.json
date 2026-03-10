@@ -35,7 +35,9 @@
     "backToDiscovery": "العودة إلى الاكتشاف",
     "editInputs": "تعديل المدخلات",
     "viewSaved": "عرض الاهتمامات المحفوظة",
-    "openPlanner": "فتح إدخال المخطط"
+    "openPlanner": "فتح إدخال المخطط",
+    "distanceUnitShort": "كم",
+    "hourUnitShort": "س"
   },
   "categories": {
     "adventure": "مغامرة",
@@ -47,6 +49,7 @@
     "family": "عائلي",
     "hiking": "هايكنج",
     "history": "تاريخ",
+    "mountain": "جبلي",
     "nature": "طبيعة",
     "photography": "تصوير",
     "roadtrip": "رحلة برية",
