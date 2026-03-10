@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DestinationPreviewHydrated } from "@/components/maps/destination-preview-hydrated.client";
+import { StaticDestinationPreview } from "@/components/maps/static-destination-preview";
 import { SaveInterestButton } from "@/components/save-interest-button";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
@@ -131,6 +133,32 @@ export default async function DestinationPage({
             <h3>{messages.common.duration}</h3>
             <p>{messages.detail.visitDurationLabel.replace("{value}", String(destination.recommendedDurationHours))}</p>
           </article>
+        </section>
+
+        <section className="card sectionCard detailMapCard">
+          <div className="detailMapCopy">
+            <div>
+              <h2>{messages.detail.mapTitle}</h2>
+              <p>{messages.detail.mapBody}</p>
+            </div>
+            <div className="detailMapLegend" aria-label={messages.detail.mapLegendTitle}>
+              <span className="plannerLegendSwatch plannerLegendSwatchPin" aria-hidden="true" />
+              <span>{messages.detail.mapLegendPin}</span>
+            </div>
+          </div>
+          <div className="detailMapStack">
+            <StaticDestinationPreview
+              lat={destination.coordinates.lat}
+              lng={destination.coordinates.lng}
+              title={destination.name[locale]}
+              subtitle={messages.detail.mapPreviewAlt.replace("{name}", destination.name[locale])}
+            />
+            <DestinationPreviewHydrated
+              lat={destination.coordinates.lat}
+              lng={destination.coordinates.lng}
+              title={destination.name[locale]}
+            />
+          </div>
         </section>
 
         <section className="card sectionCard">

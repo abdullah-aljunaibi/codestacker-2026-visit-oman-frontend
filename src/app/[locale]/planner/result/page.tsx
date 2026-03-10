@@ -1,13 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
 
-import { SiteHeader } from "@/components/site-header";
-import { loadDestinationsWithVersion } from "@/lib/data/load-destinations";
-import { normalizeDestinations } from "@/lib/data/normalize-destinations";
-import { resolveLocale } from "@/lib/i18n/config";
+import { SiteHeader } from "../../../../components/site-header";
+import { loadDestinationsWithVersion } from "../../../../lib/data/load-destinations";
+import { normalizeDestinations } from "../../../../lib/data/normalize-destinations";
+import { resolveLocale } from "../../../../lib/i18n/config";
 import {
   formatDecimal,
   formatMessage,
@@ -17,11 +18,11 @@ import {
   getMessages,
   getMonthLabel,
   getTravelIntensityLabel
-} from "@/lib/i18n/messages";
-import { rankCandidatesForPlanner } from "@/lib/planner/candidate-ranking";
-import { assembleFinalItinerary } from "@/lib/planner/final-itinerary";
-import { generateIntraRegionDayPlans } from "@/lib/planner/intra-region-routing";
-import { allocateTripDaysAcrossRegions } from "@/lib/planner/region-allocation";
+} from "../../../../lib/i18n/messages";
+import { rankCandidatesForPlanner } from "../../../../lib/planner/candidate-ranking";
+import { assembleFinalItinerary } from "../../../../lib/planner/final-itinerary";
+import { generateIntraRegionDayPlans } from "../../../../lib/planner/intra-region-routing";
+import { allocateTripDaysAcrossRegions } from "../../../../lib/planner/region-allocation";
 import {
   clearPersistedItinerary,
   deriveCostBreakdown,
@@ -29,15 +30,20 @@ import {
   readPersistedItinerary,
   writePersistedCostBreakdown,
   writePersistedItinerary
-} from "@/lib/persistence/itinerary";
-import { readSavedInterestSlugs } from "@/lib/persistence/interests";
-import type { PlannerDraft } from "@/lib/persistence/planner-draft";
+} from "../../../../lib/persistence/itinerary";
+import { readSavedInterestSlugs } from "../../../../lib/persistence/interests";
+import type { PlannerDraft } from "../../../../lib/persistence/planner-draft";
 import {
   clearPlannerDraft,
   defaultPlannerDraft,
   readPlannerDraft
-} from "@/lib/persistence/planner-draft";
-import type { Locale } from "@/types/dataset";
+} from "../../../../lib/persistence/planner-draft";
+import type { Locale } from "../../../../types/dataset";
+
+const ItineraryMapClient = dynamic(
+  () => import("../../../../components/maps/itinerary-map.client"),
+  { ssr: false }
+);
 
 function getCrowdLabel(crowdLevel: number, locale: Locale): string {
   const messages = getMessages(locale);
@@ -136,6 +142,8 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     [finalItinerary, normalizedDestinations]
   );
   const [persistedCostBreakdown, setPersistedCostBreakdown] = useState(currentCostBreakdown);
+  const [selectedDayNumber, setSelectedDayNumber] = useState(1);
+  const [activeStopSlug, setActiveStopSlug] = useState<string | null>(null);
 
   useEffect(() => {
     const now = new Date().toISOString();
@@ -156,6 +164,56 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
       setPersistedCostBreakdown(savedBreakdown);
     }
   }, []);
+
+  useEffect(() => {
+    const firstDay = finalItinerary.days[0];
+    if (!firstDay) {
+      setSelectedDayNumber(1);
+      setActiveStopSlug(null);
+      return;
+    }
+
+    setSelectedDayNumber((currentDayNumber) => {
+      const dayExists = finalItinerary.days.some((day) => day.dayNumber === currentDayNumber);
+      return dayExists ? currentDayNumber : firstDay.dayNumber;
+    });
+  }, [finalItinerary.days]);
+
+  const selectedDay =
+    finalItinerary.days.find((day) => day.dayNumber === selectedDayNumber) ?? finalItinerary.days[0];
+
+  useEffect(() => {
+    if (!selectedDay) {
+      setActiveStopSlug(null);
+      return;
+    }
+
+    setActiveStopSlug((currentSlug) => {
+      if (currentSlug && selectedDay.stops.some((stop) => stop.slug === currentSlug)) {
+        return currentSlug;
+      }
+
+      return selectedDay.stops[0]?.slug ?? null;
+    });
+  }, [selectedDay]);
+
+  const itineraryMapDays = useMemo(
+    () =>
+      finalItinerary.days.map((day) => ({
+        dayNumber: day.dayNumber,
+        stops: day.stops.map((stop) => {
+          const destination = normalizedDestinations.find((item) => item.slug === stop.slug);
+
+          return {
+            slug: stop.slug,
+            name: stop.name[locale],
+            lat: destination?.coordinates.lat ?? 0,
+            lng: destination?.coordinates.lng ?? 0
+          };
+        })
+      })),
+    [finalItinerary.days, locale, normalizedDestinations]
+  );
 
   const tripSnapshot = [
     { label: messages.plannerResult.days, value: formatNumber(draft.tripDurationDays, locale) },
@@ -263,7 +321,46 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                 <h2>{messages.plannerResult.mapTitle}</h2>
                 <p>{messages.plannerResult.mapBody}</p>
               </div>
-              <div className="plannerMapPlaceholder" aria-hidden="true" />
+              <div className="plannerDayTabs" role="tablist" aria-label={messages.plannerResult.daySwitcherLabel}>
+                {finalItinerary.days.map((day) => (
+                  <button
+                    key={`map-day-${day.dayNumber}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={day.dayNumber === selectedDayNumber}
+                    className={day.dayNumber === selectedDayNumber ? "plannerDayTab plannerDayTabActive" : "plannerDayTab"}
+                    onClick={() => {
+                      setSelectedDayNumber(day.dayNumber);
+                      setActiveStopSlug(day.stops[0]?.slug ?? null);
+                    }}
+                  >
+                    {formatMessage(messages.plannerResult.dayTabLabel, {
+                      dayNumber: formatNumber(day.dayNumber, locale)
+                    })}
+                  </button>
+                ))}
+              </div>
+              <ItineraryMapClient
+                days={itineraryMapDays}
+                selectedDayNumber={selectedDayNumber}
+                activeStopSlug={activeStopSlug}
+                locale={locale}
+                onActiveStopChange={setActiveStopSlug}
+              />
+              <div className="plannerLegend" aria-label={messages.plannerResult.mapLegendTitle}>
+                <div className="plannerLegendItem">
+                  <span className="plannerLegendSwatch plannerLegendSwatchRoute" aria-hidden="true" />
+                  <span>{messages.plannerResult.mapLegendRoute}</span>
+                </div>
+                <div className="plannerLegendItem">
+                  <span className="plannerLegendSwatch plannerLegendSwatchStop" aria-hidden="true" />
+                  <span>{messages.plannerResult.mapLegendStop}</span>
+                </div>
+                <div className="plannerLegendItem">
+                  <span className="plannerLegendSwatch plannerLegendSwatchActive" aria-hidden="true" />
+                  <span>{messages.plannerResult.mapLegendActive}</span>
+                </div>
+              </div>
             </article>
           </aside>
 
@@ -273,7 +370,8 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
             </div>
 
             <div className="plannerDayGrid">
-              {finalItinerary.days.map((day) => {
+              {selectedDay ? (() => {
+                const day = selectedDay;
                 const paidStopCount = day.stops.filter((stop) => stop.ticketCostOmr > 0).length;
                 const freeStopCount = day.stops.length - paidStopCount;
                 const highlightedStops = day.stops
@@ -375,7 +473,14 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                       {day.stops.length > 0 ? (
                         <ol className="plannerStopList">
                           {day.stops.map((stop) => (
-                            <li key={`${day.dayNumber}-${stop.slug}`} className="plannerStopCard">
+                            <li
+                              key={`${day.dayNumber}-${stop.slug}`}
+                              className={
+                                stop.slug === activeStopSlug
+                                  ? "plannerStopCard plannerStopCardActive"
+                                  : "plannerStopCard"
+                              }
+                            >
                               <div className="plannerStopHeader">
                                 <div>
                                   <strong>{stop.name[locale]}</strong>
@@ -403,6 +508,13 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                                   {messages.plannerResult.stopTransit}: {formatNumber(stop.travelMinutesFromPrevious, locale)} {messages.plannerResult.minuteUnit}
                                 </span>
                               </div>
+                              <button
+                                type="button"
+                                className="plannerStopFocusButton"
+                                onClick={() => setActiveStopSlug(stop.slug)}
+                              >
+                                {messages.plannerResult.focusStop}
+                              </button>
                             </li>
                           ))}
                         </ol>
@@ -412,7 +524,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
                     </section>
                   </article>
                 );
-              })}
+              })() : null}
             </div>
 
             <div className="ctaRow">
