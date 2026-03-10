@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { Manrope, Noto_Kufi_Arabic } from "next/font/google";
+import { Inter, Tajawal } from "next/font/google";
 
 import "./globals.css";
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-heading",
   display: "swap"
 });
 
-const notoKufiArabic = Noto_Kufi_Arabic({
+const tajawal = Tajawal({
   subsets: ["arabic"],
   variable: "--font-arabic",
+  weight: ["400", "500", "700", "800"],
   display: "swap"
 });
 
@@ -35,7 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: localeBootstrapScript }} />
       </head>
-      <body className={`${manrope.variable} ${notoKufiArabic.variable}`}>{children}</body>
+      <body className={`${inter.variable} ${tajawal.variable}`}>{children}</body>
     </html>
   );
 }

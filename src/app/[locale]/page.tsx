@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { DestinationImage } from "@/components/destination-image";
+import { ImmersiveHero } from "@/components/immersive-hero";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
 import { normalizeDestinations } from "@/lib/data/normalize-destinations";
@@ -40,78 +41,17 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
   const regionHighlights = getRegionHighlights(destinations, locale);
 
   return (
-    <main className="page">
+    <main className="page pageHome">
+      <div className="heroFrame">
+        <div className="shell heroHeaderShell">
+          <SiteHeader locale={locale} overlay />
+        </div>
+        <ImmersiveHero locale={locale} destinationCount={destinations.length} regionCount={regions.length} />
+      </div>
+
       <div className="shell">
-        <SiteHeader locale={locale} />
-
-        <section className="hero heroDiscovery">
-          <div className="heroPanel">
-            <span className="kicker">{messages.home.heroKicker}</span>
-            <h1>{messages.home.heroTitle}</h1>
-            <p>{messages.home.heroBody}</p>
-            <div className="ctaRow">
-              <Link className="pill pillPrimary" href={`/${locale}/discover`}>
-                {messages.home.ctaPrimary}
-              </Link>
-              <Link className="pill" href={`/${locale}/planner`}>
-                {messages.home.ctaSecondary}
-              </Link>
-            </div>
-          </div>
-
-          <div className="heroShowcase card">
-            <div className="heroStatsGrid">
-              <article className="heroStat">
-                <strong>{destinations.length}</strong>
-                <span>
-                  {formatMessage(messages.home.heroStatsDestinations, {
-                    count: destinations.length
-                  })}
-                </span>
-              </article>
-              <article className="heroStat">
-                <strong>{regions.length}</strong>
-                <span>
-                  {formatMessage(messages.home.heroStatsRegions, {
-                    count: regions.length
-                  })}
-                </span>
-              </article>
-              <article className="heroStat">
-                <strong>{categorySpotlights.length}</strong>
-                <span>
-                  {formatMessage(messages.home.heroStatsCategories, {
-                    count: categorySpotlights.length
-                  })}
-                </span>
-              </article>
-            </div>
-
-            <div className="heroFeatureList">
-              {featuredDestinations.slice(0, 3).map((destination) => (
-                <article key={destination.slug} className="heroFeatureItem">
-                  <DestinationImage
-                    destination={destination}
-                    locale={locale}
-                    priority
-                    className="destinationImage destinationImageCompact"
-                  />
-                  <div>
-                    <p className="eyebrow">{destination.regionLabel}</p>
-                    <h3>{destination.name[locale]}</h3>
-                  </div>
-                  <p>{destination.description[locale]}</p>
-                  <div className="metaList">
-                    <span className="meta">{formatTicketCost(destination.ticket_cost_omr, locale)}</span>
-                    <span className="meta">{getSeasonCopy(destination.recommended_months, locale)}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="sectionBlock">
+          <div id="category-exploration" className="sectionAnchor" />
           <div className="sectionHeading">
             <div>
               <span className="kicker">{messages.home.sectionsTitle}</span>

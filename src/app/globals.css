@@ -1,15 +1,15 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --bg: #f5efdf;
-  --ink: #19251f;
-  --muted: #55635b;
-  --card: rgba(255, 251, 242, 0.9);
-  --line: rgba(129, 112, 77, 0.22);
-  --brand: #0b6f5b;
-  --brand-2: #bd7a2d;
-  --accent-soft: #f2dcc0;
-  --shadow-soft: 0 24px 70px rgba(41, 53, 43, 0.08);
+  --bg: #f5f0eb;
+  --ink: #1a1a2e;
+  --muted: #4e5364;
+  --card: rgba(255, 251, 247, 0.88);
+  --line: rgba(10, 77, 92, 0.14);
+  --brand: #0a4d5c;
+  --brand-2: #d4a574;
+  --accent-soft: #eadbc7;
+  --shadow-soft: 0 24px 70px rgba(26, 26, 46, 0.08);
   --shell-width: 1120px;
 }
 
@@ -25,11 +25,24 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--ink);
-  font-family: var(--font-sans), "Segoe UI", sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
   background:
-    radial-gradient(circle at 20% 0%, #efe4ce 0%, transparent 34%),
-    radial-gradient(circle at 85% 10%, #dce9e3 0%, transparent 30%),
+    radial-gradient(circle at 20% 0%, rgba(212, 165, 116, 0.18) 0%, transparent 34%),
+    radial-gradient(circle at 85% 10%, rgba(10, 77, 92, 0.12) 0%, transparent 30%),
     var(--bg);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.brand,
+.pill,
+.plannerDayTab,
+.plannerTimelineMarker {
+  font-family: var(--font-heading), "Segoe UI", sans-serif;
 }
 
 a {
@@ -56,9 +69,18 @@ a {
   padding-block: 1.5rem 3rem;
 }
 
+.pageHome {
+  padding-top: 0;
+}
+
 .shell {
   width: min(var(--shell-width), calc(100vw - 2rem));
   margin: 0 auto;
+}
+
+.sectionAnchor {
+  position: relative;
+  top: -6rem;
 }
 
 .pageIntro,
@@ -70,29 +92,94 @@ a {
 .topnav {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
   margin-bottom: 1.75rem;
   flex-wrap: wrap;
 }
 
+.siteChrome {
+  position: relative;
+  z-index: 20;
+  padding: 1rem 1.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(245, 240, 235, 0.92);
+  box-shadow: 0 18px 50px rgba(26, 26, 46, 0.08);
+  backdrop-filter: blur(18px);
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.siteChromeOverlay {
+  position: fixed;
+  inset-block-start: 1rem;
+  inset-inline-start: 50%;
+  width: min(var(--shell-width), calc(100vw - 2rem));
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: none;
+  color: #fff;
+}
+
+.siteChromeOverlay a {
+  color: inherit;
+}
+
+.siteChromeSolid {
+  background: rgba(245, 240, 235, 0.94);
+  border-color: rgba(10, 77, 92, 0.12);
+  box-shadow: 0 18px 50px rgba(26, 26, 46, 0.12);
+  color: var(--ink);
+}
+
+.siteChromeSolid .brandMark {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+}
+
 .topnavMain {
-  display: grid;
-  gap: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  flex-wrap: wrap;
 }
 
 .brand {
   display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
   text-decoration: none;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.brandMark {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), var(--brand-2));
+  box-shadow: 0 0 0 0.35rem rgba(255, 255, 255, 0.16);
 }
 
 .navlinks {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.15rem;
   font-weight: 600;
+}
+
+.navlinks a {
+  text-decoration: none;
+  opacity: 0.92;
+}
+
+.navlinks a:hover {
+  opacity: 1;
 }
 
 .localeSwitch {
@@ -103,6 +190,15 @@ a {
 .localePill {
   min-width: 6rem;
   justify-content: center;
+}
+
+.heroFrame {
+  position: relative;
+}
+
+.heroHeaderShell {
+  position: relative;
+  z-index: 30;
 }
 
 .hero {
@@ -153,12 +249,14 @@ a {
   backdrop-filter: blur(8px);
   cursor: pointer;
   font: inherit;
+  font-weight: 700;
 }
 
 .pillPrimary {
-  background: linear-gradient(120deg, var(--brand), #0b8c6e);
+  background: linear-gradient(120deg, var(--brand), #126879);
   color: #fff;
   border: none;
+  box-shadow: 0 18px 45px rgba(10, 77, 92, 0.26);
 }
 
 .pillSaved {
@@ -225,7 +323,7 @@ a {
 }
 
 .filterBar button {
-  background: linear-gradient(120deg, var(--brand), #0b8c6e);
+  background: linear-gradient(120deg, var(--brand), #126879);
   color: #fff;
   border: none;
   font-weight: 700;
@@ -361,7 +459,7 @@ a {
 }
 
 .plannerReasonChip {
-  background: rgba(11, 111, 91, 0.1);
+  background: rgba(10, 77, 92, 0.1);
   color: var(--brand);
 }
 
@@ -493,17 +591,17 @@ a {
   padding: 0.35rem 0.7rem;
   font-size: 0.82rem;
   font-weight: 700;
-  background: rgba(11, 111, 91, 0.1);
+  background: rgba(10, 77, 92, 0.1);
   color: var(--brand);
 }
 
 .plannerBadgeAlert {
-  background: rgba(189, 122, 45, 0.14);
-  color: #955813;
+  background: rgba(212, 165, 116, 0.2);
+  color: #8b6238;
 }
 
 .plannerBadgeSuccess {
-  background: rgba(11, 111, 91, 0.14);
+  background: rgba(10, 77, 92, 0.14);
   color: var(--brand);
 }
 
@@ -563,8 +661,8 @@ a {
 }
 
 .plannerDayTabActive {
-  background: linear-gradient(120deg, rgba(11, 111, 91, 0.14), rgba(11, 111, 91, 0.04));
-  border-color: rgba(11, 111, 91, 0.32);
+  background: linear-gradient(120deg, rgba(10, 77, 92, 0.14), rgba(10, 77, 92, 0.04));
+  border-color: rgba(10, 77, 92, 0.32);
   color: var(--brand);
 }
 
@@ -595,8 +693,8 @@ a {
   width: 3rem;
   height: 3rem;
   border-radius: 999px;
-  border: 1px solid rgba(11, 111, 91, 0.22);
-  background: linear-gradient(180deg, rgba(11, 111, 91, 0.14), rgba(11, 111, 91, 0.04));
+  border: 1px solid rgba(10, 77, 92, 0.22);
+  background: linear-gradient(180deg, rgba(10, 77, 92, 0.14), rgba(10, 77, 92, 0.04));
   color: var(--brand);
   font: inherit;
   font-weight: 700;
@@ -615,8 +713,8 @@ a {
 }
 
 .plannerTimelineItemActive .plannerTimelineCardInner {
-  border-color: rgba(11, 111, 91, 0.32);
-  box-shadow: 0 14px 34px rgba(11, 111, 91, 0.08);
+  border-color: rgba(10, 77, 92, 0.32);
+  box-shadow: 0 14px 34px rgba(10, 77, 92, 0.08);
 }
 
 .plannerTimelineHeader,
@@ -691,21 +789,21 @@ a {
 
 .plannerLegendSwatchRoute {
   border-radius: 999px;
-  background: linear-gradient(90deg, #0b6f5b, #0b6f5b);
+  background: linear-gradient(90deg, var(--brand), var(--brand));
   height: 0.35rem;
 }
 
 .plannerLegendSwatchStop {
-  background: #0b6f5b;
+  background: var(--brand);
   border: 2px solid #fff;
-  box-shadow: 0 0 0 1px rgba(11, 111, 91, 0.18);
+  box-shadow: 0 0 0 1px rgba(10, 77, 92, 0.18);
 }
 
 .plannerLegendSwatchActive,
 .plannerLegendSwatchPin {
-  background: #bd7a2d;
+  background: var(--brand-2);
   border: 2px solid #fff;
-  box-shadow: 0 0 0 1px rgba(189, 122, 45, 0.2);
+  box-shadow: 0 0 0 1px rgba(212, 165, 116, 0.24);
 }
 
 .leafletMapShell,
@@ -779,6 +877,17 @@ a {
 
 [dir="rtl"] body,
 [dir="rtl"] .pageRoot {
+  font-family: var(--font-arabic), Tahoma, sans-serif;
+}
+
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] h6,
+[dir="rtl"] .brand,
+[dir="rtl"] .pill {
   font-family: var(--font-arabic), Tahoma, sans-serif;
 }
 
@@ -1195,8 +1304,160 @@ pre {
   align-items: flex-end;
   margin-top: 1.5rem;
   background:
-    radial-gradient(circle at top right, rgba(11, 111, 91, 0.16), transparent 28%),
-    linear-gradient(135deg, rgba(255, 251, 244, 0.98), rgba(243, 233, 213, 0.92));
+    radial-gradient(circle at top right, rgba(10, 77, 92, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(255, 251, 244, 0.98), rgba(245, 240, 235, 0.92));
+}
+
+.immersiveHero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-end;
+  padding-block: 7rem 2rem;
+  color: #fff;
+  background-color: #143640;
+  background-position: center;
+  background-size: cover;
+}
+
+.immersiveHeroContent {
+  width: 100%;
+  display: grid;
+  gap: 2rem;
+  align-items: end;
+}
+
+.immersiveHeroCopy {
+  max-width: 42rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.immersiveHeroKicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.immersiveHeroCopy h1 {
+  margin: 0;
+  max-width: 10ch;
+  font-size: clamp(3.6rem, 8vw, 6.75rem);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+}
+
+.immersiveHeroCopy p {
+  margin: 0;
+  max-width: 38rem;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(1rem, 2vw, 1.2rem);
+}
+
+.immersiveHeroSubtitle {
+  font-size: clamp(1.1rem, 2.2vw, 1.45rem);
+  font-weight: 600;
+}
+
+.immersiveHeroPrimary {
+  background: linear-gradient(120deg, var(--brand-2), #e1b98c);
+  color: var(--ink);
+}
+
+.immersiveHeroGhost {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.immersiveHeroFooter {
+  display: grid;
+  gap: 1rem;
+  align-items: end;
+}
+
+.immersiveHeroStatsBar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+.immersiveHeroStatsBar span {
+  display: grid;
+  gap: 0.25rem;
+  padding: 1rem 1.2rem;
+  background: rgba(12, 31, 40, 0.36);
+  font-size: 0.94rem;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.immersiveHeroStatsBar strong {
+  font-size: 1.8rem;
+  line-height: 1;
+  color: #fff;
+}
+
+.scrollIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: fit-content;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.scrollIndicatorText {
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.scrollIndicatorChevron {
+  position: relative;
+  width: 1.3rem;
+  height: 2.1rem;
+}
+
+.scrollIndicatorChevron span {
+  position: absolute;
+  inset-inline-start: 50%;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-inline-end: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  transform: translateX(-50%) rotate(45deg);
+  animation: heroChevronBounce 1.8s infinite;
+}
+
+.scrollIndicatorChevron span:last-child {
+  animation-delay: 0.2s;
+  inset-block-start: 0.45rem;
+}
+
+@keyframes heroChevronBounce {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translate(-50%, 0) rotate(45deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, 0.35rem) rotate(45deg);
+  }
 }
 
 @media (max-width: 920px) {
@@ -1221,8 +1482,26 @@ pre {
     font-size: clamp(2rem, 10vw, 3rem);
   }
 
+  .siteChromeOverlay {
+    inset-block-start: 0.75rem;
+  }
+
+  .topnav,
+  .topnavMain {
+    align-items: flex-start;
+  }
+
   .heroStatsGrid,
-  .heroMiniGrid {
+  .heroMiniGrid,
+  .immersiveHeroStatsBar {
     grid-template-columns: 1fr;
+  }
+
+  .immersiveHero {
+    padding-block: 7rem 1.25rem;
+  }
+
+  .immersiveHeroCopy h1 {
+    max-width: 100%;
   }
 }
