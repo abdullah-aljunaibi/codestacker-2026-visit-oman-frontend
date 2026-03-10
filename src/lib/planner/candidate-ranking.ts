@@ -78,7 +78,7 @@ interface CandidateSelectionConfig {
   minCandidateCount: number;
   maxCandidateCount: number;
   minViableScore: number;
-  intensityMultipliers: Record<InterestProfile["pace"], number>;
+  intensityMultipliers: Record<InterestProfile["travelIntensity"], number>;
 }
 
 const defaultSelectionConfig: CandidateSelectionConfig = {
