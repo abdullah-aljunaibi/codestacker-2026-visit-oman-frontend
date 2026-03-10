@@ -1,6 +1,8 @@
 import type { Destination, InterestProfile } from "@/types/domain";
 import type { DatasetCoordinates } from "@/types/dataset";
 
+import { haversineDistance } from "@/lib/geo/haversine";
+
 export type BudgetLevel = InterestProfile["budget"];
 export type Coordinates = DatasetCoordinates;
 
@@ -45,21 +47,7 @@ export function normalizeTicketCost(ticketCostOmr: number, minCost: number, maxC
 }
 
 export function haversineDistanceKm(from: Coordinates, to: Coordinates): number {
-  const earthRadiusKm = 6371;
-  const degToRad = (deg: number) => (deg * Math.PI) / 180;
-
-  const dLat = degToRad(to.lat - from.lat);
-  const dLng = degToRad(to.lng - from.lng);
-
-  const lat1 = degToRad(from.lat);
-  const lat2 = degToRad(to.lat);
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLng / 2) * Math.sin(dLng / 2) * Math.cos(lat1) * Math.cos(lat2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return earthRadiusKm * c;
+  return haversineDistance(from.lat, from.lng, to.lat, to.lng);
 }
 
 export function centroid(destinations: Array<Pick<Destination, "coordinates">>): Coordinates | null {

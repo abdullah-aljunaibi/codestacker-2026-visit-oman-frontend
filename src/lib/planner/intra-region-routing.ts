@@ -1,4 +1,6 @@
 import type { PlannerPhase4CHandoff, PlannerHandoffRouteCandidate } from "@/lib/planner/candidate-ranking";
+import { haversineDistance } from "@/lib/geo/haversine";
+import { totalRouteDistance } from "@/lib/geo/route-distance";
 import type { PlannerPhase5ARegionAllocation } from "@/lib/planner/region-allocation";
 
 interface IntraRegionRoutingConfig {
@@ -77,23 +79,6 @@ function roundKm(value: number, precision: number): number {
   return deterministicRound(value, precision);
 }
 
-function haversineDistanceKm(
-  from: PlannerHandoffRouteCandidate["coordinates"],
-  to: PlannerHandoffRouteCandidate["coordinates"]
-): number {
-  const lat1 = (from.lat * Math.PI) / 180;
-  const lat2 = (to.lat * Math.PI) / 180;
-  const dLat = ((to.lat - from.lat) * Math.PI) / 180;
-  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const earthRadiusKm = 6371;
-  return earthRadiusKm * c;
-}
-
 function compareCandidatesByPriority(a: PlannerDayCandidate, b: PlannerDayCandidate): number {
   if (a.rank !== b.rank) {
     return a.rank - b.rank;
@@ -112,8 +97,12 @@ function compareByDistanceFromCurrent(
   a: PlannerDayCandidate,
   b: PlannerDayCandidate
 ): number {
-  const distanceA = deterministicRound(haversineDistanceKm(current.coordinates, a.coordinates));
-  const distanceB = deterministicRound(haversineDistanceKm(current.coordinates, b.coordinates));
+  const distanceA = deterministicRound(
+    haversineDistance(current.coordinates.lat, current.coordinates.lng, a.coordinates.lat, a.coordinates.lng)
+  );
+  const distanceB = deterministicRound(
+    haversineDistance(current.coordinates.lat, current.coordinates.lng, b.coordinates.lat, b.coordinates.lng)
+  );
   if (distanceA !== distanceB) {
     return distanceA - distanceB;
   }
@@ -121,16 +110,7 @@ function compareByDistanceFromCurrent(
 }
 
 function computeRouteTravelKm(candidates: PlannerDayCandidate[], precision: number): number {
-  if (candidates.length < 2) {
-    return 0;
-  }
-
-  let total = 0;
-  for (let index = 1; index < candidates.length; index += 1) {
-    total += haversineDistanceKm(candidates[index - 1].coordinates, candidates[index].coordinates);
-  }
-
-  return roundKm(total, precision);
+  return roundKm(totalRouteDistance(candidates.map((candidate) => candidate.coordinates)), precision);
 }
 
 function orderCandidatesWithinRegion(candidates: PlannerDayCandidate[]): PlannerDayCandidate[] {
