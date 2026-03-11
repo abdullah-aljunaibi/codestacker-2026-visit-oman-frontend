@@ -192,6 +192,7 @@ export default async function DestinationPage({
             <PhotoGallery
               images={[destination.image, ...destination.galleryImages.map((img: { src: string }) => img.src)]}
               name={destination.name[locale]}
+              slug={destination.slug}
               photosLabel={locale === "ar" ? "الصور" : "Photos"}
             />
           </section>

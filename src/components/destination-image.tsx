@@ -1,8 +1,11 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useRef, useState } from "react";
 
 import { createBlurDataUrl } from "@/lib/ui/image-placeholders";
 import type { Destination } from "@/types/domain";
 import type { Locale } from "@/types/dataset";
+
+const STORAGE_PREFIX = "vo_img_";
 
 export function DestinationImage({
   destination,
@@ -15,27 +18,55 @@ export function DestinationImage({
   priority?: boolean;
   className?: string;
 }) {
-  const blurDataURL =
-    destination.heroImage.theme === "desert"
-      ? createBlurDataUrl("#8a5f3f", "#ddb583")
-      : destination.heroImage.theme === "sea"
-        ? createBlurDataUrl("#215f74", "#9cd4d9")
-        : destination.heroImage.theme === "culture" || destination.heroImage.theme === "heritage"
-          ? createBlurDataUrl("#5f4c3f", "#dec5a7")
-          : createBlurDataUrl("#35695a", "#b9d7c7");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [imgSrc, setImgSrc] = useState(destination.heroImage.src);
+  const [isCustom, setIsCustom] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_PREFIX + destination.slug);
+    if (stored) {
+      setImgSrc(stored);
+      setIsCustom(true);
+    }
+  }, [destination.slug]);
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      localStorage.setItem(STORAGE_PREFIX + destination.slug, dataUrl);
+      setImgSrc(dataUrl);
+      setIsCustom(true);
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
-    <div className={className}>
-      <Image
-        src={destination.heroImage.src}
+    <div className={className} style={{ position: "relative" }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imgSrc}
         alt={destination.name[locale]}
-        width={destination.heroImage.width}
-        height={destination.heroImage.height}
         className="destinationImageMedia"
-        sizes="(max-width: 720px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        priority={priority}
-        placeholder="blur"
-        blurDataURL={blurDataURL}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        loading={priority ? "eager" : "lazy"}
+      />
+      <button
+        className="imageUploadBtn"
+        onClick={() => fileRef.current?.click()}
+        title="Upload replacement image"
+        aria-label="Upload replacement image"
+      >
+        📷
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        onChange={handleUpload}
+        style={{ display: "none" }}
       />
     </div>
   );
