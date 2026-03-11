@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { DocumentLocale } from "@/components/document-locale";
+import { MobileCtaBar } from "@/components/mobile-cta-bar";
+import { SiteFooter } from "@/components/site-footer";
 import { isSupportedLocale, localeDirection } from "@/lib/i18n/config";
 import { getMessages } from "@/lib/i18n/messages";
 import type { Locale } from "@/types/dataset";
@@ -49,6 +51,8 @@ export default async function LocaleLayout({
       <DocumentLocale locale={locale} />
       <div dir={localeDirection[locale]} className="pageRoot">
         {children}
+        <SiteFooter locale={locale} />
+        <MobileCtaBar locale={locale} />
       </div>
     </>
   );

@@ -39,13 +39,25 @@ export function SiteHeader({
       return undefined;
     }
 
-    const handleScroll = () => {
-      setIsSolid(window.scrollY > 56);
-    };
+    const sentinel = document.getElementById("hero-observer-sentinel");
 
-    handleScroll();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    if (!sentinel) {
+      setIsSolid(window.scrollY > 56);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSolid(!entry.isIntersecting);
+      },
+      {
+        rootMargin: "-64px 0px 0px 0px",
+        threshold: 0
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   }, [overlay]);
 
   return (

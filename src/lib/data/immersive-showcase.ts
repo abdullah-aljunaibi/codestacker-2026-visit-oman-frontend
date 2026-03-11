@@ -2,12 +2,32 @@ import type { DatasetDestination, DatasetRegionKey, Locale } from "@/types/datas
 
 import { createBlurDataUrl } from "@/lib/ui/image-placeholders";
 
-export const immersiveHeroImage = {
-  src: "https://experienceoman.om/media/qarjles4/sultanqaboosmosque-02.jpg?width=2000",
-  width: 1800,
-  height: 1200,
-  blurDataURL: createBlurDataUrl("#1b4255", "#d7b387")
-};
+export const immersiveHeroImages = [
+  {
+    src: "https://experienceoman.om/media/qarjles4/sultanqaboosmosque-02.jpg?width=2000",
+    width: 1800,
+    height: 1200,
+    blurDataURL: createBlurDataUrl("#1b4255", "#d7b387")
+  },
+  {
+    src: "https://experienceoman.om/media/qh1eyy5z/al-jabal-akhader-village.jpeg?width=2000",
+    width: 1800,
+    height: 1200,
+    blurDataURL: createBlurDataUrl("#355f58", "#d4a574")
+  },
+  {
+    src: "https://experienceoman.om/media/2hxhk4q1/dhofar-mughsail-beach-salalah-dhofar-oman.jpg?width=2000",
+    width: 1800,
+    height: 1200,
+    blurDataURL: createBlurDataUrl("#1a6077", "#87c9cf")
+  },
+  {
+    src: "https://experienceoman.om/media/uuya5lqu/bidiyah-sand.jpg?width=2000",
+    width: 1800,
+    height: 1200,
+    blurDataURL: createBlurDataUrl("#7e5133", "#d7b07d")
+  }
+];
 
 export const regionAccentByKey: Record<DatasetRegionKey, string> = {
   muscat: "#0A4D5C",

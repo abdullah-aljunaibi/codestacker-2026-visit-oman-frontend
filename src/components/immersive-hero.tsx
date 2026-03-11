@@ -1,6 +1,9 @@
-import Link from "next/link";
+"use client";
 
-import { immersiveHeroImage } from "@/lib/data/immersive-showcase";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { immersiveHeroImages } from "@/lib/data/immersive-showcase";
 import type { Locale } from "@/types/dataset";
 
 export function ImmersiveHero({
@@ -22,17 +25,41 @@ export function ImmersiveHero({
   const destinationLabel = locale === "ar" ? "وجهة مختارة" : "Curated destinations";
   const regionLabel = locale === "ar" ? "مناطق للاستكشاف" : "Regions to explore";
   const scrollLabel = locale === "ar" ? "اكتشف المزيد" : "Scroll to explore";
+  const [parallaxOffset, setParallaxOffset] = useState(0);
+
+  useEffect(() => {
+    const updateParallax = () => {
+      setParallaxOffset(Math.min(window.scrollY * 0.24, 180));
+    };
+
+    updateParallax();
+    window.addEventListener("scroll", updateParallax, { passive: true });
+    return () => window.removeEventListener("scroll", updateParallax);
+  }, []);
 
   return (
-    <section
-      className="immersiveHero"
-      aria-label={heroTitle}
-      style={{
-        backgroundImage:
-          `linear-gradient(180deg, rgba(10, 77, 92, 0.12) 0%, rgba(26, 26, 46, 0.84) 100%), url('${immersiveHeroImage.src}')`
-      }}
-    >
+    <section className="immersiveHero" aria-label={heroTitle}>
+      <div
+        className="immersiveHeroMedia"
+        style={{ transform: `translate3d(0, ${parallaxOffset}px, 0) scale(1.12)` }}
+        aria-hidden="true"
+      >
+        {immersiveHeroImages.map((image, index) => (
+          <span
+            key={image.src}
+            className="immersiveHeroSlide"
+            style={
+              {
+                backgroundImage: `url('${image.src}')`,
+                animationDelay: `${index * 6}s`
+              } as React.CSSProperties
+            }
+          />
+        ))}
+      </div>
+      <span className="immersiveHeroGradient" aria-hidden="true" />
       <div className="shell immersiveHeroContent">
+        <div id="hero-observer-sentinel" className="heroObserverSentinel" aria-hidden="true" />
         <div className="immersiveHeroCopy">
           <span className="immersiveHeroKicker">
             {locale === "ar" ? "رحلات عُمان" : "Visit Oman"}

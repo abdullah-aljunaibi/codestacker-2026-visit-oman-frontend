@@ -20,7 +20,7 @@ export function CategoryExplorationCard({
   const messages = getMessages(locale);
 
   return (
-    <Link href={`/${locale}/discover${href}`} className="categoryExplorationCard">
+    <Link href={`/${locale}/discover${href}`} className="categoryExplorationCard" data-reveal-child>
       <Image
         src={image.src}
         alt={title}

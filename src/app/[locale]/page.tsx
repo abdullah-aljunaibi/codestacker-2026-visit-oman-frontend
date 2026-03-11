@@ -4,6 +4,7 @@ import { CategoryExplorationCard } from "@/components/category-exploration-card"
 import { DestinationCard } from "@/components/destination-card";
 import { DestinationImage } from "@/components/destination-image";
 import { ImmersiveHero } from "@/components/immersive-hero";
+import { RevealSection } from "@/components/reveal-section";
 import { SiteHeader } from "@/components/site-header";
 import { getImmersiveCategoryCards } from "@/lib/data/immersive-showcase";
 import { loadDestinations } from "@/lib/data/load-destinations";
@@ -43,7 +44,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
       </div>
 
       <div className="shell">
-        <section className="sectionBlock">
+        <RevealSection className="sectionBlock">
           <div id="category-exploration" className="sectionAnchor" />
           <div className="sectionHeading">
             <div>
@@ -65,9 +66,9 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
               />
             ))}
           </div>
-        </section>
+        </RevealSection>
 
-        <section className="sectionBlock">
+        <RevealSection className="sectionBlock">
           <div className="sectionHeading">
             <div>
               <span className="kicker">{messages.home.featuredTitle}</span>
@@ -87,9 +88,9 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
               />
             ))}
           </div>
-        </section>
+        </RevealSection>
 
-        <section className="sectionBlock">
+        <RevealSection className="sectionBlock">
           <div className="sectionHeading">
             <div>
               <span className="kicker">{messages.home.regionsTitle}</span>
@@ -127,9 +128,9 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
               </article>
             ))}
           </div>
-        </section>
+        </RevealSection>
 
-        <section className="card plannerBanner">
+        <RevealSection className="card plannerBanner">
           <div>
             <span className="kicker">{messages.home.plannerTitle}</span>
             <h2>{messages.home.plannerTitle}</h2>
@@ -143,7 +144,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
               {messages.home.plannerSecondary}
             </Link>
           </div>
-        </section>
+        </RevealSection>
       </div>
     </main>
   );

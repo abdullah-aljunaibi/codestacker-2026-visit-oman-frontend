@@ -27,7 +27,7 @@ export function DestinationCard({
   const classes = ["destinationCard", className].filter(Boolean).join(" ");
 
   return (
-    <article className={classes}>
+    <article className={classes} data-reveal-child>
       <Link href={`/${locale}/discover/${destination.slug}`} className="destinationCardImageLink">
         <DestinationImage
           destination={destination}
