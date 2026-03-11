@@ -1,11 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-
-import { createBlurDataUrl } from "@/lib/ui/image-placeholders";
+import { getImage, storeImage } from "@/lib/image-store";
 import type { Destination } from "@/types/domain";
 import type { Locale } from "@/types/dataset";
-
-const STORAGE_PREFIX = "vo_img_";
 
 export function DestinationImage({
   destination,
@@ -20,27 +17,32 @@ export function DestinationImage({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [imgSrc, setImgSrc] = useState(destination.heroImage.src);
-  const [isCustom, setIsCustom] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_PREFIX + destination.slug);
-    if (stored) {
-      setImgSrc(stored);
-      setIsCustom(true);
-    }
+    getImage("hero_" + destination.slug).then(stored => {
+      if (stored) setImgSrc(stored);
+    });
   }, [destination.slug]);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      localStorage.setItem(STORAGE_PREFIX + destination.slug, dataUrl);
-      setImgSrc(dataUrl);
-      setIsCustom(true);
+    // Resize before storing to save space
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxW = 1200;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      storeImage("hero_" + destination.slug, dataUrl).then(() => {
+        setImgSrc(dataUrl);
+      });
     };
-    reader.readAsDataURL(file);
+    img.src = URL.createObjectURL(file);
   };
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-
-const STORAGE_PREFIX = "vo_gallery_";
+import { getImage, storeImage } from "@/lib/image-store";
 
 interface PhotoGalleryProps {
   images: string[];
@@ -17,27 +16,33 @@ export function PhotoGallery({ images, name, slug, photosLabel = "Photos" }: Pho
   const fileRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
-    const updated = images.map((img, i) => {
-      const stored = localStorage.getItem(`${STORAGE_PREFIX}${slug}_${i}`);
-      return stored || img;
-    });
-    setDisplayImages(updated);
+    Promise.all(
+      images.map((img, i) => getImage(`gallery_${slug}_${i}`).then(stored => stored || img))
+    ).then(setDisplayImages);
   }, [images, slug]);
 
   const handleUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      localStorage.setItem(`${STORAGE_PREFIX}${slug}_${index}`, dataUrl);
-      setDisplayImages(prev => {
-        const next = [...prev];
-        next[index] = dataUrl;
-        return next;
+    const img = new window.Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxW = 1200;
+      const scale = Math.min(1, maxW / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      storeImage(`gallery_${slug}_${index}`, dataUrl).then(() => {
+        setDisplayImages(prev => {
+          const next = [...prev];
+          next[index] = dataUrl;
+          return next;
+        });
       });
     };
-    reader.readAsDataURL(file);
+    img.src = URL.createObjectURL(file);
   };
 
   if (!displayImages || displayImages.length === 0) return null;
