@@ -1,15 +1,17 @@
 {
   "name": "codestacker-2026-visit-oman-frontend",
   "private": true,
-  "version": "0.13.0",
+  "version": "1.0.0",
   "scripts": {
-    "dev": "NODE_ENV=development next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "test": "vitest run",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build"
   },
   "dependencies": {
-    "@types/leaflet": "^1.9.21",
     "leaflet": "^1.9.4",
     "next": "^16.1.6",
     "react": "19.0.0",
@@ -17,10 +19,16 @@
     "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@next/eslint-plugin-next": "^16.1.6",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "22.13.10",
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
+    "eslint": "^10.0.3",
     "tailwindcss": "4.0.15",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "typescript-eslint": "^8.57.0",
+    "vitest": "^4.0.18"
   }
 }

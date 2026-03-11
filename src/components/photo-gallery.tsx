@@ -8,7 +8,7 @@ interface PhotoGalleryProps {
   photosLabel?: string;
 }
 
-export function PhotoGallery({ images, name, slug, photosLabel = "Photos" }: PhotoGalleryProps) {
+export function PhotoGallery({ images, name, slug: _slug, photosLabel = "Photos" }: PhotoGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 

@@ -31,7 +31,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
     ...normalizedBySlug.get(destination.slug)!,
     ...destination
   }));
-  const categoryCards = getImmersiveCategoryCards(destinations, locale);
+  const _categoryCards = getImmersiveCategoryCards(destinations, locale);
   const regionHighlights = getRegionHighlights(destinations, locale);
   const showcaseItems = [
     {

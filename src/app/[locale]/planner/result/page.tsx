@@ -547,7 +547,7 @@ export default function PlannerResultPage({ params }: { params: Promise<{ locale
     }
 
     const lastIndex = finalItinerary.days.length - 1;
-    let nextIndex = currentIndex;
+    let nextIndex: number;
     const moveForwardKey = locale === "ar" ? "ArrowLeft" : "ArrowRight";
     const moveBackwardKey = locale === "ar" ? "ArrowRight" : "ArrowLeft";
 

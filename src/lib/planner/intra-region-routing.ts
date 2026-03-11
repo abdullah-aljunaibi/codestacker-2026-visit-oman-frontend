@@ -202,7 +202,7 @@ function minutesToTimeLabel(totalMinutes: number): string {
 
 function durationMinutes(
   stop: Pick<SchedulableStop, "recommendedDurationHours">,
-  config: IntraRegionRoutingConfig
+  _config: IntraRegionRoutingConfig
 ): number {
   return Math.max(30, Math.round(stop.recommendedDurationHours * 60));
 }

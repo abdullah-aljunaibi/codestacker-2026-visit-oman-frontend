@@ -1,368 +1,336 @@
 # Visit Oman Frontend
 
-Judge-facing submission document for the CodeStacker 2026 Visit Oman frontend challenge.
+**CodeStacker 2026 — Frontend Challenge Submission**
 
-## Project Overview
-
-Visit Oman is a bilingual Next.js App Router experience that turns a fixed Oman destination dataset into an end-to-end traveler journey:
-
-1. SSR discovery and destination detail browsing
-2. saved-interest collection in the browser
-3. CSR planner input using those saved interests as defaults
-4. deterministic itinerary generation with route, timing, reasoning, and cost output
+Visit Oman is a bilingual Next.js App Router experience that turns a fixed Oman destination dataset into an end-to-end traveler journey: SSR discovery, saved-interest collection, deterministic itinerary generation with weighted scoring, route optimization, budget-aware repair, and a traveler-facing result page with maps, costs, and explanations.
 
 The app ships with `challenge-dataset.v3`, uses 25 in-repo destinations only, and keeps the planner deterministic for identical inputs.
 
-## Why This Solves The Challenge
+## Why This Submission Fits The Brief
 
-This submission is built around the challenge rubric rather than generic travel UI:
-
-- Discovery is server-rendered and crawlable.
-- Planning consumes only the provided static dataset.
-- Saved interests bridge discovery into planning without re-entry.
-- The planner is explainable: every ranked stop carries weighted scoring reasons.
-- Region coverage, route ordering, timing, and budget handling are explicit and deterministic.
-- The result page is traveler-facing, not a debug dump: daily stops, times, cost totals, map, and rationale are surfaced directly.
+- **Dataset-only discovery**: all destination content comes from the bundled dataset. No external content APIs.
+- **SSR + CSR architecture**: discovery and detail pages are server-rendered and crawlable; planner and result pages are client-rendered for browser-state continuity.
+- **Deterministic browser-only planner**: fixed weights, fixed beam width, stable slug tie-breakers, no randomness, no external ranking or routing APIs.
+- **Bilingual support**: English (`/en`) and Arabic (`/ar`) routes with RTL layout and localized labels.
+- **Local persistence**: interests, planner draft, itinerary, and cost breakdowns survive page refresh via versioned `localStorage` keys.
+- **Route map + explanations + cost output**: the result page renders daily stops with start/end times, travel distances, scoring reasons, a Leaflet map with polylines, and a full cost breakdown.
 
 ## Product Journey
 
-### 1. SSR discovery
+### 1. Home / Discovery / Detail
 
-- `src/app/[locale]/page.tsx`
-- `src/app/[locale]/discover/page.tsx`
-- `src/app/[locale]/discover/[slug]/page.tsx`
+- `src/app/[locale]/page.tsx` — SSR landing with featured regions and category spotlights
+- `src/app/[locale]/discover/page.tsx` — SSR discovery page with dataset-driven filters
+- `src/app/[locale]/discover/[slug]/page.tsx` — SSR detail page with map preview, gallery, and save action
 
-These pages load the bundled dataset on the server, normalize labels per locale, and render featured regions, category spotlights, discovery filters, and detailed destination pages.
+### 2. Save Interests
 
-### 2. Saved interests
+- `src/components/save-interest-button.tsx` — toggle button on detail and discovery cards
+- `src/app/[locale]/saved/page.tsx` — CSR page listing all saved destinations
+- `src/lib/persistence/interests.ts` — versioned `localStorage` under `visit-oman.interests.v1`
 
-- `src/lib/persistence/interests.ts`
-- `src/app/[locale]/saved/page.tsx`
+### 3. Planner Form
 
-Users can save destinations during discovery. The saved slug list is stored in `localStorage` under `visit-oman.interests.v1`.
+- `src/app/[locale]/planner/page.tsx` — CSR planner page
+- `src/components/planner-form.tsx` — form pre-populated from saved interests and draft
 
-### 3. CSR planner
-
-- `src/app/[locale]/planner/page.tsx`
-- `src/components/planner-form.tsx`
-
-The planner form runs client-side because it depends on browser state. Saved interests and draft inputs prefill the planner, which captures:
-
-- preferred categories
+Captures:
+- preferred categories (derived from saved interests)
 - trip duration: `1..7` days
 - travel intensity: `relaxed | balanced | packed`
 - budget: `low | medium | luxury`
 - travel month: `1..12`
 
-### 4. CSR result
+### 4. Planner Result
 
-- `src/app/[locale]/planner/result/page.tsx`
+- `src/app/[locale]/planner/result/page.tsx` — CSR result page
 
-The result page reads the planner draft and saved interests, runs the full planner pipeline in the browser, persists the itinerary, computes cost breakdowns, and renders the final plan plus a client-only Leaflet map.
+Runs the full planner pipeline in the browser, persists the itinerary, computes cost breakdowns, and renders the final plan with a client-only Leaflet map.
+
+### 5. Arabic Parity
+
+All flows work identically on `/ar/*` with RTL layout, Arabic labels, and localized month/budget/category names.
 
 ## Architecture
 
-### App shell and UI
+### App Routes
 
-- `src/app/[locale]/*`: route composition
-- `src/components/*`: planner form, saved state UI, site header, map shell
+| Route | Rendering | Purpose |
+| --- | --- | --- |
+| `/[locale]` | SSR (SSG) | Landing page |
+| `/[locale]/discover` | SSR (dynamic) | Discovery with filters |
+| `/[locale]/discover/[slug]` | SSR (SSG) | Destination detail |
+| `/[locale]/planner` | CSR | Planner form |
+| `/[locale]/planner/result` | CSR | Itinerary result |
+| `/[locale]/saved` | CSR | Saved interests |
 
-### Data layer
+### Data Layer
 
-- `src/data/challenge-dataset.ts`: source of truth
-- `src/lib/data/load-destinations.ts`: dataset loading and versioning
-- `src/lib/data/normalize-destinations.ts`: locale-aware domain shaping
-- `src/lib/data/selectors.ts`: SSR discovery selectors
+- `src/data/challenge-dataset.ts` — source of truth (25 destinations)
+- `src/lib/data/load-destinations.ts` — dataset loading and version tagging
+- `src/lib/data/normalize-destinations.ts` — locale-aware domain normalization
+- `src/lib/data/selectors.ts` — SSR discovery selectors
 
-### Planner pipeline
+### Planner Pipeline
 
-- `src/lib/planner/candidate-ranking.ts`
-- `src/lib/planner/scoring-primitives.ts`
-- `src/lib/planner/weighted-scoring-engine.ts`
-- `src/lib/planner/region-allocation.ts`
-- `src/lib/planner/intra-region-routing.ts`
-- `src/lib/planner/final-itinerary.ts`
-- `src/lib/planner/itinerary-repair.ts`
-- `src/lib/planner/cost-model.ts`
+- `src/lib/planner/scoring-primitives.ts` — six normalized scoring functions
+- `src/lib/planner/weighted-scoring-engine.ts` — weighted multi-objective scorer
+- `src/lib/planner/candidate-ranking.ts` — greedy iterative candidate selection
+- `src/lib/planner/region-allocation.ts` — bounded-search region allocation
+- `src/lib/planner/intra-region-routing.ts` — beam search + 2-opt routing
+- `src/lib/planner/final-itinerary.ts` — timed itinerary assembly
+- `src/lib/planner/itinerary-repair.ts` — budget repair + underutilized-day fill
+- `src/lib/planner/cost-model.ts` — trip cost calculation
 
-### Persistence and i18n
+### Persistence
 
-- `src/lib/persistence/*`
-- `src/lib/i18n/*`
+- `src/lib/persistence/interests.ts` — saved destination slugs
+- `src/lib/persistence/planner-draft.ts` — form state
+- `src/lib/persistence/itinerary.ts` — itinerary + cost breakdown
+- `src/lib/persistence/keys.ts` — versioned key constants
+
+### i18n
+
+- `src/lib/i18n/config.ts` — locale resolution
+- `src/lib/i18n/messages/en.json`, `ar.json` — translated labels
+- `src/middleware.ts` — locale-aware routing
+
+### Maps
+
+- `src/components/maps/itinerary-map.client.tsx` — result page Leaflet map
+- `src/components/maps/destination-preview-hydrated.client.tsx` — detail page interactive map
+- `src/components/maps/map-config.ts` — tile layer configuration
 
 ## Rendering Boundaries
 
 ### SSR
 
-- `/[locale]`
-- `/[locale]/discover`
-- `/[locale]/discover/[slug]`
-
-These routes are ideal for first-load performance, crawlability, and static dataset rendering.
+- `/[locale]`, `/[locale]/discover`, `/[locale]/discover/[slug]`
+- Server components. Ideal for first-load performance, crawlability, and static dataset rendering.
+- `generateStaticParams` produces all 50 locale+slug paths at build time.
 
 ### CSR
 
-- `/[locale]/planner`
-- `/[locale]/planner/result`
-- `/[locale]/saved`
+- `/[locale]/planner`, `/[locale]/planner/result`, `/[locale]/saved`
+- Depend on `localStorage` and traveler-specific state.
+- The Leaflet map is dynamically imported with `ssr: false` to avoid server-side DOM access.
 
-These routes depend on `localStorage` and traveler-specific state. The map is dynamically imported with `ssr: false`.
+## Dataset Contract
 
-## Dataset Handling
-
-The application does not call external content APIs. All destination content comes from `src/data/challenge-dataset.ts`.
-
-- Dataset version: `challenge-dataset.v3`
+- Source: `src/data/challenge-dataset.ts`
+- Version: `challenge-dataset.v3`
 - Destination count: `25`
-- Source contract: `src/types/dataset.ts`
-- Normalized planner contract: `src/types/domain.ts`
+- Raw type: `src/types/dataset.ts` (`DatasetDestination`)
+- Normalized type: `src/types/domain.ts` (`Destination`)
 
-Normalization adds:
+Region keys in the dataset: `muscat`, `dakhiliya`, `sharqiya`, `dhofar`, `batinah`, `musandam`.
 
-- `coordinates`
-- `description`
-- `budgetLevel`
-- `recommendedDurationHours`
-- `regionKey`
-- `regionLabel`
-- `locale`
-
-This keeps discovery and planner code reading a single normalized shape instead of mutating raw records ad hoc.
+Normalization adds: `coordinates`, `description`, `budgetLevel`, `recommendedDurationHours`, `regionKey`, `regionLabel`, `locale`. This keeps discovery and planner code reading a single normalized shape.
 
 ## Exact Scoring Formula
 
-Weighted scoring is defined in `src/lib/planner/weighted-scoring-engine.ts`.
-
-For each destination:
+Source: `src/lib/planner/weighted-scoring-engine.ts` (config version `vo-p3-v1`)
 
 ```text
 totalScore =
-  + 0.34 * interestMatch
-  + 0.18 * seasonFit
-  - 0.10 * normCrowd
-  - 0.14 * normCost
-  - 0.12 * detourPenalty
-  + 0.12 * diversityGain
+  + 0.34 × interestMatch
+  + 0.18 × seasonFit
+  - 0.10 × normCrowd
+  - 0.14 × normCost
+  - 0.12 × detourPenalty
+  + 0.12 × diversityGain
 ```
 
-Primitive definitions from `src/lib/planner/scoring-primitives.ts`:
+### Primitive Definitions
 
-- `interestMatch`: Jaccard overlap between destination categories and preferred categories.
-- `seasonFit`: `1` when the travel month is recommended, otherwise `1 - circularMonthDistance / 6`.
-- `normCrowd`: `(crowdLevel - 1) / 4`, clamped to `[0, 1]`.
-- `normCost`: ticket cost normalized across dataset min/max.
-- `detourPenalty`: best insertion-cost distance divided by `maxPairwiseDistanceKm * 2`.
-- `diversityGain`: fraction of the destination's categories not yet represented in the selected set.
+| Primitive | Formula | Source |
+| --- | --- | --- |
+| `interestMatch` | Jaccard: `\|preferred ∩ destination\| / \|preferred ∪ destination\|` | `scoring-primitives.ts` |
+| `seasonFit` | `1` if month recommended; else `1 - circularMonthDistance / 6` | `scoring-primitives.ts` |
+| `normCrowd` | `(crowdLevel - 1) / 4` | `scoring-utils.ts` |
+| `normCost` | `(ticketCost - minCost) / (maxCost - minCost)` | `scoring-utils.ts` |
+| `detourPenalty` | `bestInsertionCostKm / (maxPairwiseDistanceKm × 2)` | `scoring-primitives.ts` |
+| `diversityGain` | fraction of destination categories not yet in selected set | `scoring-primitives.ts` |
 
-Scoring details:
+All primitives clamped to `[0, 1]`. Penalty metrics (`normCrowd`, `normCost`, `detourPenalty`) are subtracted. Benefit metrics (`interestMatch`, `seasonFit`, `diversityGain`) are added.
 
-- Precision is rounded deterministically to 6 digits.
-- Penalty metrics are subtracted, not added.
-- Stable tie-breaker is destination slug.
-- Config version: `vo-p3-v1`
+Precision: deterministic rounding to 6 decimal places. Tie-breaker: destination slug (lexicographic).
 
-Candidate selection in `src/lib/planner/candidate-ranking.ts` then applies:
+### Candidate Selection
 
-- minimum viable score: `0.4`
-- target candidate count:
+Source: `src/lib/planner/candidate-ranking.ts` (config version `phase-4c-v2`)
+
+Greedy iterative: each round scores all remaining candidates against the current selected set, picks the top one, and repeats.
+
+Target count: `clamp(round(tripDays × paceMultiplier), 3, 10)` where pace multipliers are `relaxed=1`, `balanced=1.25`, `packed=1.5`.
+
+Minimum viable score: `0.4`. Candidates below this threshold are excluded regardless of rank.
+
+## Region Allocation
+
+Source: `src/lib/planner/region-allocation.ts` (config version `phase-5a-v3`)
+
+### Region utility
 
 ```text
-round(tripDays * paceMultiplier), clamped to [3, 10]
+regionUtility =
+  0.50 × averageCandidateScore
+  + 0.20 × destinationDensity
+  + 0.20 × regionSeasonFit
+  + 0.10 × diversityBonus
 ```
 
-- pace multipliers:
-  - `relaxed = 1`
-  - `balanced = 1.25`
-  - `packed = 1.5`
+### Constraints
 
-## Region Allocation Strategy
+- Maximum days per region: `ceil(tripDays / 2)`
+- Minimum regions: `2` when `tripDays ≥ 3` and viable region count ≥ 2; otherwise `1`
+- Viable region threshold: `regionUtility ≥ 0.35`
 
-Region allocation is implemented in `src/lib/planner/region-allocation.ts`.
+### Bounded search
 
-For each region:
+The allocator generates all feasible combinations of region sets, day compositions (integer partitions with each slot in `[1, maxPerRegion]`), and region orderings. Each allocation is scored with:
 
 ```text
-allocationWeight =
-  0.50 * averageCandidateScore
-  + 0.35 * destinationDensity
-  + 0.15 * diversityBonus
+score = weightedUtility + coverageBonus×0.04 + balanceBonus×0.03
+        - poorSeasonExposure×0.18 - transitionPenalty×0.04
 ```
 
-Where:
+The highest-scoring allocation produces **contiguous day blocks** (e.g., Region A: days 1–3, Region B: days 4–5).
 
-- `averageCandidateScore` = mean score of selected candidates in the region
-- `destinationDensity` = candidate count in region / max region candidate count
-- `diversityBonus` = `1 / clusterCount`
+Fallback: if no valid allocation is found, all days go to the single highest-utility region.
 
-Clusters are formed deterministically from ranked match signatures. Allocation works in two passes:
+## Routing and Scheduling
 
-1. Give one baseline day to the strongest `min(tripDays, regionCount)` regions.
-2. Distribute remaining days using diminishing returns:
-
-```text
-marginalGain = allocationWeight / (currentAllocatedDays + 1)
-```
-
-The final day sequence is interleaved round-robin style so one region does not consume all early days unless it truly dominates.
-
-## Beam Search + 2-Opt Routing
-
-Intra-region routing is implemented in `src/lib/planner/intra-region-routing.ts`.
+Source: `src/lib/planner/intra-region-routing.ts` (config version `phase-5b-v3`)
 
 ### Beam search
 
-- distance metric: local Haversine matrix
-- beam width: `4`
-- travel speed assumption: `55 km/h`
-- comparison order: lower cumulative distance, then slug signature
-
-The beam search is bounded, deterministic, and stronger than naive nearest-neighbor because it keeps multiple partial route candidates alive before committing to a full order.
+- Beam width: `4`
+- Distance metric: Haversine (Earth radius 6371 km) via symmetric N×N distance matrix
+- Travel speed: `55 km/h`
+- Comparison: longer route > higher total score > lower distance > lexicographic signature
 
 ### 2-opt refinement
 
-Once beam search outputs an ordered route, 2-opt reversals are applied until no shorter route remains. This reduces crossing and extra backtracking within the open route.
+Applied when route has > 3 stops. Iterates segment reversals, accepting only valid improvements > 1e-9 km.
 
-## Route Constraints
+### Hard constraints
 
-Daily scheduling enforces explicit constraints:
+| Constraint | Value | Enforcement |
+| --- | --- | --- |
+| Day window | 08:00–20:00 | Operating window check |
+| Max daily driving | 250 km | Cumulative distance check |
+| Max daily visit time | 8 hours (480 min) | Cumulative visit check |
+| Stop cap (relaxed) | 3 | Count check |
+| Stop cap (balanced) | 4 | Count check |
+| Stop cap (packed) | 5 | Count check |
+| Same-region day | all stops same region | Region comparison |
+| Category repetition | max 2 per category/day | Counter check |
+| Rest-gap rule | no two consecutive long stops (> 90 min) | Adjacency check |
+| Min visit duration | 30 minutes | Floor applied |
 
-- day window: `08:00` to `20:00`
-- minimum visit duration: `30` minutes
-- soft planning target: `8` hours per day
-- hard stop: do not exceed the operating window
-- preserve at least one stop for remaining days when feasible
-- if a stop only partially fits, the visit duration is trimmed and marked in notes
+All constraints are validated on every beam expansion and every 2-opt swap.
 
-This produces scheduled stops with:
+### Timestamp computation
 
-- start time
-- end time
-- travel minutes from previous stop
-- estimated visit hours
+Starting from 08:00, each stop adds travel time (`max(5, round(distanceKm / 55 × 60))` minutes) then visit time (`max(30, round(recommendedDurationHours × 60))` minutes). Start and end times are computed as `HH:MM` labels.
 
 ## Cost Model
 
-Trip costing is implemented in `src/lib/planner/cost-model.ts`.
+Source: `src/lib/planner/cost-model.ts`
 
-Constants:
-
-- fuel price: `0.24 OMR / liter`
-- vehicle efficiency: `12 km / liter`
-- food: `6 OMR / day`
-- hotel per night:
-  - `low = 20 OMR`
-  - `medium = 45 OMR`
-  - `luxury = 90 OMR`
-- budget threshold per day:
-  - `low = 45 OMR`
-  - `medium = 80 OMR`
-  - `luxury = 140 OMR`
-
-Computed totals:
+| Item | Value |
+| --- | --- |
+| Fuel price | 0.24 OMR/liter |
+| Vehicle efficiency | 12 km/liter |
+| Food | 6 OMR/day |
+| Hotel/night (low) | 20 OMR |
+| Hotel/night (medium) | 45 OMR |
+| Hotel/night (luxury) | 90 OMR |
+| Budget threshold/day (low) | 45 OMR |
+| Budget threshold/day (medium) | 80 OMR |
+| Budget threshold/day (luxury) | 140 OMR |
 
 ```text
-fuel = (totalKm / 12) * 0.24
-food = 6 * tripDays
-hotel = nightlyRate(budgetTier) * max(tripDays - 1, 0)
-tickets = sum(stop.ticketCostOmr)
-total = fuel + food + hotel + tickets
+fuel     = (totalKm / 12) × 0.24
+food     = 6 × tripDays
+hotel    = nightlyRate[budget] × max(tripDays - 1, 0)
+tickets  = sum(stop.ticketCostOmr)
+total    = fuel + food + hotel + tickets
+threshold = budgetThresholdPerDay[budget] × tripDays
+withinBudget = total ≤ threshold
 ```
-
-The result page persists both itinerary and derived cost breakdown, and also marks whether the trip is within the budget threshold.
 
 ## Budget Repair
 
-Repair happens in `src/lib/planner/itinerary-repair.ts` after the first itinerary assembly.
+Source: `src/lib/planner/itinerary-repair.ts`
 
 ### Budget swap
 
-If total ticket cost exceeds the planner target:
+Triggered when `totalCostOmr > budgetThresholdPerDay[budget] × tripDays`.
 
-```text
-budgetTarget = budgetLevelToTargetCost(budget) * tripDays
-```
-
-Where `budgetLevelToTargetCost` is:
-
-- `low = 5`
-- `medium = 15`
-- `luxury = 30`
-
-The repair loop swaps an expensive stop for a cheaper unscheduled stop in the same region with overlapping categories, preferring:
-
-1. larger savings
-2. stronger category overlap
-3. higher candidate score
-4. slug tie-break
+The repair loop ranks scheduled stops by value-for-cost (lowest first), then swaps each for a cheaper same-region alternative that preserves category coverage. Alternatives are sorted by: free destinations first, then lowest cost, then highest category overlap, then lowest detour, then highest score. Invalid swaps are reverted.
 
 ### Underutilized-day fill
 
-If a day stays below `60%` of the hours-per-day target, the planner adds the nearest unscheduled same-region stop, then prefers higher score and lower price on ties.
-
-Every repair action is captured in the final itinerary summary.
+Triggered when a day has < 4.8 hours of visits (60% of the 8-hour target). Fills with the nearest same-region unscheduled stop, respecting the budget threshold.
 
 ## Persistence
 
-Browser persistence is versioned and isolated under `src/lib/persistence/*`.
+Source: `src/lib/persistence/*`
 
-Keys:
+| Key | Purpose |
+| --- | --- |
+| `visit-oman.interests.v1` | Saved destination slugs |
+| `visit-oman.planner-draft.v1` | Planner form state |
+| `visit-oman.itinerary.v1` | Generated itinerary |
+| `visit-oman.cost-breakdown.v1` | Cost breakdown (migrates v1 → v2) |
+| `visit-oman.locale.v1` | Selected locale |
 
-- `visit-oman.locale.v1`
-- `visit-oman.interests.v1`
-- `visit-oman.planner-draft.v1`
-- `visit-oman.itinerary.v1`
-- `visit-oman.cost-breakdown.v1`
+All keys survive page refresh. Legacy cost payloads are migrated to schema version 2 on read.
 
-Persisted behavior:
+## Accessibility and Bilingual Support
 
-- saved interests survive refresh
-- planner draft survives refresh
-- result page rehydrates the last itinerary
-- legacy cost payloads migrate into schema version `2`
+- Locale routes: `/en/*` and `/ar/*`
+- RTL layout for Arabic via `dir="rtl"` on the HTML element
+- Localized labels: `src/lib/i18n/messages/en.json` and `ar.json`
+- Translated: discovery filters, month names, budget labels, category labels, result explanations
+- Semantic controls: links, buttons, labels, select inputs
+- Keyboard-reachable day switching in the result view
 
-## Accessibility And Bilingual Support
+## Performance and Determinism
 
-The app supports English and Arabic from the same product flow.
+**Performance**: all destination content is local; SSR for first paint and crawlability; planner logic is pure TypeScript; map is client-only and excluded from SSR.
 
-- locale routes: `/en/*` and `/ar/*`
-- localized labels and messages: `src/lib/i18n/messages/*`
-- locale resolution: `src/lib/i18n/config.ts`
-- discovery, planner, saved view, and result page all render in both languages
-- discovery filters and result explanations use translated labels, month names, budget labels, and category labels
+**Determinism**: fixed weights, fixed beam width (4), fixed travel speed (55 km/h), stable slug tie-breakers, no remote APIs, no randomization. The only non-deterministic values are persistence timestamps (`savedAt`), which do not affect itinerary generation.
 
-The UI also uses standard semantic controls such as links, buttons, labels, and select inputs, and the result view exposes route tabs and map interactions through regular focusable controls.
+## Tests and Verification
 
-## Performance And Determinism
+### Automated tests
 
-Performance choices:
+46 unit tests in `tests/planner.test.ts` covering:
 
-- all destination content is local
-- SSR is used where search engines and first paint matter
-- planner logic is pure TypeScript modules
-- the map is client-only and excluded from SSR
+- All 6 scoring primitives (`interestMatch`, `seasonFit`, `normCrowd`, `normCost`, `detourPenalty`, `diversityGain`)
+- Weighted scoring engine (deterministic rounding, penalty direction, identical-input reproducibility, default weights)
+- Route constraints (max daily visit hours, intensity stop caps, same-region rule, category repetition, rest-gap rule, max daily driving km, operating window)
+- Cost model constants (fuel, food, hotel rates, budget thresholds, formulas)
+- Region allocation rules (max per region, minimum regions, viable threshold)
+- Determinism snapshot (same inputs produce same scores across runs)
 
-Determinism choices:
+### Verification commands
 
-- fixed weights
-- fixed beam width
-- fixed travel-speed assumption
-- stable slug tie-breakers
-- no remote ranking APIs
-- no randomization
+```bash
+npm run verify    # runs typecheck + lint + test + build
+```
 
-The only non-deterministic values are persistence timestamps such as `savedAt`; they do not affect itinerary generation.
+Individual commands:
 
-## Tests
-
-There is currently no committed automated unit or e2e test suite in this repository.
-
-Current verification is build-oriented:
-
-- `npm run build`
-
-`next build` is the authoritative verification command in this repo because `tsconfig.json` includes generated `.next/types/**` entries that are produced and checked inside Next's build pipeline.
-
-Given the planner is deterministic and implemented as pure functions, the next strongest improvement would be direct unit coverage for scoring, allocation, routing, and repair.
+```bash
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint . --max-warnings=0
+npm run test       # vitest run (46 tests)
+npm run build      # next build
+```
 
 ## Run Instructions
 
@@ -373,52 +341,45 @@ npm run dev
 
 Open `http://localhost:3000/en` or `http://localhost:3000/ar`.
 
-## Verification Commands
+### Manual smoke flow
 
-```bash
-npm run build
-```
-
-Recommended manual smoke flow:
-
-```bash
-npm run dev
-```
-
-Then verify:
-
-1. `/en/discover` filters destinations server-side.
-2. save a few destinations.
-3. `/en/planner` opens with persisted defaults.
-4. `/en/planner/result` shows a generated itinerary, costs, and map.
-5. refresh the result page and confirm persistence.
-6. repeat on `/ar`.
+1. `/en/discover` — filters destinations server-side
+2. Save a few destinations from discovery or detail pages
+3. `/en/planner` — opens with pre-populated defaults from saved interests
+4. Submit the planner form
+5. `/en/planner/result` — shows generated itinerary, costs, map, and explanations
+6. Refresh the result page — itinerary persists
+7. Repeat on `/ar`
 
 ## Tradeoffs
 
-- Planner generation is client-side to preserve local saved-state continuity; this improves UX but means the result page is not server-rendered.
-- Distance uses Haversine instead of road routing APIs; this keeps the app offline and deterministic, but road travel will differ from real driving paths.
-- Budget repair prioritizes fast deterministic swaps over global optimality.
-- No automated test suite is committed yet; verification currently relies on the Next production build and manual flow checks.
+- **Client-side generation**: the planner runs in the browser to preserve `localStorage` continuity. This means the result page is not server-rendered, but it keeps the flow seamless without a backend.
+- **Haversine distance**: great-circle distance is used instead of road routing APIs. This keeps the app offline and deterministic, but actual driving paths will differ.
+- **Budget repair scope**: repair uses fast deterministic swaps rather than global re-optimization. This trades theoretical optimality for predictable bounded behavior.
+- **Bounded search exhaustiveness**: region allocation evaluates all feasible combinations, which is tractable for ≤ 7 days and ≤ 6 regions but would need pruning for larger problem sizes.
 
 ## Screenshots
 
-The repository does not currently include image assets, but these are the exact screenshots judges should see:
+### Home — `/en`
+![Home page](docs/screenshots/home.png)
 
-1. Home hero and SSR discovery entry: `/en`
-2. Discovery filters and cards: `/en/discover`
-3. Destination detail with save action: `/en/discover/muttrah-corniche`
-4. Saved interests bridge: `/en/saved`
-5. Planner form with persisted inputs: `/en/planner`
-6. Result overview with map and cost cards: `/en/planner/result`
-7. Arabic planner result parity: `/ar/planner/result`
+### Discovery — `/en/discover`
+![Discovery page](docs/screenshots/discovery.png)
 
-Suggested filenames:
+### Detail — `/en/discover/[slug]`
+![Detail page with map preview](docs/screenshots/detail.png)
 
-- `screenshots/home-en.png`
-- `screenshots/discovery-en.png`
-- `screenshots/detail-en.png`
-- `screenshots/saved-en.png`
-- `screenshots/planner-en.png`
-- `screenshots/result-en.png`
-- `screenshots/result-ar.png`
+### Planner Form — `/en/planner`
+![Planner form](docs/screenshots/planner-form.png)
+
+### Result (English) — `/en/planner/result`
+![Result page in English](docs/screenshots/planner-result-en.png)
+
+### Result (Arabic) — `/ar/planner/result`
+![Result page in Arabic](docs/screenshots/planner-result-ar.png)
+
+## Supporting Documentation
+
+- [Algorithm](docs/ALGORITHM.md) — full planner pipeline description matching the current implementation
+- [Requirements Traceability](docs/REQUIREMENTS_TRACEABILITY.md) — challenge requirement audit with status, source files, and verification notes
+- [Submission Checklist](docs/SUBMISSION_CHECKLIST.md) — final release checklist

@@ -12,15 +12,15 @@ interface DestinationMapProps {
 
 export function DestinationMap({
   name,
-  lat,
-  lng,
+  lat: _lat,
+  lng: _lng,
   locale,
   className = ""
 }: DestinationMapProps) {
   const placeQuery = encodeURIComponent(`${name}, Oman`);
   const embedUrl = `https://maps.google.com/maps?q=${placeQuery}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${placeQuery}`;
-  const placeUrl = `https://www.google.com/maps/search/?api=1&query=${placeQuery}`;
+  const _placeUrl = `https://www.google.com/maps/search/?api=1&query=${placeQuery}`;
   // View Photos removed — now in-page gallery instead
   const getDirectionsLabel = locale === "ar" ? "احصل على الاتجاهات" : "Get Directions";
   const locationLabel = locale === "ar" ? "الموقع" : "Location";
