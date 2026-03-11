@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { DestinationImage } from "@/components/destination-image";
 import { DestinationMap } from "@/components/destination-map";
+import { PhotoGallery } from "@/components/photo-gallery";
 import { SaveInterestButton } from "@/components/save-interest-button";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
@@ -185,6 +186,16 @@ export default async function DestinationPage({
             </article>
           </div>
         </section>
+
+        {destination.galleryImages && destination.galleryImages.length > 0 && (
+          <section className="card sectionCard">
+            <PhotoGallery
+              images={[destination.image, ...destination.galleryImages.map((img: { src: string }) => img.src)]}
+              name={destination.name[locale]}
+              photosLabel={locale === "ar" ? "الصور" : "Photos"}
+            />
+          </section>
+        )}
 
         <section className="card sectionCard detailMapCard">
           <div className="detailMapCopy">

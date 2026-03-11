@@ -17,10 +17,11 @@ export function DestinationMap({
   locale,
   className = ""
 }: DestinationMapProps) {
-  const embedUrl = `https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d5000!2d${lng}!3d${lat}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e0!3m2!1s${locale}!2som`;
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  const placeUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-  const viewPhotosLabel = locale === "ar" ? "عرض الصور" : "View Photos";
+  const placeQuery = encodeURIComponent(`${name}, Oman`);
+  const embedUrl = `https://maps.google.com/maps?q=${placeQuery}&t=&z=14&ie=UTF8&iwloc=&output=embed`;
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${placeQuery}`;
+  const placeUrl = `https://www.google.com/maps/search/?api=1&query=${placeQuery}`;
+  // View Photos removed — now in-page gallery instead
   const getDirectionsLabel = locale === "ar" ? "احصل على الاتجاهات" : "Get Directions";
   const locationLabel = locale === "ar" ? "الموقع" : "Location";
   const classes = ["destinationMapEmbed", className].filter(Boolean).join(" ");
@@ -64,21 +65,6 @@ export function DestinationMap({
         </div>
 
         <div className="destinationMapButtonRow">
-          <a
-            href={placeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="destinationMapButton destinationMapButtonGhost"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <path
-                d="m4 16 4.586-4.586a2 2 0 0 1 2.828 0L16 16m-2-2 1.586-1.586a2 2 0 0 1 2.828 0L20 14M14 8h.01M6 20h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span>{viewPhotosLabel}</span>
-          </a>
           <a
             href={directionsUrl}
             target="_blank"
