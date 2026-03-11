@@ -3,7 +3,7 @@ import type { DatasetDestination, DatasetRegionKey, Locale } from "@/types/datas
 import { createBlurDataUrl } from "@/lib/ui/image-placeholders";
 
 export const immersiveHeroImage = {
-  src: "https://images.unsplash.com/photo-1587308263718-296560e5a3e4?auto=format&fit=crop&w=1800&q=80",
+  src: "https://experienceoman.om/media/qarjles4/sultanqaboosmosque-02.jpg?width=2000",
   width: 1800,
   height: 1200,
   blurDataURL: createBlurDataUrl("#1b4255", "#d7b387")
@@ -43,7 +43,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "mountain",
     href: "?category=mountain",
     image: {
-      src: "https://images.unsplash.com/photo-1619112623845-29ecabba4ee8?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/qh1eyy5z/al-jabal-akhader-village.jpeg?width=1200",
       blurDataURL: createBlurDataUrl("#355f58", "#d4a574")
     },
     matcher: (destination) => destination.categories.includes("mountain")
@@ -52,7 +52,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "desert",
     href: "?category=desert",
     image: {
-      src: "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/uuya5lqu/bidiyah-sand.jpg?width=1200",
       blurDataURL: createBlurDataUrl("#7e5133", "#d7b07d")
     },
     matcher: (destination) => destination.categories.includes("desert")
@@ -61,7 +61,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "sea",
     href: "?category=beach",
     image: {
-      src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/2hxhk4q1/dhofar-mughsail-beach-salalah-dhofar-oman.jpg?width=1200",
       blurDataURL: createBlurDataUrl("#1a6077", "#87c9cf")
     },
     matcher: (destination) => destination.categories.includes("beach")
@@ -70,7 +70,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "culture",
     href: "?category=culture",
     image: {
-      src: "https://images.unsplash.com/photo-1578681994506-b8f463449011?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/wwpkr3b2/nizwa-fort.jpg?width=1200",
       blurDataURL: createBlurDataUrl("#5a4a3f", "#d8bf9d")
     },
     matcher: (destination) => destination.categories.includes("culture")
@@ -79,7 +79,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "nature",
     href: "?category=nature",
     image: {
-      src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/3xdbsftv/wadi-bani-khalid.jpg?width=1200",
       blurDataURL: createBlurDataUrl("#2f6858", "#b9d8ca")
     },
     matcher: (destination) => destination.categories.includes("nature")
@@ -88,7 +88,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "adventure",
     href: "?category=mountain",
     image: {
-      src: "https://images.unsplash.com/photo-1618828666498-eda61a79fbf4?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/pi5hwi50/jabal-sha-th.jpg?width=1200",
       blurDataURL: createBlurDataUrl("#8a5f3f", "#d8a978")
     },
     matcher: (destination) =>
@@ -100,7 +100,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "heritage",
     href: "?region=dakhiliya&category=culture",
     image: {
-      src: "https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/iwpckyac/bahla-fort.jpg?width=1200",
       blurDataURL: createBlurDataUrl("#69503f", "#dec4a3")
     },
     matcher: (destination) =>
@@ -110,7 +110,7 @@ const categoryConfigs: ImmersiveCategoryConfig[] = [
     id: "urban",
     href: "?region=muscat",
     image: {
-      src: "https://images.unsplash.com/photo-1597020642626-3c9b687eba70?auto=format&fit=crop&w=1200&q=80",
+      src: "https://experienceoman.om/media/j3vagryb/mutrah-riyam-park.jpg?width=1200",
       blurDataURL: createBlurDataUrl("#284f5e", "#d7a97a")
     },
     matcher: (destination) => destination.region.en === "muscat"

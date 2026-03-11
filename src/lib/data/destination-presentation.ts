@@ -24,103 +24,103 @@ const destinationHeroImages: Record<
   }
 > = {
   "muttrah-corniche": {
-    src: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/pa2krj1m/mutrah-fort.jpg?width=1200",
     theme: "culture"
   },
   "royal-opera-house-muscat": {
-    src: "https://images.unsplash.com/photo-1597020642626-3c9b687eba70?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/mwxfuodr/royal-opera-house-muscat-2.jpg?width=1200",
     theme: "urban"
   },
   "sultan-qaboos-grand-mosque": {
-    src: "https://images.unsplash.com/photo-1587308263718-296560e5a3e4?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/qarjles4/sultanqaboosmosque-02.jpg?width=1200",
     theme: "culture"
   },
   "qurum-beach": {
-    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/ie1fe1se/al-qurum-park.jpeg?width=1200",
     theme: "sea"
   },
   "bimmah-sinkhole": {
-    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/b0igbyt5/sifah.jpg?width=1200",
     theme: "nature"
   },
   "nizwa-fort": {
-    src: "https://images.unsplash.com/photo-1578681994506-b8f463449011?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/wwpkr3b2/nizwa-fort.jpg?width=1200",
     theme: "culture"
   },
   "jebel-akhdar": {
-    src: "https://images.unsplash.com/photo-1619112623845-29ecabba4ee8?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/qh1eyy5z/al-jabal-akhader-village.jpeg?width=1200",
     theme: "mountain"
   },
   "jebel-shams": {
-    src: "https://images.unsplash.com/photo-1618828666498-eda61a79fbf4?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/pi5hwi50/jabal-sha-th.jpg?width=1200",
     theme: "adventure"
   },
   "misfat-al-abriyeen": {
-    src: "https://images.unsplash.com/photo-1617713964959-7e94f2b07b24?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/hhclwfhp/rose-distillation.jpg?width=1200",
     theme: "heritage"
   },
   "bahla-fort": {
-    src: "https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/iwpckyac/bahla-fort.jpg?width=1200",
     theme: "heritage"
   },
   "birkat-al-mouz": {
-    src: "https://images.unsplash.com/photo-1617713964959-7e94f2b07b24?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/0eqdlgni/2.jpg?width=1200",
     theme: "culture"
   },
   "wahiba-sands": {
-    src: "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/uuya5lqu/bidiyah-sand.jpg?width=1200",
     theme: "desert"
   },
   "ras-al-jinz": {
-    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/gaqdbaks/ras-al-jinz-archeosite.jpg?width=1200",
     theme: "nature"
   },
   "wadi-bani-khalid": {
-    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/3xdbsftv/wadi-bani-khalid.jpg?width=1200",
     theme: "nature"
   },
   "sur-dhow-yard": {
-    src: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/j3vagryb/mutrah-riyam-park.jpg?width=1200",
     theme: "culture"
   },
   "fins-beach": {
-    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/b0igbyt5/sifah.jpg?width=1200",
     theme: "sea"
   },
   "salalah-waterfalls": {
-    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/cwtn32vw/wadi-darbat.jpg?width=1200",
     theme: "nature"
   },
   "mughsail-beach": {
-    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/2hxhk4q1/dhofar-mughsail-beach-salalah-dhofar-oman.jpg?width=1200",
     theme: "sea"
   },
   "anti-gravity-point": {
-    src: "https://images.unsplash.com/photo-1618828666498-eda61a79fbf4?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/vislnyhx/rakhyut-sha-th.jpg?width=1200",
     theme: "nature"
   },
   "jebel-samhan": {
-    src: "https://images.unsplash.com/photo-1619112623845-29ecabba4ee8?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/pi5hwi50/jabal-sha-th.jpg?width=1200",
     theme: "mountain"
   },
   "nakhal-fort": {
-    src: "https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/vuxgfzuq/khasab-fort-01.jpg?width=1200",
     theme: "heritage"
   },
   "ain-thowarah": {
-    src: "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/4k2j2wv2/wadi-darbat-02.jpg?width=1200",
     theme: "nature"
   },
   "sawadi-beach": {
-    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/b0igbyt5/sifah.jpg?width=1200",
     theme: "sea"
   },
   "khasab-fjords": {
-    src: "https://images.unsplash.com/photo-1578895101408-1a36b834405b?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/vuxgfzuq/khasab-fort-01.jpg?width=1200",
     theme: "nature"
   },
   "telegraph-island": {
-    src: "https://images.unsplash.com/photo-1559827260-dc638c9903b2?auto=format&fit=crop&w=1200&q=80",
+    src: "https://experienceoman.om/media/xoxl013q/khasab-fort-02.jpg?width=1200",
     theme: "sea"
   }
 };
@@ -221,7 +221,7 @@ export function getDestinationHeroImage(destination: DatasetDestination) {
   const theme = selected?.theme ?? pickTheme(destination);
 
   return {
-    src: selected?.src ?? "https://images.unsplash.com/photo-1625818788067-2e599965e4b0?auto=format&fit=crop&w=1200&q=80",
+    src: selected?.src ?? "https://experienceoman.om/media/3xdbsftv/wadi-bani-khalid.jpg?width=1200",
     width: imageDimensions.width,
     height: imageDimensions.height,
     theme
