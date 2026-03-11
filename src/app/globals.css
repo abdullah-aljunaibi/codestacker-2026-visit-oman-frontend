@@ -970,6 +970,146 @@ a {
   gap: 1rem;
 }
 
+.destinationMapEmbed,
+.destinationMapTitle,
+.destinationMapButtonRow,
+.destinationMapButton,
+.destinationMapActions {
+  display: flex;
+}
+
+.destinationMapEmbed {
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(10, 77, 92, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 240, 235, 0.96));
+  box-shadow:
+    0 24px 60px rgba(26, 26, 46, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.destinationMapFrame {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(212, 165, 116, 0.22), transparent 36%),
+    linear-gradient(135deg, rgba(10, 77, 92, 0.12), rgba(245, 240, 235, 0.78));
+}
+
+.destinationMapFrame::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 5rem;
+  background: linear-gradient(180deg, rgba(10, 77, 92, 0), rgba(10, 77, 92, 0.12));
+  pointer-events: none;
+}
+
+.destinationMapIframe {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.destinationMapActions {
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.1rem;
+  background: rgba(255, 255, 255, 0.78);
+  border-top: 1px solid rgba(10, 77, 92, 0.1);
+  backdrop-filter: blur(18px);
+}
+
+.destinationMapTitle {
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.destinationMapTitle strong {
+  display: block;
+  color: var(--ink);
+}
+
+.destinationMapLabel {
+  display: block;
+  margin-bottom: 0.18rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.destinationMapPin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(10, 77, 92, 0.12), rgba(212, 165, 116, 0.28));
+  color: var(--brand);
+  box-shadow: inset 0 0 0 1px rgba(10, 77, 92, 0.08);
+}
+
+.destinationMapPin svg,
+.destinationMapButton svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.destinationMapButtonRow {
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.destinationMapButton {
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease;
+}
+
+.destinationMapButton:hover {
+  transform: translateY(-1px);
+}
+
+.destinationMapButtonGhost {
+  color: var(--brand);
+  background: rgba(10, 77, 92, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(10, 77, 92, 0.06);
+}
+
+.destinationMapButtonGhost:hover {
+  background: rgba(10, 77, 92, 0.14);
+}
+
+.destinationMapButtonPrimary {
+  color: #fff;
+  background: linear-gradient(120deg, var(--brand), #126879);
+  box-shadow: 0 16px 32px rgba(10, 77, 92, 0.22);
+}
+
+.destinationMapButtonPrimary:hover {
+  box-shadow: 0 18px 34px rgba(10, 77, 92, 0.26);
+}
+
 .plannerCostHero {
   display: grid;
   gap: 0.2rem;
@@ -1503,7 +1643,9 @@ a {
 [dir="rtl"] .plannerLegendItem,
 [dir="rtl"] .plannerInlineChip,
 [dir="rtl"] .plannerChip,
-[dir="rtl"] .plannerReasonChip {
+[dir="rtl"] .plannerReasonChip,
+[dir="rtl"] .destinationMapTitle,
+[dir="rtl"] .destinationMapButton {
   flex-direction: row-reverse;
 }
 
@@ -2588,6 +2730,14 @@ pre {
   .siteFooterGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .destinationMapActions {
+    align-items: stretch;
+  }
+
+  .destinationMapButtonRow {
+    width: 100%;
+  }
 }
 
 @media (max-width: 720px) {
@@ -2603,6 +2753,14 @@ pre {
   .topnav,
   .topnavMain {
     align-items: flex-start;
+  }
+
+  .destinationMapButtonRow {
+    flex-direction: column;
+  }
+
+  .destinationMapButton {
+    width: 100%;
   }
 
   .heroStatsGrid,
@@ -2691,5 +2849,11 @@ pre {
 
   .mobileCtaBar .pill {
     min-height: 3.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .destinationMapFrame {
+    height: 500px;
   }
 }

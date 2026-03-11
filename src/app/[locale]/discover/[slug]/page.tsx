@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DestinationImage } from "@/components/destination-image";
-import { DestinationPreviewHydrated } from "@/components/maps/destination-preview-hydrated.client";
+import { DestinationMap } from "@/components/destination-map";
 import { SaveInterestButton } from "@/components/save-interest-button";
 import { SiteHeader } from "@/components/site-header";
 import { loadDestinations } from "@/lib/data/load-destinations";
@@ -10,7 +10,6 @@ import { normalizeDestinations } from "@/lib/data/normalize-destinations";
 import { getFeaturedDestinations } from "@/lib/data/selectors";
 import { resolveLocale } from "@/lib/i18n/config";
 import {
-  formatDecimal,
   formatTicketCost,
   getCategoryLabel,
   getMessages,
@@ -199,29 +198,12 @@ export default async function DestinationPage({
               <span>{messages.detail.mapLegendPin}</span>
             </div>
           </div>
-          <div className="detailMapFrame">
-            <div className="detailMapFrameHeader">
-              <div className="detailMapFrameStat">
-                <span>{messages.common.location}</span>
-                <strong>{destination.regionLabel}</strong>
-              </div>
-              <div className="detailMapFrameStat">
-                <span>{messages.common.coordinates}</span>
-                <strong>
-                  {messages.detail.coordinatesLabel
-                    .replace("{lat}", formatDecimal(destination.coordinates.lat, locale, 4))
-                    .replace("{lng}", formatDecimal(destination.coordinates.lng, locale, 4))}
-                </strong>
-              </div>
-            </div>
-            <div>
-              <DestinationPreviewHydrated
-                lat={destination.coordinates.lat}
-                lng={destination.coordinates.lng}
-                title={destination.name[locale]}
-              />
-            </div>
-          </div>
+          <DestinationMap
+            name={destination.name[locale]}
+            lat={destination.coordinates.lat}
+            lng={destination.coordinates.lng}
+            locale={locale}
+          />
         </section>
 
         <section className="card sectionCard">
