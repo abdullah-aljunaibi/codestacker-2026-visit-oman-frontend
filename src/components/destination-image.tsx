@@ -1,6 +1,6 @@
-"use client";
-import { useEffect, useRef, useState } from "react";
-import { getImage, storeImage } from "@/lib/image-store";
+import Image from "next/image";
+
+import { createBlurDataUrl } from "@/lib/ui/image-placeholders";
 import type { Destination } from "@/types/domain";
 import type { Locale } from "@/types/dataset";
 
@@ -15,60 +15,27 @@ export function DestinationImage({
   priority?: boolean;
   className?: string;
 }) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [imgSrc, setImgSrc] = useState(destination.heroImage.src);
-
-  useEffect(() => {
-    getImage("hero_" + destination.slug).then(stored => {
-      if (stored) setImgSrc(stored);
-    });
-  }, [destination.slug]);
-
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Resize before storing to save space
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const maxW = 1200;
-      const scale = Math.min(1, maxW / img.width);
-      canvas.width = img.width * scale;
-      canvas.height = img.height * scale;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-      storeImage("hero_" + destination.slug, dataUrl).then(() => {
-        setImgSrc(dataUrl);
-      });
-    };
-    img.src = URL.createObjectURL(file);
-  };
+  const blurDataURL =
+    destination.heroImage.theme === "desert"
+      ? createBlurDataUrl("#8a5f3f", "#ddb583")
+      : destination.heroImage.theme === "sea"
+        ? createBlurDataUrl("#215f74", "#9cd4d9")
+        : destination.heroImage.theme === "culture" || destination.heroImage.theme === "heritage"
+          ? createBlurDataUrl("#5f4c3f", "#dec5a7")
+          : createBlurDataUrl("#35695a", "#b9d7c7");
 
   return (
-    <div className={className} style={{ position: "relative" }}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={imgSrc}
+    <div className={className}>
+      <Image
+        src={destination.heroImage.src}
         alt={destination.name[locale]}
+        width={destination.heroImage.width}
+        height={destination.heroImage.height}
         className="destinationImageMedia"
-        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        loading={priority ? "eager" : "lazy"}
-      />
-      <button
-        className="imageUploadBtn"
-        onClick={() => fileRef.current?.click()}
-        title="Upload replacement image"
-        aria-label="Upload replacement image"
-      >
-        📷
-      </button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        onChange={handleUpload}
-        style={{ display: "none" }}
+        sizes="(max-width: 720px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        priority={priority}
+        placeholder="blur"
+        blurDataURL={blurDataURL}
       />
     </div>
   );
