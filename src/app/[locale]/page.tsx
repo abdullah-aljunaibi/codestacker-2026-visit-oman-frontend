@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { CategoryExplorationCard } from "@/components/category-exploration-card";
 import { DestinationCard } from "@/components/destination-card";
 import { DestinationImage } from "@/components/destination-image";
 import { ImmersiveHero } from "@/components/immersive-hero";
@@ -112,31 +111,7 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
         <ImmersiveHero locale={locale} destinationCount={destinations.length} regionCount={regions.length} />
       </div>
 
-      <div className="shell">
-        <RevealSection className="sectionBlock">
-          <div id="category-exploration" className="sectionAnchor" />
-          <div className="sectionHeading">
-            <div>
-              <span className="kicker">{messages.home.sectionsTitle}</span>
-              <h2>{messages.home.sectionsTitle}</h2>
-            </div>
-            <p>{messages.home.sectionsBody}</p>
-          </div>
-
-          <div className="categoryExplorationGrid">
-            {categoryCards.map((category) => (
-              <CategoryExplorationCard
-                key={category.id}
-                locale={locale}
-                title={category.title}
-                href={category.href}
-                count={category.count}
-                image={category.image}
-              />
-            ))}
-          </div>
-        </RevealSection>
-      </div>
+      <div id="category-exploration" className="sectionAnchor" />
 
       <div className="shell">
         <RevealSection className="sectionBlock">
