@@ -52,7 +52,7 @@ const regionAccentMap: Record<DatasetRegionKey, { solid: string; soft: string }>
   sharqiya: { solid: "#2563eb", soft: "rgba(37, 99, 235, 0.12)" },
   dhofar: { solid: "#3f8f4d", soft: "rgba(63, 143, 77, 0.12)" },
   batinah: { solid: "#7c3aed", soft: "rgba(124, 58, 237, 0.12)" },
-  dhahira: { solid: "#be185d", soft: "rgba(190, 24, 93, 0.12)" }
+  musandam: { solid: "#be185d", soft: "rgba(190, 24, 93, 0.12)" }
 };
 
 function getRegionAccent(regionKey: string) {

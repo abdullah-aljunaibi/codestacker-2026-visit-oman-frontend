@@ -5,7 +5,7 @@ export interface LocalizedText {
   ar: string;
 }
 
-export type DatasetRegionKey = "muscat" | "dakhiliya" | "sharqiya" | "dhofar" | "batinah" | "dhahira";
+export type DatasetRegionKey = "muscat" | "dakhiliya" | "sharqiya" | "dhofar" | "batinah" | "musandam";
 export type DatasetCategory = "mountain" | "beach" | "culture" | "desert" | "nature" | "food";
 export type DatasetCrowdLevel = 1 | 2 | 3 | 4 | 5;
 
@@ -25,4 +25,6 @@ export interface DatasetDestination {
   ticket_cost_omr: number;
   avg_visit_duration_minutes: number;
   crowd_level: DatasetCrowdLevel;
+  image: string;
+  images: string[];
 }

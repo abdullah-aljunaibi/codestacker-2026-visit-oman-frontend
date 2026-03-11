@@ -1,6 +1,12 @@
 import type { DatasetDestination } from "@/types/dataset";
 
-export const challengeDatasetVersion = "challenge-dataset.v4";
+const EXPERIENCE_OMAN_IMAGE_BASE = "https://experienceoman.om/media";
+
+function image(path: string) {
+  return `${EXPERIENCE_OMAN_IMAGE_BASE}/${path}?width=1200`;
+}
+
+export const challengeDatasetVersion = "challenge-dataset.v5";
 
 export const challengeDataset: DatasetDestination[] = [
   {
@@ -15,7 +21,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 180,
     crowd_level: 4,
-    company: { en: "Muttrah Waterfront", ar: "Muttrah Waterfront" }
+    company: { en: "Muttrah Waterfront", ar: "Muttrah Waterfront" },
+    image: image("pa2krj1m/mutrah-fort.jpg"),
+    images: [image("b3fhbz4t/mirani-fort-01.jpg"), image("qigozjmy/national-museum.jpg")]
   },
   {
     id: "d_muscat_opera",
@@ -29,7 +37,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 8,
     avg_visit_duration_minutes: 120,
     crowd_level: 3,
-    company: { en: "Royal Opera House Muscat", ar: "Royal Opera House Muscat" }
+    company: { en: "Royal Opera House Muscat", ar: "Royal Opera House Muscat" },
+    image: image("mwxfuodr/royal-opera-house-muscat-2.jpg"),
+    images: [image("eflbky2v/rohm-03.jpg"), image("1ibdppgf/rohm-02.png")]
   },
   {
     id: "d_muscat_grand_mosque",
@@ -43,7 +53,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 150,
     crowd_level: 4,
-    company: { en: "Grand Mosque Visitor Centre", ar: "Grand Mosque Visitor Centre" }
+    company: { en: "Grand Mosque Visitor Centre", ar: "Grand Mosque Visitor Centre" },
+    image: image("qarjles4/sultanqaboosmosque-02.jpg"),
+    images: [image("q4jj5wxq/sultan-qaboos-grand-mosque.jpg"), image("11cl2ldi/sultan-qaboos-mosque-03.jpg")]
   },
   {
     id: "d_muscat_qurum",
@@ -57,7 +69,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 150,
     crowd_level: 3,
-    company: { en: "Qurum Beachfront", ar: "Qurum Beachfront" }
+    company: { en: "Qurum Beachfront", ar: "Qurum Beachfront" },
+    image: image("0rxbhivw/al-batinah-beach.jpg"),
+    images: [image("xlyhjf50/costal.jpg")]
   },
   {
     id: "d_muscat_bimmah",
@@ -71,7 +85,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 120,
     crowd_level: 4,
-    company: { en: "Hawiyat Najm Park", ar: "Hawiyat Najm Park" }
+    company: { en: "Hawiyat Najm Park", ar: "Hawiyat Najm Park" },
+    image: image("gtlj0id3/musandam-sea.jpg"),
+    images: []
   },
   {
     id: "d_dakhiliyah_nizwa_fort",
@@ -85,7 +101,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 5,
     avg_visit_duration_minutes: 240,
     crowd_level: 5,
-    company: { en: "Nizwa Fort", ar: "Nizwa Fort" }
+    company: { en: "Nizwa Fort", ar: "Nizwa Fort" },
+    image: image("wwpkr3b2/nizwa-fort.jpg"),
+    images: [image("ruyavd0v/nizwa-fort-02.jpg"), image("xbxbqeze/nizwa-fort-03.jpg")]
   },
   {
     id: "d_dakhiliyah_jebel_akhdar",
@@ -99,7 +117,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 12,
     avg_visit_duration_minutes: 480,
     crowd_level: 3,
-    company: { en: "Jebel Akhdar Escapes", ar: "Jebel Akhdar Escapes" }
+    company: { en: "Jebel Akhdar Escapes", ar: "Jebel Akhdar Escapes" },
+    image: image("qh1eyy5z/al-jabal-akhader-village.jpeg"),
+    images: [image("flaofhyk/rose-season-jabal-al-akhdar.jpg"), image("u4ehmkzz/jabal-al-akhdar-rose.jpg")]
   },
   {
     id: "d_dakhiliyah_jebel_shams",
@@ -113,7 +133,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 3,
     avg_visit_duration_minutes: 360,
     crowd_level: 3,
-    company: { en: "Jebel Shams Adventures", ar: "Jebel Shams Adventures" }
+    company: { en: "Jebel Shams Adventures", ar: "Jebel Shams Adventures" },
+    image: image("0h0dsofa/hotel-in-wadi-al-nakhar-wilayat-al-hamra.jpg"),
+    images: []
   },
   {
     id: "d_dakhiliyah_misfat",
@@ -127,7 +149,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 180,
     crowd_level: 2,
-    company: { en: "Misfat Heritage Walks", ar: "Misfat Heritage Walks" }
+    company: { en: "Misfat Heritage Walks", ar: "Misfat Heritage Walks" },
+    image: image("fkih3bw2/misfat-al-abriyeen.jpg"),
+    images: [image("qh1eyy5z/al-jabal-akhader-village.jpeg")]
   },
   {
     id: "d_dakhiliyah_bahla",
@@ -141,7 +165,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 3,
     avg_visit_duration_minutes: 150,
     crowd_level: 2,
-    company: { en: "Bahla Fort", ar: "Bahla Fort" }
+    company: { en: "Bahla Fort", ar: "Bahla Fort" },
+    image: image("iwpckyac/bahla-fort.jpg"),
+    images: [image("aetlwujh/bahla-fort-02.jpg"), image("0eqdlgni/2.jpg")]
   },
   {
     id: "d_dakhiliyah_birkat",
@@ -155,7 +181,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 120,
     crowd_level: 2,
-    company: { en: "Birkat Oasis Trails", ar: "Birkat Oasis Trails" }
+    company: { en: "Birkat Oasis Trails", ar: "Birkat Oasis Trails" },
+    image: image("pifause2/falaj-daris-nizwa.jpg"),
+    images: [image("iitjsukl/samail-fort.jpg")]
   },
   {
     id: "d_sharqiyah_wahiba",
@@ -169,7 +197,13 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 8,
     avg_visit_duration_minutes: 840,
     crowd_level: 4,
-    company: { en: "Sharqiyah Sands Camps", ar: "Sharqiyah Sands Camps" }
+    company: { en: "Sharqiyah Sands Camps", ar: "Sharqiyah Sands Camps" },
+    image: image("uuya5lqu/bidiyah-sand.jpg"),
+    images: [
+      image("3fzlsexb/sharqiyah-sand01.jpg"),
+      image("iwbcw4jg/sharqiyah-sand02.jpg"),
+      image("51bez3bt/bidiyah-camps.jpg")
+    ]
   },
   {
     id: "d_sharqiyah_ras_al_jinz",
@@ -183,7 +217,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 6,
     avg_visit_duration_minutes: 300,
     crowd_level: 3,
-    company: { en: "Ras Al Jinz Turtle Reserve", ar: "Ras Al Jinz Turtle Reserve" }
+    company: { en: "Ras Al Jinz Turtle Reserve", ar: "Ras Al Jinz Turtle Reserve" },
+    image: image("gaqdbaks/ras-al-jinz-archeosite.jpg"),
+    images: [image("sntfpiah/rass.jpg")]
   },
   {
     id: "d_sharqiyah_wadi_bani_khalid",
@@ -197,7 +233,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 240,
     crowd_level: 4,
-    company: { en: "Wadi Bani Khalid", ar: "Wadi Bani Khalid" }
+    company: { en: "Wadi Bani Khalid", ar: "Wadi Bani Khalid" },
+    image: image("3xdbsftv/wadi-bani-khalid.jpg"),
+    images: [image("lkmcnkla/wadi-dima-wa-ttayeen.jpg")]
   },
   {
     id: "d_sharqiyah_sur",
@@ -211,7 +249,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 2,
     avg_visit_duration_minutes: 90,
     crowd_level: 2,
-    company: { en: "Sur Maritime Heritage", ar: "Sur Maritime Heritage" }
+    company: { en: "Sur Maritime Heritage", ar: "Sur Maritime Heritage" },
+    image: image("xr5ffdlh/bibi-miriam.jpg"),
+    images: []
   },
   {
     id: "d_sharqiyah_fins",
@@ -225,7 +265,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 180,
     crowd_level: 3,
-    company: { en: "Fins Coast", ar: "Fins Coast" }
+    company: { en: "Fins Coast", ar: "Fins Coast" },
+    image: image("4axpjaje/al-ashkharah.jpg"),
+    images: [image("1wkjauyr/masirah-island.jpg")]
   },
   {
     id: "d_dhofar_salalah_gardens",
@@ -239,7 +281,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 210,
     crowd_level: 4,
-    company: { en: "Dhofar Nature Sites", ar: "Dhofar Nature Sites" }
+    company: { en: "Dhofar Nature Sites", ar: "Dhofar Nature Sites" },
+    image: image("cwtn32vw/wadi-darbat.jpg"),
+    images: [image("4k2j2wv2/wadi-darbat-02.jpg")]
   },
   {
     id: "d_dhofar_mughsail",
@@ -253,7 +297,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 180,
     crowd_level: 3,
-    company: { en: "Mughsail Coast", ar: "Mughsail Coast" }
+    company: { en: "Mughsail Coast", ar: "Mughsail Coast" },
+    image: image("2hxhk4q1/dhofar-mughsail-beach-salalah-dhofar-oman.jpg"),
+    images: [image("mkwn3u3c/maghsil.jpg")]
   },
   {
     id: "d_dhofar_anti_gravity",
@@ -267,7 +313,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 45,
     crowd_level: 2,
-    company: { en: "Salalah Scenic Route", ar: "Salalah Scenic Route" }
+    company: { en: "Salalah Scenic Route", ar: "Salalah Scenic Route" },
+    image: image("014f2tvn/mirbat.jpg"),
+    images: []
   },
   {
     id: "d_dhofar_samhan",
@@ -281,7 +329,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 2,
     avg_visit_duration_minutes: 240,
     crowd_level: 2,
-    company: { en: "Jebel Samhan Reserve", ar: "Jebel Samhan Reserve" }
+    company: { en: "Jebel Samhan Reserve", ar: "Jebel Samhan Reserve" },
+    image: image("2mdlz5eq/jabal-musandam.jpeg"),
+    images: [image("3cihtzrs/musandam-farms.jpg")]
   },
   {
     id: "d_batinah_nakhal",
@@ -295,7 +345,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 3,
     avg_visit_duration_minutes: 120,
     crowd_level: 3,
-    company: { en: "Nakhal Fort", ar: "Nakhal Fort" }
+    company: { en: "Nakhal Fort", ar: "Nakhal Fort" },
+    image: image("4ihfossf/alrustq-habtah.jpg"),
+    images: [image("ajwfkyjs/ain-al-kasfa.jpg")]
   },
   {
     id: "d_batinah_hot_springs",
@@ -309,7 +361,9 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 0,
     avg_visit_duration_minutes: 90,
     crowd_level: 3,
-    company: { en: "Ain Thowarah Springs", ar: "Ain Thowarah Springs" }
+    company: { en: "Ain Thowarah Springs", ar: "Ain Thowarah Springs" },
+    image: image("gild4kp2/snake-canyon-wilayat-rustaq.jpg"),
+    images: []
   },
   {
     id: "d_batinah_sawadi",
@@ -323,13 +377,15 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 2,
     avg_visit_duration_minutes: 180,
     crowd_level: 3,
-    company: { en: "Sawadi Coast", ar: "Sawadi Coast" }
+    company: { en: "Sawadi Coast", ar: "Sawadi Coast" },
+    image: image("gv2dch5b/al-batinah.jpg"),
+    images: [image("0rxbhivw/al-batinah-beach.jpg")]
   },
   {
     id: "d_musandam_khasab",
     slug: "khasab-fjords",
     name: { en: "Khasab Fjords", ar: "خلجان خصب" },
-    region: { en: "dhahira", ar: "الظاهرة" },
+    region: { en: "musandam", ar: "مسندم" },
     lat: 26.205388,
     lng: 56.250109,
     categories: ["beach", "nature"],
@@ -337,13 +393,15 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 18,
     avg_visit_duration_minutes: 300,
     crowd_level: 3,
-    company: { en: "Khasab Dhow Cruises", ar: "Khasab Dhow Cruises" }
+    company: { en: "Khasab Dhow Cruises", ar: "Khasab Dhow Cruises" },
+    image: image("vuxgfzuq/khasab-fort-01.jpg"),
+    images: [image("xoxl013q/khasab-fort-02.jpg")]
   },
   {
     id: "d_musandam_telegraph",
     slug: "telegraph-island",
     name: { en: "Telegraph Island", ar: "جزيرة التلغراف" },
-    region: { en: "dhahira", ar: "الظاهرة" },
+    region: { en: "musandam", ar: "مسندم" },
     lat: 26.2193,
     lng: 56.3358,
     categories: ["culture", "beach"],
@@ -351,6 +409,11 @@ export const challengeDataset: DatasetDestination[] = [
     ticket_cost_omr: 20,
     avg_visit_duration_minutes: 240,
     crowd_level: 2,
-    company: { en: "Musandam Sea Adventures", ar: "Musandam Sea Adventures" }
+    company: { en: "Musandam Sea Adventures", ar: "Musandam Sea Adventures" },
+    image: image("azbfjshr/wilayat-khasab-khor-najd.jpg"),
+    images: [
+      image("gtlj0id3/musandam-sea.jpg"),
+      image("fyunxsmy/wilayat-khasab-world-resort-cruise-ship.jpg")
+    ]
   }
 ];

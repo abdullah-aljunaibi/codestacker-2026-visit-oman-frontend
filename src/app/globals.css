@@ -1801,6 +1801,141 @@ pre {
   position: relative;
 }
 
+.categoryShowcase {
+  position: relative;
+  margin-top: 2rem;
+}
+
+.categoryShowcaseVisual {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: clip;
+}
+
+.categoryShowcaseBackground,
+.categoryShowcaseVeil {
+  position: absolute;
+  inset: 0;
+}
+
+.categoryShowcaseBackground {
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.categoryShowcaseBackground.isActive {
+  opacity: 1;
+}
+
+.categoryShowcaseBackgroundImage {
+  object-fit: cover;
+}
+
+.categoryShowcaseVeil {
+  background:
+    linear-gradient(90deg, rgba(8, 17, 24, 0.82) 0%, rgba(8, 17, 24, 0.45) 42%, rgba(8, 17, 24, 0.7) 100%),
+    linear-gradient(180deg, rgba(8, 17, 24, 0.12) 0%, rgba(8, 17, 24, 0.46) 100%);
+}
+
+.categoryShowcaseScroller {
+  position: relative;
+  z-index: 1;
+  margin-top: -100vh;
+  margin-top: calc(-1 * 100svh);
+}
+
+.categoryShowcasePanel {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  width: min(var(--shell-width), calc(100vw - 2rem));
+  margin: 0 auto;
+  padding-block: 2rem;
+}
+
+.categoryShowcasePanelInner {
+  width: min(32rem, 100%);
+  display: grid;
+  gap: 1rem;
+  padding: 1.6rem;
+  border-radius: 28px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 28px 80px rgba(5, 11, 18, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.categoryShowcaseEyebrow {
+  display: inline-flex;
+  justify-self: start;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.categoryShowcasePanelInner h2,
+.categoryShowcasePanelInner p {
+  margin: 0;
+}
+
+.categoryShowcasePanelInner h2 {
+  font-size: clamp(2.6rem, 6vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.categoryShowcasePanelInner p {
+  max-width: 30rem;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 1.03rem;
+}
+
+.categoryShowcaseCta {
+  justify-self: start;
+}
+
+@media (max-width: 900px) {
+  .categoryShowcasePanel {
+    align-items: flex-end;
+  }
+
+  .categoryShowcasePanelInner {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .categoryShowcase {
+    margin-top: 1.5rem;
+  }
+
+  .categoryShowcasePanel {
+    padding-block: 1.25rem;
+  }
+
+  .categoryShowcasePanelInner {
+    padding: 1.2rem;
+    border-radius: 22px;
+  }
+
+  .categoryShowcasePanelInner h2 {
+    font-size: clamp(2.2rem, 12vw, 3.4rem);
+  }
+
+  .categoryShowcasePanelInner p {
+    font-size: 0.98rem;
+  }
+}
+
 .categoryExplorationCard {
   position: relative;
   min-height: 18rem;

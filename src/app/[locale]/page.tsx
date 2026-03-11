@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { CategoryShowcase } from "@/components/category-showcase";
 import { CategoryExplorationCard } from "@/components/category-exploration-card";
 import { DestinationCard } from "@/components/destination-card";
 import { DestinationImage } from "@/components/destination-image";
@@ -33,6 +34,75 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
   }));
   const categoryCards = getImmersiveCategoryCards(destinations, locale);
   const regionHighlights = getRegionHighlights(destinations, locale);
+  const showcaseItems = [
+    {
+      slug: "nizwa-fort",
+      category: locale === "ar" ? "ثقافة" : "Culture",
+      label: normalizedBySlug.get("nizwa-fort")!.name[locale],
+      description:
+        locale === "ar"
+          ? "حصون وأسواق وحكايات عمرانية تمنحك قراءة واضحة لذاكرة عُمان الحية."
+          : "Forts, souqs, and living architecture frame a category rooted in Oman's cultural memory.",
+      href: `/${locale}/discover?category=culture`
+    },
+    {
+      slug: "wadi-bani-khalid",
+      category: locale === "ar" ? "طبيعة" : "Nature",
+      label: normalizedBySlug.get("wadi-bani-khalid")!.name[locale],
+      description:
+        locale === "ar"
+          ? "أودية ومياه صافية وتوقفات هوائية أهدأ تشكل النسخة الأكثر انتعاشاً من الرحلة."
+          : "Clear pools, canyon walls, and slower air define the most restorative side of the journey.",
+      href: `/${locale}/discover?category=nature`
+    },
+    {
+      slug: "jebel-akhdar",
+      category: locale === "ar" ? "جبال" : "Mountain",
+      label: normalizedBySlug.get("jebel-akhdar")!.name[locale],
+      description:
+        locale === "ar"
+          ? "قرى معلقة ومرتفعات مزروعة وطرق بانورامية تعطي الجبال حضورها الكامل."
+          : "Terraced villages, high-altitude farms, and long views give the mountain category its edge.",
+      href: `/${locale}/discover?category=mountain`
+    },
+    {
+      slug: "wahiba-sands",
+      category: locale === "ar" ? "صحراء" : "Desert",
+      label: normalizedBySlug.get("wahiba-sands")!.name[locale],
+      description:
+        locale === "ar"
+          ? "تموجات رملية ومعسكرات مفتوحة وضوء متغير يجعل الصحراء تجربة إيقاع ومشهد معاً."
+          : "Rolling dunes, open camps, and shifting light turn the desert into a category of rhythm and scale.",
+      href: `/${locale}/discover?category=desert`
+    },
+    {
+      slug: "mughsail-beach",
+      category: locale === "ar" ? "شاطئ" : "Beach",
+      label: normalizedBySlug.get("mughsail-beach")!.name[locale],
+      description:
+        locale === "ar"
+          ? "سواحل ممتدة ومياه مفتوحة وخط أفق نظيف يضع البحر في الواجهة."
+          : "Long shorelines, open water, and clean horizons put the coast front and center.",
+      href: `/${locale}/discover?category=beach`
+    },
+    {
+      slug: "jebel-shams",
+      category: locale === "ar" ? "مغامرة" : "Adventure",
+      label: normalizedBySlug.get("jebel-shams")!.name[locale],
+      description:
+        locale === "ar"
+          ? "حواف مرتفعة ومسارات أطول ومشهد واسع يرفع كثافة اليوم ويكافئ التقدم للأعلى."
+          : "Higher ridgelines, longer routes, and dramatic elevation make this the category with the most momentum.",
+      href: `/${locale}/discover?category=mountain`
+    }
+  ].map((item) => ({
+    id: item.slug,
+    title: item.category,
+    description: item.description,
+    href: item.href,
+    image: normalizedBySlug.get(item.slug)!.heroImage.src,
+    label: item.label
+  }));
 
   return (
     <main className="page pageHome">
@@ -67,7 +137,15 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
             ))}
           </div>
         </RevealSection>
+      </div>
 
+      <CategoryShowcase
+        items={showcaseItems}
+        ariaLabel={locale === "ar" ? "عرض الفئات" : "Category showcase"}
+        ctaLabel={locale === "ar" ? "استكشف" : "Explore"}
+      />
+
+      <div className="shell">
         <RevealSection className="sectionBlock">
           <div className="sectionHeading">
             <div>

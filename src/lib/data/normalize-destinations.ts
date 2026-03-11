@@ -15,7 +15,7 @@ const regionLabelsEn: Record<DatasetDestination["region"]["en"], string> = {
   sharqiya: "Sharqiya",
   dhofar: "Dhofar",
   batinah: "Batinah",
-  dhahira: "Dhahira"
+  musandam: "Musandam"
 };
 
 export function getRegionKey(
@@ -56,6 +56,11 @@ export function normalizeDestination(
       lng: destination.lng
     },
     heroImage: getDestinationHeroImage(destination),
+    galleryImages: destination.images.map((src) => ({
+      src,
+      width: 1200,
+      height: 800
+    })),
     description: buildDestinationDescription(destination),
     budgetLevel: deriveBudgetLevel(destination.ticket_cost_omr),
     recommendedDurationHours: minutesToHours(destination.avg_visit_duration_minutes),

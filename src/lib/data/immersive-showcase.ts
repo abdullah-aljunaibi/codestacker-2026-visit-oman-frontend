@@ -35,7 +35,7 @@ export const regionAccentByKey: Record<DatasetRegionKey, string> = {
   sharqiya: "#D4A574",
   dhofar: "#4C8B6B",
   batinah: "#2E6F89",
-  dhahira: "#B86A42"
+  musandam: "#B86A42"
 };
 
 type ImmersiveCategoryId =

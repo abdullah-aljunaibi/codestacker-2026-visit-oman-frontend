@@ -16,115 +16,6 @@ const imageDimensions = {
   height: 800
 } as const;
 
-const destinationHeroImages: Record<
-  string,
-  {
-    src: string;
-    theme: ImageTheme;
-  }
-> = {
-  "muttrah-corniche": {
-    src: "https://experienceoman.om/media/pa2krj1m/mutrah-fort.jpg?width=1200",
-    theme: "culture"
-  },
-  "royal-opera-house-muscat": {
-    src: "https://experienceoman.om/media/mwxfuodr/royal-opera-house-muscat-2.jpg?width=1200",
-    theme: "urban"
-  },
-  "sultan-qaboos-grand-mosque": {
-    src: "https://experienceoman.om/media/qarjles4/sultanqaboosmosque-02.jpg?width=1200",
-    theme: "culture"
-  },
-  "qurum-beach": {
-    src: "https://experienceoman.om/media/ie1fe1se/al-qurum-park.jpeg?width=1200",
-    theme: "sea"
-  },
-  "bimmah-sinkhole": {
-    src: "https://experienceoman.om/media/b0igbyt5/sifah.jpg?width=1200",
-    theme: "nature"
-  },
-  "nizwa-fort": {
-    src: "https://experienceoman.om/media/wwpkr3b2/nizwa-fort.jpg?width=1200",
-    theme: "culture"
-  },
-  "jebel-akhdar": {
-    src: "https://experienceoman.om/media/qh1eyy5z/al-jabal-akhader-village.jpeg?width=1200",
-    theme: "mountain"
-  },
-  "jebel-shams": {
-    src: "https://experienceoman.om/media/pi5hwi50/jabal-sha-th.jpg?width=1200",
-    theme: "adventure"
-  },
-  "misfat-al-abriyeen": {
-    src: "https://experienceoman.om/media/hhclwfhp/rose-distillation.jpg?width=1200",
-    theme: "heritage"
-  },
-  "bahla-fort": {
-    src: "https://experienceoman.om/media/iwpckyac/bahla-fort.jpg?width=1200",
-    theme: "heritage"
-  },
-  "birkat-al-mouz": {
-    src: "https://experienceoman.om/media/0eqdlgni/2.jpg?width=1200",
-    theme: "culture"
-  },
-  "wahiba-sands": {
-    src: "https://experienceoman.om/media/uuya5lqu/bidiyah-sand.jpg?width=1200",
-    theme: "desert"
-  },
-  "ras-al-jinz": {
-    src: "https://experienceoman.om/media/gaqdbaks/ras-al-jinz-archeosite.jpg?width=1200",
-    theme: "nature"
-  },
-  "wadi-bani-khalid": {
-    src: "https://experienceoman.om/media/3xdbsftv/wadi-bani-khalid.jpg?width=1200",
-    theme: "nature"
-  },
-  "sur-dhow-yard": {
-    src: "https://experienceoman.om/media/j3vagryb/mutrah-riyam-park.jpg?width=1200",
-    theme: "culture"
-  },
-  "fins-beach": {
-    src: "https://experienceoman.om/media/b0igbyt5/sifah.jpg?width=1200",
-    theme: "sea"
-  },
-  "salalah-waterfalls": {
-    src: "https://experienceoman.om/media/cwtn32vw/wadi-darbat.jpg?width=1200",
-    theme: "nature"
-  },
-  "mughsail-beach": {
-    src: "https://experienceoman.om/media/2hxhk4q1/dhofar-mughsail-beach-salalah-dhofar-oman.jpg?width=1200",
-    theme: "sea"
-  },
-  "anti-gravity-point": {
-    src: "https://experienceoman.om/media/vislnyhx/rakhyut-sha-th.jpg?width=1200",
-    theme: "nature"
-  },
-  "jebel-samhan": {
-    src: "https://experienceoman.om/media/pi5hwi50/jabal-sha-th.jpg?width=1200",
-    theme: "mountain"
-  },
-  "nakhal-fort": {
-    src: "https://experienceoman.om/media/vuxgfzuq/khasab-fort-01.jpg?width=1200",
-    theme: "heritage"
-  },
-  "ain-thowarah": {
-    src: "https://experienceoman.om/media/4k2j2wv2/wadi-darbat-02.jpg?width=1200",
-    theme: "nature"
-  },
-  "sawadi-beach": {
-    src: "https://experienceoman.om/media/b0igbyt5/sifah.jpg?width=1200",
-    theme: "sea"
-  },
-  "khasab-fjords": {
-    src: "https://experienceoman.om/media/vuxgfzuq/khasab-fort-01.jpg?width=1200",
-    theme: "nature"
-  },
-  "telegraph-island": {
-    src: "https://experienceoman.om/media/xoxl013q/khasab-fort-02.jpg?width=1200",
-    theme: "sea"
-  }
-};
-
 function pickTheme(destination: DatasetDestination): ImageTheme {
   const { categories, crowd_level, avg_visit_duration_minutes, region } = destination;
 
@@ -217,11 +108,10 @@ export function buildDestinationDescription(destination: DatasetDestination): Lo
 }
 
 export function getDestinationHeroImage(destination: DatasetDestination) {
-  const selected = destinationHeroImages[destination.slug];
-  const theme = selected?.theme ?? pickTheme(destination);
+  const theme = pickTheme(destination);
 
   return {
-    src: selected?.src ?? "https://experienceoman.om/media/3xdbsftv/wadi-bani-khalid.jpg?width=1200",
+    src: destination.image,
     width: imageDimensions.width,
     height: imageDimensions.height,
     theme
