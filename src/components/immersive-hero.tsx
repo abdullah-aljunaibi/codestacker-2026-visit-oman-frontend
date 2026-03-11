@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { immersiveHeroImages } from "@/lib/data/immersive-showcase";
 import type { Locale } from "@/types/dataset";
 
 export function ImmersiveHero({
@@ -44,18 +43,26 @@ export function ImmersiveHero({
         style={{ transform: `translate3d(0, ${parallaxOffset}px, 0) scale(1.12)` }}
         aria-hidden="true"
       >
-        {immersiveHeroImages.map((image, index) => (
-          <span
-            key={image.src}
-            className="immersiveHeroSlide"
-            style={
-              {
-                backgroundImage: `url('${image.src}')`,
-                animationDelay: `${index * 6}s`
-              } as React.CSSProperties
-            }
-          />
-        ))}
+        <iframe
+          src="https://www.youtube.com/embed/Ki_Cjln0dFg?autoplay=1&mute=1&loop=1&playlist=Ki_Cjln0dFg&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+          title="Visit Oman"
+          allow="autoplay; encrypted-media"
+          allowFullScreen
+          className="immersiveHeroVideo"
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            width: "120vw",
+            height: "120vh",
+            minWidth: "120vw",
+            minHeight: "120vh",
+            transform: "translate(-50%, -50%)",
+            border: "none",
+            objectFit: "cover",
+            pointerEvents: "none"
+          }}
+        />
       </div>
       <span className="immersiveHeroGradient" aria-hidden="true" />
       <div className="shell immersiveHeroContent">

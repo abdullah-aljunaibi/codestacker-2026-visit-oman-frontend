@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { CategoryShowcase } from "@/components/category-showcase";
 import { CategoryExplorationCard } from "@/components/category-exploration-card";
 import { DestinationCard } from "@/components/destination-card";
 import { DestinationImage } from "@/components/destination-image";
@@ -138,12 +137,6 @@ export default async function LocaleHomePage({ params }: { params: Promise<{ loc
           </div>
         </RevealSection>
       </div>
-
-      <CategoryShowcase
-        items={showcaseItems}
-        ariaLabel={locale === "ar" ? "عرض الفئات" : "Category showcase"}
-        ctaLabel={locale === "ar" ? "استكشف" : "Explore"}
-      />
 
       <div className="shell">
         <RevealSection className="sectionBlock">
