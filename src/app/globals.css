@@ -2756,6 +2756,10 @@ pre {
     align-items: flex-start;
   }
 
+  .navlinks {
+    display: none;
+  }
+
   .destinationMapButtonRow {
     flex-direction: column;
   }
@@ -2834,22 +2838,44 @@ pre {
 
   .mobileCtaBar {
     display: block;
-    position: sticky;
+    position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
     z-index: 40;
-    padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(245, 240, 235, 0) 0%, rgba(245, 240, 235, 0.96) 32%);
+    padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+    background: rgba(26, 26, 46, 0.95);
     backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .mobileCtaBarInner {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
   }
 
-  .mobileCtaBar .pill {
-    min-height: 3.25rem;
+  .mobileTab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.55);
+    text-decoration: none;
+    border-radius: 10px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    text-align: center;
+  }
+
+  .mobileTab:hover {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .mobileTabActive {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
   }
 }
 
