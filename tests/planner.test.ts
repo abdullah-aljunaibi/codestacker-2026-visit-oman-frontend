@@ -423,8 +423,10 @@ describe("cost model constants", () => {
     expect(tripCostConfig.vehicleKmPerLiter).toBe(12);
   });
 
-  it("has correct food cost", () => {
-    expect(tripCostConfig.foodCostOmrPerDay).toBe(6);
+  it("has correct food cost per budget tier", () => {
+    expect(tripCostConfig.foodCostOmrPerDay.low).toBe(6);
+    expect(tripCostConfig.foodCostOmrPerDay.medium).toBe(10);
+    expect(tripCostConfig.foodCostOmrPerDay.luxury).toBe(18);
   });
 
   it("has correct hotel rates", () => {

@@ -148,7 +148,7 @@ function computeTripCostState(input: {
     (totalKm / tripCostConfig.vehicleKmPerLiter) * tripCostConfig.fuelPriceOmrPerLiter,
     2
   );
-  const foodCostOmr = deterministicRound(tripCostConfig.foodCostOmrPerDay * input.tripDays, 2);
+  const foodCostOmr = deterministicRound(tripCostConfig.foodCostOmrPerDay[input.budgetLevel] * input.tripDays, 2);
   const hotelCostOmr = deterministicRound(
     tripCostConfig.hotelNightlyRateOmr[input.budgetLevel] * Math.max(input.tripDays - 1, 0),
     2

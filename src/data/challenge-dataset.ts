@@ -28,7 +28,7 @@ export const challengeDataset: DatasetDestination[] = [
     lng: 58.468563,
     categories: ["culture"],
     recommended_months: [10, 11, 12, 1, 2, 3, 4],
-    ticket_cost_omr: 8,
+    ticket_cost_omr: 4,
     avg_visit_duration_minutes: 120,
     crowd_level: 3,
     company: { en: "Royal Opera House Muscat", ar: "Royal Opera House Muscat" },

@@ -5,7 +5,11 @@ import type { PlannerPhase5CFinalItinerary } from "@/lib/planner/final-itinerary
 export const tripCostConfig = {
   fuelPriceOmrPerLiter: 0.24,
   vehicleKmPerLiter: 12,
-  foodCostOmrPerDay: 6,
+  foodCostOmrPerDay: {
+    low: 6,
+    medium: 10,
+    luxury: 18
+  },
   hotelNightlyRateOmr: {
     low: 20,
     medium: 45,
@@ -63,7 +67,7 @@ export function calculateTripCostBreakdown(input: {
   const fuelCostOmr = roundCurrency(
     (totalKm / tripCostConfig.vehicleKmPerLiter) * tripCostConfig.fuelPriceOmrPerLiter
   );
-  const foodCostOmr = roundCurrency(tripCostConfig.foodCostOmrPerDay * tripDays);
+  const foodCostOmr = roundCurrency(tripCostConfig.foodCostOmrPerDay[budgetTier] * tripDays);
   const hotelCostOmr = roundCurrency(
     tripCostConfig.hotelNightlyRateOmr[budgetTier] * Math.max(tripDays - 1, 0)
   );

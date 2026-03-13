@@ -1132,6 +1132,7 @@ a {
   position: relative;
   display: grid;
   gap: 0.55rem;
+  padding-bottom: 1.4rem;
 }
 
 .plannerCostBar {

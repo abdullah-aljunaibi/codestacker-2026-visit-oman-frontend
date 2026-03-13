@@ -92,7 +92,7 @@ const defaultSelectionConfig: CandidateSelectionConfig = {
   version: "phase-4c-v2",
   minCandidateCount: 3,
   maxCandidateCount: 10,
-  minViableScore: 0.4,
+  minViableScore: 0.20,
   intensityMultipliers: {
     relaxed: 1,
     balanced: 1.25,
